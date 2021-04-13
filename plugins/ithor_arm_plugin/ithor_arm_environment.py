@@ -326,7 +326,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                 action_dict = {**action_dict, **copy_aditions}
                 if action in ['MoveAheadContinuous']:
                     action_dict['action'] = 'MoveAgent'
-                    action_dict['direction'] = dict(x=0.0, y=0.0, z=.2)
+                    action_dict['ahead'] = 0.2
 
                 elif action in ['RotateRightContinuous']:
                     action_dict['action'] = 'RotateAgent'
