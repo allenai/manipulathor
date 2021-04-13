@@ -126,7 +126,6 @@ class ImageVisualizer(LoggerVisualizer):
         this_controller = env.controller
         scene = this_controller.last_event.metadata['sceneName'] # maybe we need to reset env actually]
         reset_environment_and_additional_commands(this_controller, scene)
-        # event = this_controller.step(dict(action = 'DropMidLevelHand'))
         # for start arm from high up as a cheating, this block is very important. never remove
         event1, event2, event3 = initialize_arm(this_controller)
         if not(event1.metadata['lastActionSuccess'] and event2.metadata['lastActionSuccess'] and event3.metadata['lastActionSuccess']):
@@ -136,17 +135,6 @@ class ImageVisualizer(LoggerVisualizer):
         if event.metadata['lastActionSuccess'] == False:
             print('ERROR: oh no could not transport in logging')
 
-
-        # initial_pose = scene_start_cheating_init_pose[scene]
-        # event1 = this_controller.step(dict(action='TeleportFull', x=initial_pose['x'], y=initial_pose['y'], z=initial_pose['z'], rotation=dict(x=0, y=initial_pose['rotation'], z=0), horizon=initial_pose['horizon']))
-        # this_controller.step(dict(action='PausePhysicsAutoSim'))
-        # event2 = this_controller.step(dict(action='MoveMidLevelArm',  position=dict(x=0.0, y=0, z=0.35), **ADITIONAL_ARM_ARGS))
-        # event3 = this_controller.step(dict(action='MoveMidLevelArmHeight', y=0.8, **ADITIONAL_ARM_ARGS))
-
-
-
-            # print('scene', scene, initial_pose, ADITIONAL_ARM_ARGS)
-            # print(event1.metadata['actionReturn'] , event2.metadata['actionReturn'] , event3.metadata['actionReturn'])
 
 
         event = this_controller.step(dict(action='TeleportFull', standing=True, x=agent_state['position']['x'], y=agent_state['position']['y'], z=agent_state['position']['z'], rotation=dict(x=agent_state['rotation']['x'], y=agent_state['rotation']['y'], z=agent_state['rotation']['z']), horizon=agent_state['cameraHorizon']))

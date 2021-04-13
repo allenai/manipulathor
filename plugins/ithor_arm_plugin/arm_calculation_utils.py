@@ -103,6 +103,6 @@ def initialize_arm(controller):
     scene = controller.last_event.metadata['sceneName']
     initial_pose = ARM_START_POSITIONS[scene]
     event1 = controller.step(dict(action='TeleportFull', standing=True, x=initial_pose['x'], y=initial_pose['y'], z=initial_pose['z'], rotation=dict(x=0, y=initial_pose['rotation'], z=0), horizon=initial_pose['horizon']))
-    event2 = controller.step(dict(action='MoveMidLevelArm',  position=dict(x=0.0, y=0, z=0.35), **ADITIONAL_ARM_ARGS))
-    event3 = controller.step(dict(action='MoveMidLevelArmHeight', y=0.8, **ADITIONAL_ARM_ARGS))
+    event2 = controller.step(dict(action='MoveArm',  position=dict(x=0.0, y=0, z=0.35), **ADITIONAL_ARM_ARGS))
+    event3 = controller.step(dict(action='MoveArmBase', y=0.8, **ADITIONAL_ARM_ARGS))
     return event1, event2, event3
