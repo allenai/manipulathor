@@ -2,4 +2,3 @@ __pycache__/
 *.DS_Store*
 .idea/
 experiment_output/
-scripts
