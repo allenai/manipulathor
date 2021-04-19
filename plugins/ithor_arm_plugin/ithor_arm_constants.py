@@ -5,7 +5,7 @@ import ai2thor.fifo_server
 
 from plugins.ithor_plugin.ithor_environment import IThorEnvironment
 
-ARM_BUILD_NUMBER = '43f62a0aa2a1aaafb6fd05d28bea74fdc866eea1'
+ARM_BUILD_NUMBER = '68212159d78aab5c611b7f16338380993884a06a'
 
 
 MOVE_THR = 0.01

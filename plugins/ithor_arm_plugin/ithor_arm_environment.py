@@ -120,7 +120,8 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
     def create_controller(self):
         controller = Controller(
-            **self.env_args
+            **self.env_args,
+            commit_id=ARM_BUILD_NUMBER #TODO remove
         )
 
         return controller
@@ -264,24 +265,10 @@ class ManipulaTHOREnvironment(IThorEnvironment):
     def get_pickupable_objects(self):
 
         event = self.controller.last_event
-        object_list = event.metadata['arm']['PickupableObjectsInsideHandSphere']
+        object_list = event.metadata['arm']['PickupableObjects']
 
         return object_list
 
-    def pickup_object(self, object_id):
-        event = self.step(dict(action='PickUpMidLevelHand'))
-        success = event.metadata['lastActionSuccess']
-        # make sure the event succeeds, correct object in hand otherwise drop it and return false
-        if success:
-            object_inventory = self.controller.last_event.metadata['arm']['HeldObjects']
-            if object_id not in object_inventory:
-                print('PICKED UP WRONG OBJECT HAVE TO DROP')
-                event = self.step(dict(action='DropMidLevelHand'))
-                return False
-            return True
-        else:
-            print('PICKUP FAILED')
-            return False
 
     def get_current_object_locations(self):
         obj_loc_dict = {}
@@ -325,11 +312,11 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                     #
                     if object_id in pickupable_objects:
                         #This version of the task is actually harder # consider making it easier, are we penalizing failed pickup? yes
-                        event = self.step(dict(action='PickUpMidLevelHand'))
+                        event = self.step(dict(action='PickupObject'))
                         #  we are doing an additional pass here, label is not right and if we fail we will do it twice
                         object_inventory = self.controller.last_event.metadata['arm']['HeldObjects']
                         if len(object_inventory) > 0 and object_id not in object_inventory:
-                            event = self.step(dict(action='DropMidLevelHand'))
+                            event = self.step(dict(action='ReleaseObject'))
 
 
         elif not 'MoveArm' in action:
@@ -338,15 +325,15 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                 copy_aditions['speed'] = copy_aditions['moveSpeed']
                 action_dict = {**action_dict, **copy_aditions}
                 if action in ['MoveAheadContinuous']:
-                    action_dict['action'] = 'MoveContinuous'
-                    action_dict['direction'] = dict(x=0.0, y=0.0, z=.2)
+                    action_dict['action'] = 'MoveAgent'
+                    action_dict['ahead'] = 0.2
 
                 elif action in ['RotateRightContinuous']:
-                    action_dict['action'] = 'RotateContinuous'
+                    action_dict['action'] = 'RotateAgent'
                     action_dict['degrees'] = 45
 
                 elif action in ['RotateLeftContinuous']:
-                    action_dict['action'] = 'RotateContinuous'
+                    action_dict['action'] = 'RotateAgent'
                     action_dict['degrees'] = -45
 
 
@@ -355,7 +342,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
             action_dict = {**action_dict, **copy_aditions}
             base_position = self.get_current_arm_state()
             if 'MoveArmHeight' in action:
-                action_dict['action'] = 'MoveMidLevelArmHeight'
+                action_dict['action'] = 'MoveArmBase'
 
                 if action == 'MoveArmHeightP':
                     base_position['h'] += MOVE_ARM_HEIGHT_CONSTANT
@@ -364,7 +351,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                 action_dict['y'] = base_position['h']
             else:
                 action_dict['handCameraSpace'] = False
-                action_dict['action'] = 'MoveMidLevelArm'
+                action_dict['action'] = 'MoveArm'
                 if action == 'MoveArmXP':
                     base_position['x'] += MOVE_ARM_CONSTANT
                 elif action == 'MoveArmXM':
