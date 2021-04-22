@@ -13,7 +13,7 @@ The initial location of the object can pose a variety of challenges. In (a) the 
 
 ## 📲 Install The Dataset
 
-1. Download the compressed file of the dataset from <a href="https://drive.google.com/file/d/13fOGheELJuoXv_JWRPGcpu2fBY-jKWKB/view?usp=sharing">here</a>.
+1. Download the compressed file of the dataset from [here](https://drive.google.com/file/d/13fOGheELJuoXv_JWRPGcpu2fBY-jKWKB/view?usp=sharing).
 2. Extract the zip file to `datasets/apnd-dataset` 
 
 ## 🗂️ Dataset Hierarchy

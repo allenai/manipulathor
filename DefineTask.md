@@ -4,7 +4,7 @@ In order to define a new task or change any component of the training procedure,
 
 ## ManipulaTHOR Environment
 
-The `ManipulaTHOREnvironment` class defined in `plugins/ithor_arm_plugin/ithor_arm_environment.py` is a wrapper around the AI2-THOR environment which helps with discretizing the action space for the ArmPointNav task and wraps the functions that are needed for working with the low-level manipulation feature, including getting the arm's pose, agent's pose, etc.  
+The `ManipulaTHOREnvironment` class defined in `ithor_arm/ithor_arm_environment.py` is a wrapper around the AI2-THOR environment which helps with discretizing the action space for the ArmPointNav task and wraps the functions that are needed for working with the low-level manipulation feature, including getting the arm's pose, agent's pose, etc.  
 
 #### Important Functions
 
@@ -18,7 +18,7 @@ The `ManipulaTHOREnvironment` class defined in `plugins/ithor_arm_plugin/ithor_a
 
 ## ArmPointNav Task Sampler
 
-You can find `ArmPointNavTaskSampler` in `plugins/ithor_arm_plugin/ithor_arm_task_samplers.py`. This class is in charge of reading the dataset metadata, initializing the all possible locations for the object and agent and randomly sampling a data point from this set for each episode.
+You can find `ArmPointNavTaskSampler` in `ithor_arm/ithor_arm_task_samplers.py`. This class is in charge of reading the dataset metadata, initializing the all possible locations for the object and agent and randomly sampling a data point from this set for each episode.
 
 #### Important Functions
 
@@ -29,7 +29,7 @@ You can find `ArmPointNavTaskSampler` in `plugins/ithor_arm_plugin/ithor_arm_tas
 
 ## ArmPointNav Task
 
-You can find `ArmPointNavTask` in `plugins/ithor_arm_plugin/ithor_arm_tasks.py`. This class includes the possible actions, reward definition, metric calculation and recording and calling the appropriate API functions on the environment.
+You can find `ArmPointNavTask` in `ithor_arm/ithor_arm_tasks.py`. This class includes the possible actions, reward definition, metric calculation and recording and calling the appropriate API functions on the environment.
 
 #### Important Functions and Attributes
 
