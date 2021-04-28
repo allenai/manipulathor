@@ -75,6 +75,8 @@ pip install -r requirements.txt
 
 **AI2-THOR <43f62a0> 🧞.** To ensure reproducible results, please install this version of the AI2THOR.
 
+After installing the requirements, you should start the xserver by running [this script](scripts/startx.py) in the background. Finally, you can start playing with the environment using [our example jupyter notebook](scripts/example_notebook.ipynb).
+
 ## 📝 ArmPointNav Task Description
 
 <img src="media/armpointnav_task.png" alt="" width="100%">
