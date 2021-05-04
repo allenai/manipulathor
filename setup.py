@@ -17,7 +17,7 @@ if __name__ == "__main__":
             "torch<1.7.0,>=1.6.0",
             "ai2thor<2.6.0,>=2.5.1",
             "networkx",
-            "pillow<7.0.0",
+            "pillow>8.1.2",
             "setuptools",
             "setproctitle",
             "moviepy>=1.0.3",

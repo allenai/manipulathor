@@ -30,7 +30,7 @@ imageio==2.9.0
 imageio-ffmpeg==0.4.3
 importlib-metadata==3.4.0
 itsdangerous==1.1.0
-Jinja2==2.11.2
+Jinja2==2.11.3
 jmespath==0.10.0
 Keras-Preprocessing==1.1.2
 kiwisolver==1.3.1
@@ -47,7 +47,7 @@ numpy-quaternion==2020.9.5.14.42.2
 oauthlib==3.1.0
 opencv-python==4.4.0.44
 opt-einsum==3.3.0
-Pillow==6.2.2
+Pillow==8.1.2
 proglog==0.1.9
 progressbar2==3.53.1
 protobuf==3.14.0
@@ -58,7 +58,7 @@ pyparsing==2.4.7
 pyquaternion==0.9.9
 python-dateutil==2.8.1
 python-utils==2.4.0
-PyYAML==5.3.1
+PyYAML==5.4
 requests==2.24.0
 requests-oauthlib==1.3.0
 rsa==4.7
@@ -68,7 +68,7 @@ six==1.15.0
 tensorboard==2.3.0
 tensorboard-plugin-wit==1.7.0
 tensorboardX==2.1
-tensorflow==2.3.0
+tensorflow==2.4.0
 tensorflow-estimator==2.3.0
 termcolor==1.1.0
 toml==0.10.1
