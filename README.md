@@ -1,4 +1,4 @@
-# <a href="#TODO">ManipulaTHOR: A Framework for Visual Object Manipulation</a>
+# <a href="https://arxiv.org/pdf/2104.11213.pdf">ManipulaTHOR: A Framework for Visual Object Manipulation</a>
 #### Kiana Ehsani, Winson Han, Alvaro Herrasti, Eli VanderBilt, Luca Weihs, Eric Kolve, Aniruddha Kembhavi, Roozbeh Mottaghi
 #### (Oral Presentation at CVPR 2021)
 #### <a href="https://prior.allenai.org/projects/manipulathor">(Project Page)</a>--<a href="http://ai2thor.allenai.org/manipulathor">(Framework)</a>--<a href="https://www.youtube.com/watch?v=nINZ52nlzX0&ab_channel=AllenInstituteforAI">(Video)</a>--<a href="#TODO">(Slides)</a> 
