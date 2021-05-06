@@ -3,8 +3,8 @@ import ai2thor
 import ai2thor.fifo_server
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 
-MANIPULATHOR_COMMIT_ID = "68212159d78aab5c611b7f16338380993884a06a"
-# MANIPULATHOR_COMMIT_ID = 'bcc2e62970823667acb5c2a56e809419f1521e52'
+# MANIPULATHOR_COMMIT_ID = "68212159d78aab5c611b7f16338380993884a06a"
+MANIPULATHOR_COMMIT_ID = 'bcc2e62970823667acb5c2a56e809419f1521e52'
 
 MOVE_THR = 0.01
 ARM_MIN_HEIGHT = 0.450998873
@@ -14,11 +14,11 @@ MOVE_ARM_HEIGHT_CONSTANT = MOVE_ARM_CONSTANT
 
 ADITIONAL_ARM_ARGS = {
     "disableRendering": True,
-    "restrictMovement": False,
-    "waitForFixedUpdate": False,
+    # "restrictMovement": False, #TODO comment
+    # "waitForFixedUpdate": False, #TODO commentedf this
     "returnToStart": True,
     "speed": 1,
-    "moveSpeed": 1,
+    # "moveSpeed": 1, #TODO commented this
     # 'move_constant': 0.05,
 }
 
@@ -69,7 +69,7 @@ def make_all_objects_unbreakable(controller):
 
 def reset_environment_and_additional_commands(controller, scene_name):
     controller.reset(scene_name)
-    controller.step("PausePhysicsAutoSim", autoSyncTransforms=False)
+    # controller.step("PausePhysicsAutoSim", autoSyncTransforms=False) #TODO is it okay to remove this?
     controller.step(action="MakeAllObjectsMoveable")
     controller.step(action="MakeObjectsStaticKinematicMassThreshold")
     make_all_objects_unbreakable(controller)

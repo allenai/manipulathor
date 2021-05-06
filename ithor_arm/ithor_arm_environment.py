@@ -22,6 +22,7 @@ from ithor_arm.ithor_arm_constants import (
     reset_environment_and_additional_commands,
     MOVE_THR,
 )
+from manipulathor_utils.debugger_util import ForkedPdb
 
 
 class ManipulaTHOREnvironment(IThorEnvironment):
@@ -215,9 +216,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         raise Exception("not used")
 
     def is_object_at_low_level_hand(self, object_id):
-        current_objects_in_hand = self.controller.last_event.metadata["arm"][
-            "HeldObjects"
-        ]
+        current_objects_in_hand = self.controller.last_event.metadata["arm"]["heldObjects"]
         return object_id in current_objects_in_hand
 
     def object_in_hand(self):
@@ -277,7 +276,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
     def get_pickupable_objects(self):
 
         event = self.controller.last_event
-        object_list = event.metadata["arm"]["PickupableObjects"]
+        object_list = event.metadata["arm"]["pickupableObjects"]
 
         return object_list
 
@@ -332,7 +331,6 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         if self.simplify_physics:
             action_dict["simplifyOPhysics"] = True
         if action in ["PickUpMidLevel", "DoneMidLevel"]:
-            action_dict["action"] = "Pass"
             if action == "PickUpMidLevel":
                 object_id = action_dict["object_id"]
                 if not self.is_object_at_low_level_hand(object_id):
@@ -343,18 +341,21 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                         event = self.step(dict(action="PickupObject"))
                         #  we are doing an additional pass here, label is not right and if we fail we will do it twice
                         object_inventory = self.controller.last_event.metadata["arm"][
-                            "HeldObjects"
+                            "heldObjects"
                         ]
                         if (
                             len(object_inventory) > 0
                             and object_id not in object_inventory
                         ):
                             event = self.step(dict(action="ReleaseObject"))
+            action_dict = {
+                'action': 'Pass'
+            }
 
         elif not "MoveArm" in action:
             if "Continuous" in action:
                 copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
-                copy_aditions["speed"] = copy_aditions["moveSpeed"]
+
                 action_dict = {**action_dict, **copy_aditions}
                 if action in ["MoveAheadContinuous"]:
                     action_dict["action"] = "MoveAgent"
@@ -383,7 +384,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                     ] -= MOVE_ARM_HEIGHT_CONSTANT  # height is pretty big!
                 action_dict["y"] = base_position["h"]
             else:
-                action_dict["handCameraSpace"] = False
+                # action_dict["handCameraSpace"] = False #TODO removed this?
                 action_dict["action"] = "MoveArm"
                 if action == "MoveArmXP":
                     base_position["x"] += MOVE_ARM_CONSTANT
