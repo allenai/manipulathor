@@ -45,13 +45,13 @@ git clone https://github.com/ehsanik/manipulathor.git
 <p>
 
 Here's a quick summary of the most important files/directories in this repository:
-* `utils/*.py` - Helper functions and classes including the visualization helpers.
-* `projects/armpointnav_baselines`
+* `manipulathor_utils/*.py` - Helper functions and classes.
+* `manipulathor_baselines/armpointnav_baselines`
     - `experiments/`
         + `ithor/armpointnav_*.py` - Different baselines introduced in the paper. Each files in this folder corresponds to a row of a table in the paper.
         + `*.py` - The base configuration files which define experiment setup and hyperparameters for training.
     - `models/*.py` - A collection of Actor-Critic baseline models.  
-* `plugins/ithor_arm_plugin/` - A collection of Environments, Task Samplers and Task Definitions
+* `ithor_arm/` - A collection of Environments, Task Samplers and Task Definitions
     - `ithor_arm_environment.py` - The definition of the `ManipulaTHOREnvironment` that wraps the AI2THOR-based framework introduced in this work and enables an easy-to-use API.  
     - `itho_arm_constants.py` - Constants used to define the task and parameters of the environment. These include the step size 
       taken by the agent, the unique id of the the THOR build we use, etc.
@@ -129,7 +129,7 @@ In order to define a new task, redefine the rewarding, try a new model, or chang
 You can train a model with a specific experiment setup by running one of the experiments below:
 
 ```
-python3 main.py -o experiment_output -s 1 -b projects/armpointnav_baselines/experiments/ithor/ <EXPERIMENT-NAME>
+allenact manipulathor_baselines/armpointnav_baselines/experiments/ithor/<EXPERIMENT-NAME> -o experiment_output -s 1
 ```
 
 Where `<EXPERIMENT-NAME>` can be one of the options below:
@@ -144,10 +144,14 @@ armpointnav_depth -- Our Depth Experiment
 
 ## 💪 Evaluating A Pre-Trained Agent 
 
-To evaluate a pre-trained model, (for example to reproduce the numbers in the paper), you can add `--mode test -c <WEIGHT-ADDRESS>` to the end of the command you ran for training. 
+To evaluate a pre-trained model, (for example to reproduce the numbers in the paper), you can add
+`-t test -c <WEIGHT-ADDRESS>` to the end of the command you ran for training. 
 
-In order to reproduce the numbers in the paper, you need to download the pretrained models from <a href="https://drive.google.com/file/d/1wZi_IL5d7elXLkAb4jOixfY0M6-ZfkGM/view?usp=sharing">here</a> and extract them to pretrained_models. The full list of experiments and their corresponding trained weights can be found <a href="pretrained_models/EvaluateModels.md">here</a>.
+In order to reproduce the numbers in the paper, you need to download the pretrained models from 
+[here](https://drive.google.com/file/d/1wZi_IL5d7elXLkAb4jOixfY0M6-ZfkGM/view?usp=sharing) and extract them 
+to pretrained_models. The full list of experiments and their corresponding trained weights can be found
+[here](pretrained_models/EvaluateModels.md).
 
 ```
-python3 main.py -o experiment_output -s 1 -b projects/armpointnav_baselines/experiments/ithor/ <EXPERIMENT-NAME> --mode test -c <WEIGHT-ADDRESS>
+allenact manipulathor_baselines/armpointnav_baselines/experiments/ithor/<EXPERIMENT-NAME> -o test_out -s 1 -t test -c <WEIGHT-ADDRESS>
 ```
