@@ -73,7 +73,7 @@ pip install -r requirements.txt
 
 **Python 3.6+ 🐍.** Each of the actions supports `typing` within <span class="chillMono">Python</span>.
 
-**AI2-THOR <43f62a0> 🧞.** To ensure reproducible results, please install this version of the AI2THOR.
+**AI2-THOR <bcc2e6> 🧞.** To ensure reproducible results, please install this version of the AI2THOR.
 
 After installing the requirements, you should start the xserver by running [this script](scripts/startx.py) in the background. Finally, you can start playing with the environment using [our example jupyter notebook](scripts/example_notebook.ipynb).
 
@@ -126,7 +126,7 @@ In order to define a new task, redefine the rewarding, try a new model, or chang
 
 ## 🏋 Training An Agent
 
-You can train a model with a specific experiment setup by running one of the experiments below:
+For running experiments first you need to add the project directory to your python path. You can train a model with a specific experiment setup by running one of the experiments below:
 
 ```
 allenact manipulathor_baselines/armpointnav_baselines/experiments/ithor/<EXPERIMENT-NAME> -o experiment_output -s 1
@@ -141,6 +141,7 @@ armpointnav_rgb -- Our RGB Experiment
 armpointnav_rgbdepth -- Our RGBD Experiment
 armpointnav_depth -- Our Depth Experiment
 ``` 
+
 
 ## 💪 Evaluating A Pre-Trained Agent 
 
