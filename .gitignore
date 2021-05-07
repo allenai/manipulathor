@@ -3,4 +3,4 @@ __pycache__/
 .idea/
 experiment_output/
 test_out
-scripts
+*.ipynb_checkpoints*

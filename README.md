@@ -1,7 +1,7 @@
-# <a href="#TODO">ManipulaTHOR: A Framework for Visual Object Manipulation</a>
+# <a href="https://arxiv.org/pdf/2104.11213.pdf">ManipulaTHOR: A Framework for Visual Object Manipulation</a>
 #### Kiana Ehsani, Winson Han, Alvaro Herrasti, Eli VanderBilt, Luca Weihs, Eric Kolve, Aniruddha Kembhavi, Roozbeh Mottaghi
 #### (Oral Presentation at CVPR 2021)
-#### <a href="https://prior.allenai.org/projects/manipulathor">(Project Page)</a>--<a href="http://ai2thor.allenai.org/manipulathor">(Framework)</a>--<a href="#TODO">(Video)</a>--<a href="#TODO">(Slides)</a> 
+#### <a href="https://prior.allenai.org/projects/manipulathor">(Project Page)</a>--<a href="http://ai2thor.allenai.org/manipulathor">(Framework)</a>--<a href="https://www.youtube.com/watch?v=nINZ52nlzX0&ab_channel=AllenInstituteforAI">(Video)</a>--<a href="#TODO">(Slides)</a> 
 
 We present <b>ManipulaTHOR</b>, a framework that facilitates <b>visual manipulation</b> of objects using a robotic arm. Our framework is built upon a <b>physics engine</b> and enables <b>realistic interactions</b> with objects while navigating through scenes and performing tasks. Object manipulation is an established research domain within the robotics community and poses several challenges including <b>avoiding collisions</b>, <b>grasping</b>, and <b>long-horizon planning</b>. Our framework focuses primarily on manipulation in visually rich and <b>complex scenes</b>, <b>joint manipulation and navigation</b> planning, and <b>generalization</b> to unseen environments and objects; challenges that are often overlooked. The framework provides a comprehensive suite of sensory information and motor functions enabling development of robust manipulation agents.
 
@@ -74,6 +74,8 @@ pip install -r requirements.txt
 **Python 3.6+ 🐍.** Each of the actions supports `typing` within <span class="chillMono">Python</span>.
 
 **AI2-THOR <43f62a0> 🧞.** To ensure reproducible results, please install this version of the AI2THOR.
+
+After installing the requirements, you should start the xserver by running [this script](scripts/startx.py) in the background. Finally, you can start playing with the environment using [our example jupyter notebook](scripts/example_notebook.ipynb).
 
 ## 📝 ArmPointNav Task Description
 
