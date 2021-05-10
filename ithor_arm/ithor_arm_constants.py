@@ -14,12 +14,8 @@ MOVE_ARM_HEIGHT_CONSTANT = MOVE_ARM_CONSTANT
 
 ADITIONAL_ARM_ARGS = {
     "disableRendering": True,
-    # "restrictMovement": False, #TODO comment
-    # "waitForFixedUpdate": False, #TODO commentedf this
     "returnToStart": True,
     "speed": 1,
-    # "moveSpeed": 1, #TODO commented this
-    # 'move_constant': 0.05,
 }
 
 MOVE_AHEAD = "MoveAheadContinuous"
@@ -69,7 +65,6 @@ def make_all_objects_unbreakable(controller):
 
 def reset_environment_and_additional_commands(controller, scene_name):
     controller.reset(scene_name)
-    # controller.step("PausePhysicsAutoSim", autoSyncTransforms=False) #TODO is it okay to remove this?
     controller.step(action="MakeAllObjectsMoveable")
     controller.step(action="MakeObjectsStaticKinematicMassThreshold")
     make_all_objects_unbreakable(controller)

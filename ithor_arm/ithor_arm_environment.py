@@ -384,7 +384,6 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                     ] -= MOVE_ARM_HEIGHT_CONSTANT  # height is pretty big!
                 action_dict["y"] = base_position["h"]
             else:
-                # action_dict["handCameraSpace"] = False #TODO removed this?
                 action_dict["action"] = "MoveArm"
                 if action == "MoveArmXP":
                     base_position["x"] += MOVE_ARM_CONSTANT
