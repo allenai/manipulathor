@@ -1,5 +1,5 @@
 absl-py==0.12.0
-ai2thor==3.0.0
+-e git+https://github.com/allenai/ai2thor.git@bcc2e62970823667acb5c2a56e809419f1521e52#egg=ai2thor
 allenact==0.2.2
 allenact-plugins==0.2.2
 appdirs==1.4.4

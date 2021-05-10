@@ -12,12 +12,11 @@ import ai2thor.fifo_server
 
 ADITIONAL_ARM_ARGS = {
     'disableRendering': True,
-    'restrictMovement': False,
-    'waitForFixedUpdate': False,
     'returnToStart': True,
     'speed': 1,
-    'move_constant': 0.05,
 }
+
+ARM_MOVE_CONSTANT = 0.05
 
 SCENE_INDICES = [i + 1 for i in range(30)] +[i + 1 for i in range(200,230)] +[i + 1 for i in range(300,330)] +[i + 1 for i in range(400,430)]
 SCENE_NAMES = ['FloorPlan{}_physics'.format(i) for i in SCENE_INDICES]
@@ -80,7 +79,6 @@ def reset_the_scene_and_get_reachables(controller, scene_name=None, scene_option
             scene_options = SCENE_NAMES
         scene_name = random.choice(scene_options)
     controller.reset(scene_name)
-    controller.step('PausePhysicsAutoSim', autoSyncTransforms=False)
     controller.step(action='MakeAllObjectsMoveable')
     controller.step(action='MakeObjectsStaticKinematicMassThreshold')
     make_all_objects_unbreakable(controller)
@@ -88,7 +86,6 @@ def reset_the_scene_and_get_reachables(controller, scene_name=None, scene_option
 
 def only_reset_scene(controller, scene_name):
     controller.reset(scene_name)
-    controller.step('PausePhysicsAutoSim', autoSyncTransforms=False)
     controller.step(action='MakeAllObjectsMoveable')
     controller.step(action='MakeObjectsStaticKinematicMassThreshold')
     make_all_objects_unbreakable(controller)
@@ -132,7 +129,7 @@ def get_reachable_positions(controller):
 def execute_command(controller, command,action_dict_addition):
 
     base_position = get_current_arm_state(controller)
-    change_height = action_dict_addition['move_constant']
+    change_height = ARM_MOVE_CONSTANT
     change_value = change_height
     action_details = {}
 
@@ -157,29 +154,24 @@ def execute_command(controller, command,action_dict_addition):
         pickupable = controller.last_event.metadata['arm']['PickupableObjectsInsideHandSphere']
         print(pickupable)
     elif command == 'd':
-        event = controller.step(action='DropMidLevelHand',**action_dict_addition)
-        action_details = dict(action='DropMidLevelHand',**action_dict_addition)
-    elif command == 'mm':
+        event = controller.step(action='ReleaseObject')
+        action_details = dict(action='ReleaseObject')
+    elif command == 'm':
         action_dict_addition = copy.deepcopy(action_dict_addition)
-        if 'moveSpeed' in action_dict_addition:
-            action_dict_addition['speed'] = action_dict_addition['moveSpeed']
-        event = controller.step(action='MoveContinuous', direction=dict(x=0.0, y=0.0, z=.2),**action_dict_addition)
-        action_details = dict(action='MoveContinuous', direction=dict(x=0.0, y=0.0, z=.2),**action_dict_addition)
+        event = controller.step(action='MoveAgent', ahead=0.2,**action_dict_addition)
+        action_details = dict(action='MoveAgent', ahead=0.2,**action_dict_addition)
 
-    elif command == 'rr':
+    elif command == 'r':
         action_dict_addition = copy.deepcopy(action_dict_addition)
-
-        if 'moveSpeed' in action_dict_addition:
-            action_dict_addition['speed'] = action_dict_addition['moveSpeed']
-        event = controller.step(action='RotateContinuous', degrees = 45,**action_dict_addition)
-        action_details = dict(action='RotateContinuous', degrees = 45,**action_dict_addition)
-    elif command == 'll':
+        event = controller.step(action='RotateAgent', degrees = 45,**action_dict_addition)
+        action_details = dict(action='RotateAgent', degrees = 45,**action_dict_addition)
+    elif command == 'l':
         action_dict_addition = copy.deepcopy(action_dict_addition)
-        event = controller.step(action='RotateContinuous', degrees = -45,**action_dict_addition)
-        action_details = dict(action='RotateContinuous', degrees = -45,**action_dict_addition)
+        event = controller.step(action='RotateAgent', degrees = -45,**action_dict_addition)
+        action_details = dict(action='RotateAgent', degrees = -45,**action_dict_addition)
     elif command == 'p':
-        event = controller.step(action='PickUpMidLevelHand')
-        action_details = dict(action='PickUpMidLevelHand')
+        event = controller.step(action='PickupObject')
+        action_details = dict(action='PickupObject')
     elif command == 'q':
         action_details = {}
     else:
@@ -187,15 +179,15 @@ def execute_command(controller, command,action_dict_addition):
 
     if command in ['w', 'z', 's', 'a', '3', '4']:
 
-        event = controller.step(action='MoveMidLevelArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']), handCameraSpace = False,**action_dict_addition)
-        action_details=dict(action='MoveMidLevelArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']), handCameraSpace = False,**action_dict_addition)
+        event = controller.step(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)
+        action_details=dict(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)
         success = event.metadata['lastActionSuccess']
 
 
     elif command in ['u', 'j']:
 
-        event = controller.step(action='MoveMidLevelArmHeight', y=base_position['h'],**action_dict_addition)
-        action_details=dict(action='MoveMidLevelArmHeight', y=base_position['h'],**action_dict_addition)
+        event = controller.step(action='MoveArmBase', y=base_position['h'],**action_dict_addition)
+        action_details=dict(action='MoveArmBase', y=base_position['h'],**action_dict_addition)
 
         success = event.metadata['lastActionSuccess']
 
