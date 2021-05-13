@@ -45,7 +45,7 @@ class PredictDistanceLoss(AbstractActorCriticLoss):
         tensor in order to compute a gradient update to the ActorCriticModel's parameters.
         """
 
-        ForkedPdb().set_trace()
+        ForkedPdb().set_trace() #TODO we never get here
 
         observations = cast(Dict[str, torch.Tensor], batch["observations"])
 

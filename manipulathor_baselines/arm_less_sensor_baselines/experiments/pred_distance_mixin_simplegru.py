@@ -8,7 +8,7 @@ from allenact.utils.experiment_utils import Builder
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
 from manipulathor_baselines.arm_less_sensor_baselines.experiments.pred_distance_base import PredDistanceBaseConfig
-from manipulathor_baselines.arm_less_sensor_baselines.models.arm_pointnav_models import PredDistanceBaselineActorCritic
+from manipulathor_baselines.arm_less_sensor_baselines.models.pred_distance_models import PredDistanceBaselineActorCritic
 
 
 class PredDistanceMixInSimpleGRUConfig(PredDistanceBaseConfig):

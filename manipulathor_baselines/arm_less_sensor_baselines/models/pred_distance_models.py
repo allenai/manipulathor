@@ -20,6 +20,7 @@ from allenact.base_abstractions.misc import ActorCriticOutput
 from allenact.embodiedai.models.basic_models import SimpleCNN, RNNStateEncoder
 from gym.spaces.dict import Dict as SpaceDict
 
+from manipulathor_utils.debugger_util import ForkedPdb
 from manipulathor_utils.net_utils import input_embedding_net
 
 
@@ -80,16 +81,25 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
 
         self.actor = LinearActorHead(self._hidden_size, action_space.n)
         self.critic = LinearCriticHead(self._hidden_size)
-        relative_dist_embedding_size = torch.Tensor([3, 100, obj_state_embedding_size])
-        self.relative_dist_embedding = input_embedding_net(
-            relative_dist_embedding_size.long().tolist(), dropout=0
+        initial_dist_embedding_size = torch.Tensor([3, 100, obj_state_embedding_size])
+        self.initial_dist_embedding = input_embedding_net(
+            initial_dist_embedding_size.long().tolist(), dropout=0
         )
 
-        #TODO we need to add the distance prediction module here
+        self.create_distance_pred_model()
+
+        self.teacher_forcing = True #TODO we need to switch this eventually
 
         self.train()
 
-
+    def create_distance_pred_model(self):
+        distance_pred_size = torch.Tensor([512 * 3, 512, 100, 3])
+        self.arm_distance_embedding = input_embedding_net(
+            distance_pred_size.long().tolist(), dropout=0
+        )
+        self.object_distance_embedding = input_embedding_net(
+            distance_pred_size.long().tolist(), dropout=0
+        )
 
     @property
     def recurrent_hidden_state_size(self) -> int:
@@ -113,11 +123,24 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
             )
         )
 
-    def get_relative_distance_embedding(
+    def get_distance_embedding(
         self, state_tensor: torch.Tensor
     ) -> torch.FloatTensor:
 
-        return self.relative_dist_embedding(state_tensor)
+        return self.initial_dist_embedding(state_tensor)
+
+    def predict_relative_distance(self, initial_arm2obj_dist, initial_obj2goal_dist, perception_embed, hidden_rnn):
+        #TODO this might make problems for us when we are doing rollouts and hidden_rnn is not similar to the others dimension wise
+
+        #TODO we might have to increase hidden size because this is too much, it has to calc both object distance and arm distance, maybe combine them into one make it too hard, maybe two separate network?
+
+        arm_relative_pred = self.arm_distance_embedding(torch.cat([initial_arm2obj_dist, perception_embed, hidden_rnn], dim=-1))
+        object_relative_pred = self.object_distance_embedding(torch.cat([initial_obj2goal_dist, perception_embed, hidden_rnn], dim=-1))
+        return {
+            'relative_agent_arm_to_obj': arm_relative_pred,
+            'relative_obj_to_goal': object_relative_pred,
+        }
+
 
     def forward(  # type:ignore
         self,
@@ -141,15 +164,33 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
         # Returns
         Tuple of the `ActorCriticOutput` and recurrent hidden state.
         """
-
-        arm2obj_dist = self.get_relative_distance_embedding(
-            observations["relative_agent_arm_to_obj"]
+        initial_arm2obj_dist = self.get_distance_embedding( #TODO is it okay to use the same embedding for both relative and initial?
+            observations["initial_agent_arm_to_obj"]
         )
-        obj2goal_dist = self.get_relative_distance_embedding(
-            observations["relative_obj_to_goal"]
-        )
-
+        initial_obj2goal_dist = self.get_distance_embedding(
+            observations["initial_obj_to_goal"]
+        ) #TODO maybe we can also input this?
         perception_embed = self.visual_encoder(observations)
+
+
+        #TODO we have to debug solely predicting distance first
+        prediction = self.predict_relative_distance(initial_arm2obj_dist, initial_obj2goal_dist, perception_embed, memory.tensor('rnn'))
+
+        if self.teacher_forcing:
+            arm2obj_dist = self.get_distance_embedding(
+                observations["relative_agent_arm_to_obj"]
+            )
+            obj2goal_dist = self.get_distance_embedding(
+                observations["relative_obj_to_goal"]
+            )
+        else:
+            arm2obj_dist = self.get_distance_embedding(
+                prediction["initial_agent_arm_to_obj"]
+            )
+            obj2goal_dist = self.get_distance_embedding(
+                prediction["initial_obj_to_goal"]
+            )
+
 
         pickup_bool = observations["pickedup_object"]
         before_pickup = pickup_bool == 0  # not used because of our initialization

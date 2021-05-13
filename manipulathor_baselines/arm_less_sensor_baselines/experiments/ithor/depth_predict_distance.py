@@ -3,12 +3,12 @@ from ithor_arm.ithor_arm_sensors import (
     InitialAgentArmToObjectSensor,
     InitialObjectToGoalSensor,
     PickedUpObjSensor,
-    DepthSensorThor,
+    DepthSensorThor, RelativeAgentArmToObjectSensor, RelativeObjectToGoalSensor,
 )
 from ithor_arm.ithor_arm_task_samplers import ArmPointNavTaskSampler
+from manipulathor_baselines.arm_less_sensor_baselines.experiments.ithor.pred_distance_ithor_base import PredDistanceiThorBaseConfig
 from manipulathor_baselines.arm_less_sensor_baselines.experiments.pred_distance_mixin_ddppo import PredDistanceMixInPPOConfig
 from manipulathor_baselines.arm_less_sensor_baselines.experiments.pred_distance_mixin_simplegru import PredDistanceMixInSimpleGRUConfig
-from manipulathor_baselines.arm_less_sensor_baselines.experiments.pred_distance_thor_base import PredDistanceiThorBaseConfig
 
 
 class PredDistanceDepth(
@@ -28,6 +28,8 @@ class PredDistanceDepth(
         ),
         InitialAgentArmToObjectSensor(),
         InitialObjectToGoalSensor(),
+        RelativeAgentArmToObjectSensor(),
+        RelativeObjectToGoalSensor(),
         PickedUpObjSensor(),
     ]
 

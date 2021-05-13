@@ -20,7 +20,7 @@ from ithor_arm.ithor_arm_viz import ImageVisualizer, TestMetricLogger
 from manipulathor_baselines.arm_less_sensor_baselines.experiments.pred_distance_base import PredDistanceBaseConfig
 
 
-class PredDistanceiThorBaseConfig(PredDistanceBaseConfig, ABC):
+class PredDistanceThorBaseConfig(PredDistanceBaseConfig, ABC):
     """The base config for all iTHOR PointNav experiments."""
 
     TASK_SAMPLER = SimpleArmPointNavGeneralSampler
