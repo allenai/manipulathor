@@ -88,7 +88,7 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
 
         self.create_distance_pred_model()
 
-        self.teacher_forcing = True #TODO we need to switch this eventually
+        self.teacher_forcing = True  # TODO we need to switch this eventually
 
         self.train()
 
@@ -123,24 +123,27 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
             )
         )
 
-    def get_distance_embedding(
-        self, state_tensor: torch.Tensor
-    ) -> torch.FloatTensor:
+    def get_distance_embedding(self, state_tensor: torch.Tensor) -> torch.FloatTensor:
 
         return self.initial_dist_embedding(state_tensor)
 
-    def predict_relative_distance(self, initial_arm2obj_dist, initial_obj2goal_dist, perception_embed, hidden_rnn):
-        #TODO this might make problems for us when we are doing rollouts and hidden_rnn is not similar to the others dimension wise
+    def predict_relative_distance(
+        self, initial_arm2obj_dist, initial_obj2goal_dist, perception_embed, hidden_rnn
+    ):
+        # TODO this might make problems for us when we are doing rollouts and hidden_rnn is not similar to the others dimension wise
 
-        #TODO we might have to increase hidden size because this is too much, it has to calc both object distance and arm distance, maybe combine them into one make it too hard, maybe two separate network?
+        # TODO we might have to increase hidden size because this is too much, it has to calc both object distance and arm distance, maybe combine them into one make it too hard, maybe two separate network?
 
-        arm_relative_pred = self.arm_distance_embedding(torch.cat([initial_arm2obj_dist, perception_embed, hidden_rnn], dim=-1))
-        object_relative_pred = self.object_distance_embedding(torch.cat([initial_obj2goal_dist, perception_embed, hidden_rnn], dim=-1))
+        arm_relative_pred = self.arm_distance_embedding(
+            torch.cat([initial_arm2obj_dist, perception_embed, hidden_rnn], dim=-1)
+        )
+        object_relative_pred = self.object_distance_embedding(
+            torch.cat([initial_obj2goal_dist, perception_embed, hidden_rnn], dim=-1)
+        )
         return {
-            'relative_agent_arm_to_obj': arm_relative_pred,
-            'relative_obj_to_goal': object_relative_pred,
+            "relative_agent_arm_to_obj": arm_relative_pred,
+            "relative_obj_to_goal": object_relative_pred,
         }
-
 
     def forward(  # type:ignore
         self,
@@ -164,56 +167,70 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
         # Returns
         Tuple of the `ActorCriticOutput` and recurrent hidden state.
         """
-        initial_arm2obj_dist = self.get_distance_embedding( #TODO is it okay to use the same embedding for both relative and initial?
+        initial_arm2obj_dist = self.get_distance_embedding(  # TODO is it okay to use the same embedding for both relative and initial?
             observations["initial_agent_arm_to_obj"]
         )
         initial_obj2goal_dist = self.get_distance_embedding(
             observations["initial_obj_to_goal"]
-        ) #TODO maybe we can also input this?
+        )  # TODO maybe we can also input this?
         perception_embed = self.visual_encoder(observations)
 
-
-        #TODO we have to debug solely predicting distance first
-        prediction = self.predict_relative_distance(initial_arm2obj_dist, initial_obj2goal_dist, perception_embed, memory.tensor('rnn'))
-
-        if self.teacher_forcing:
-            arm2obj_dist = self.get_distance_embedding(
-                observations["relative_agent_arm_to_obj"]
-            )
-            obj2goal_dist = self.get_distance_embedding(
-                observations["relative_obj_to_goal"]
-            )
-        else:
-            arm2obj_dist = self.get_distance_embedding(
-                prediction["initial_agent_arm_to_obj"]
-            )
-            obj2goal_dist = self.get_distance_embedding(
-                prediction["initial_obj_to_goal"]
+        arm2obj_dist_list = []
+        obj2goal_dist_list = []
+        x_out_list = []
+        for i in range(perception_embed.shape[0]):
+            # TODO we have to debug solely predicting distance first
+            prediction = self.predict_relative_distance(
+                initial_arm2obj_dist[i : (i + 1)],
+                initial_obj2goal_dist[i : (i + 1)],
+                perception_embed[i : (i + 1)],
+                memory.tensor("rnn"),
             )
 
+            if self.teacher_forcing:
+                arm2obj_dist = self.get_distance_embedding(
+                    observations["relative_agent_arm_to_obj"][i : (i + 1)]
+                )
+                obj2goal_dist = self.get_distance_embedding(
+                    observations["relative_obj_to_goal"][i : (i + 1)]
+                )
+            else:
+                arm2obj_dist = self.get_distance_embedding(
+                    prediction["initial_agent_arm_to_obj"]
+                )
+                obj2goal_dist = self.get_distance_embedding(
+                    prediction["initial_obj_to_goal"]
+                )
 
-        pickup_bool = observations["pickedup_object"]
-        before_pickup = pickup_bool == 0  # not used because of our initialization
-        after_pickup = pickup_bool == 1
-        distances = arm2obj_dist
-        distances[after_pickup] = obj2goal_dist[after_pickup]
+            arm2obj_dist_list.append(
+                arm2obj_dist  # Saving these values in case we want to use them for prediction
+            )
+            obj2goal_dist_list.append(obj2goal_dist)
 
-        x = [distances, perception_embed]
+            pickup_bool = observations["pickedup_object"][i : (i + 1)]
+            before_pickup = pickup_bool == 0  # not used because of our initialization
+            after_pickup = pickup_bool == 1
+            distances = arm2obj_dist
+            distances[after_pickup] = obj2goal_dist[after_pickup]
 
-        x_cat = torch.cat(x, dim=-1)
-        x_out, rnn_hidden_states = self.state_encoder(
-            x_cat, memory.tensor("rnn"), masks
-        )
+            x = [distances, perception_embed[i : (i + 1)]]
 
+            x_cat = torch.cat(x, dim=-1)
+            x_out, rnn_hidden_states = self.state_encoder(
+                x_cat, memory.tensor("rnn"), masks[i : (i + 1)]
+            )
+            memory = memory.set_tensor("rnn", rnn_hidden_states)
+
+            x_out_list.append(x_out)
+
+        x_out = torch.cat(x_out_list, dim=0)
         actor_out = self.actor(x_out)
         critic_out = self.critic(x_out)
         actor_critic_output = ActorCriticOutput(
             distributions=actor_out, values=critic_out, extras={}
         )
 
-        updated_memory = memory.set_tensor("rnn", rnn_hidden_states)
-
         return (
             actor_critic_output,
-            updated_memory,
+            memory,
         )
