@@ -196,16 +196,16 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
                 )
             else:
                 arm2obj_dist = self.get_distance_embedding(
-                    prediction["initial_agent_arm_to_obj"]
+                    prediction["relative_agent_arm_to_obj"]
                 )
                 obj2goal_dist = self.get_distance_embedding(
-                    prediction["initial_obj_to_goal"]
+                    prediction["relative_obj_to_goal"]
                 )
 
             arm2obj_dist_list.append(
-                arm2obj_dist  # Saving these values in case we want to use them for prediction
+                prediction["relative_agent_arm_to_obj"]  # Saving these values in case we want to use them for prediction
             )
-            obj2goal_dist_list.append(obj2goal_dist)
+            obj2goal_dist_list.append(prediction["relative_obj_to_goal"])
 
             pickup_bool = observations["pickedup_object"][i : (i + 1)]
             before_pickup = pickup_bool == 0  # not used because of our initialization
@@ -229,6 +229,8 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
         actor_critic_output = ActorCriticOutput(
             distributions=actor_out, values=critic_out, extras={}
         )
+        actor_critic_output.extras['relative_agent_arm_to_obj_prediction'] = torch.cat(arm2obj_dist_list, dim=0) #TODO is this the right dimension?
+        actor_critic_output.extras['relative_agent_obj_to_goal_prediction'] = torch.cat(obj2goal_dist_list, dim=0)
 
         return (
             actor_critic_output,

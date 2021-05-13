@@ -45,50 +45,26 @@ class PredictDistanceLoss(AbstractActorCriticLoss):
         tensor in order to compute a gradient update to the ActorCriticModel's parameters.
         """
 
-        ForkedPdb().set_trace() #TODO we never get here
-
         observations = cast(Dict[str, torch.Tensor], batch["observations"])
+        extra_model_outputs = actor_critic_output.extras
 
-        expert_actions_and_mask = observations["expert_action"]
+        gt_relative_agent_arm_to_obj = observations['relative_agent_arm_to_obj']
+        gt_relative_obj_to_goal = observations['relative_obj_to_goal']
 
-        assert expert_actions_and_mask.shape[-1] == 2
-        expert_actions_and_mask_reshaped = expert_actions_and_mask.view(-1, 2)
+        pred_agent_arm_to_obj = extra_model_outputs['relative_agent_arm_to_obj_prediction']
+        pred_obj_to_goal = extra_model_outputs['relative_agent_obj_to_goal_prediction']
 
-        expert_actions = expert_actions_and_mask_reshaped[:, 0].view(
-            *expert_actions_and_mask.shape[:-1], 1
-        )
-        expert_actions_masks = (
-            expert_actions_and_mask_reshaped[:, 1]
-                .float()
-                .view(*expert_actions_and_mask.shape[:-1], 1)
-        )
+        assert gt_relative_agent_arm_to_obj.shape == pred_agent_arm_to_obj.shape
+        assert gt_relative_obj_to_goal.shape == pred_obj_to_goal.shape
 
-        expert_successes = expert_actions_masks.sum()
-        should_report_loss = expert_successes.item() != 0
-
-        log_probs = actor_critic_output.distributions.log_prob(
-            cast(torch.LongTensor, expert_actions)
-        )
-        assert (
-                log_probs.shape[: len(expert_actions_masks.shape)]
-                == expert_actions_masks.shape
-        )
-
-        # Add dimensions to `expert_actions_masks` on the right to allow for masking
-        # if necessary.
-        len_diff = len(log_probs.shape) - len(expert_actions_masks.shape)
-        assert len_diff >= 0
-        expert_actions_masks = expert_actions_masks.view(
-            *expert_actions_masks.shape, *((1,) * len_diff)
-        )
-
-        total_loss = -(expert_actions_masks * log_probs).sum() / torch.clamp(
-            expert_successes, min=1
-        )
+        loss_function = torch.nn.SmoothL1Loss() #TODO is this a good choice?
+        arm_to_obj_loss = loss_function(gt_relative_agent_arm_to_obj, pred_agent_arm_to_obj)
+        obj_to_goal_loss = loss_function(gt_relative_obj_to_goal, pred_obj_to_goal)
+        total_loss = arm_to_obj_loss + obj_to_goal_loss
 
 
 
         return (
             total_loss,
-            {"distance_pred_loss": total_loss.item(),} if should_report_loss else {},
+            {"distance_pred_loss": total_loss.item(),}
         )
