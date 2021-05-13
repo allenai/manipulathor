@@ -129,13 +129,24 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
 
         return self.initial_dist_embedding(state_tensor)
 
-    def predict_relative_distance(self, initial_arm2obj_dist, initial_obj2goal_dist, perception_embed, hidden_rnn):
+    def predict_relative_distance(self, initial_arm2obj_dist, initial_obj2goal_dist, perception_embed, memory):
         #TODO this might make problems for us when we are doing rollouts and hidden_rnn is not similar to the others dimension wise
 
         #TODO we might have to increase hidden size because this is too much, it has to calc both object distance and arm distance, maybe combine them into one make it too hard, maybe two separate network?
 
-        arm_relative_pred = self.arm_distance_embedding(torch.cat([initial_arm2obj_dist, perception_embed, hidden_rnn], dim=-1))
-        object_relative_pred = self.object_distance_embedding(torch.cat([initial_obj2goal_dist, perception_embed, hidden_rnn], dim=-1))
+        if initial_arm2obj_dist.shape == (1, 1, 512):
+            hidden_rnn = memory.tensor('rnn')
+        else: #Or should it be? elif initial_arm2obj_dist == (200, 1, 512):
+            return
+            ForkedPdb().set_trace()
+            hidden_rnn = memory.tensor('hiddens_so_far')
+
+        #TODO remove
+        try:
+            arm_relative_pred = self.arm_distance_embedding(torch.cat([initial_arm2obj_dist, perception_embed, hidden_rnn], dim=-1))
+            object_relative_pred = self.object_distance_embedding(torch.cat([initial_obj2goal_dist, perception_embed, hidden_rnn], dim=-1))
+        except Exception:
+            ForkedPdb().set_trace()
         return {
             'relative_agent_arm_to_obj': arm_relative_pred,
             'relative_obj_to_goal': object_relative_pred,
@@ -174,7 +185,7 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
 
 
         #TODO we have to debug solely predicting distance first
-        prediction = self.predict_relative_distance(initial_arm2obj_dist, initial_obj2goal_dist, perception_embed, memory.tensor('rnn'))
+        prediction = self.predict_relative_distance(initial_arm2obj_dist, initial_obj2goal_dist, perception_embed, memory)
 
         if self.teacher_forcing:
             arm2obj_dist = self.get_distance_embedding(
@@ -200,6 +211,7 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
 
         x = [distances, perception_embed]
 
+
         x_cat = torch.cat(x, dim=-1)
         x_out, rnn_hidden_states = self.state_encoder(
             x_cat, memory.tensor("rnn"), masks
@@ -212,6 +224,17 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
         )
 
         updated_memory = memory.set_tensor("rnn", rnn_hidden_states)
+        # if not 'hiddens_so_far' in memory:
+        #     initial_hidden = torch.zeros(rnn_hidden_states.shape).float().to(critic_out.device)
+        #     assert rnn_hidden_states.shape[0] == 1 #TODO what happens if not? why would it not be like this?
+        #     hidden_so_far = torch.cat([initial_hidden, rnn_hidden_states], dim=0)
+        #     updated_memory = updated_memory.check_append('hiddens_so_far', hidden_so_far,0) #TODO the sampler_dim = 0 is right?
+        # else:
+        #
+        #     ForkedPdb().set_trace()
+        #     hidden_so_far = concdat(memory.tensor('hiddens_so_far'), rnn_hidden_states)
+        #     updated_memory= updated_memory.set_tensor('hiddens_so_far', hidden_so_far)
+
 
         return (
             actor_critic_output,

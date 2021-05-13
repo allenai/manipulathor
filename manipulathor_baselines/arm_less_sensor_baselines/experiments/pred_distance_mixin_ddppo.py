@@ -20,7 +20,7 @@ class PredDistanceMixInPPOConfig(PredDistanceBaseConfig):
         lr = 3e-4
         num_mini_batch = 1
         update_repeats = 4
-        num_steps = self.MAX_STEPS
+        num_steps = 10 #self.MAX_STEPS #TODO should we turn this back?
         save_interval = 500000  # from 50k
         log_interval = 1000
         gamma = 0.99
