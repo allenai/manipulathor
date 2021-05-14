@@ -35,6 +35,7 @@ class PredDistanceDepth(
 
     MAX_STEPS = 200
     TASK_SAMPLER = ArmPointNavTaskSampler
+    NUM_PROCESSES = 25 #TODO make this bigger
 
     def __init__(self):
         super().__init__()

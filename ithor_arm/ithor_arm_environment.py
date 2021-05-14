@@ -183,10 +183,11 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         # self.reset_init_params()#**kwargs) removing this fixes one of the crashing problem
 
         # to solve the crash issue
+        #TODO why do we still have this crashing problem?
         try:
             reset_environment_and_additional_commands(self.controller, scene_name)
-        except Exception:
-            print("RESETTING THE SCENE,", scene_name)
+        except Exception as e:
+            print("RESETTING THE SCENE,", scene_name, 'because of', str(e))
             self.controller = ai2thor.controller.Controller(
                 **self.env_args, commit_id=MANIPULATHOR_COMMIT_ID
             )

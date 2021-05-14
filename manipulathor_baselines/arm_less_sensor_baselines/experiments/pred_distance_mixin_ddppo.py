@@ -44,7 +44,7 @@ class PredDistanceMixInPPOConfig(PredDistanceBaseConfig):
                 # PipelineStage(loss_names=["ppo_loss"], max_stage_steps=ppo_steps)
                 PipelineStage(
                     loss_names=["ppo_loss", "pred_distance_loss"],
-                    loss_weights=[1.0, 100.0], #TODO change this, just for beginning.
+                    loss_weights=[1.0, 1.0], #TODO change this, just for beginning.
                     max_stage_steps=ppo_steps,
                 )
             ],
