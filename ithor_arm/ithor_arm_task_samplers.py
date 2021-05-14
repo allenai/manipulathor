@@ -15,6 +15,7 @@ from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_tasks import (
     AbstractPickUpDropOffTask,
     ArmPointNavTask,
+    EasyArmPointNavTask
 )
 from ithor_arm.ithor_arm_viz import LoggerVisualizer, ImageVisualizer
 
@@ -490,6 +491,8 @@ class ArmPointNavTaskSampler(SimpleArmPointNavGeneralSampler):
 
         return result
 
+class EasyArmPointNavTaskSampler(ArmPointNavTaskSampler):
+    _TASK_TYPE = EasyArmPointNavTask
 
 def get_all_tuples_from_list(list):
     result = []
