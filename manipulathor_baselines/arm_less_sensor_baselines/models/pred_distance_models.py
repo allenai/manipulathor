@@ -88,7 +88,7 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
 
         self.create_distance_pred_model()
 
-        self.teacher_forcing = True  # TODO we need to switch this eventually
+        self.teacher_forcing = True  #TODO we need to switch this eventually
 
         self.train()
 
@@ -130,9 +130,7 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
     def predict_relative_distance(
         self, initial_arm2obj_dist, initial_obj2goal_dist, perception_embed, hidden_rnn
     ):
-        # TODO this might make problems for us when we are doing rollouts and hidden_rnn is not similar to the others dimension wise
-
-        # TODO we might have to increase hidden size because this is too much, it has to calc both object distance and arm distance, maybe combine them into one make it too hard, maybe two separate network?
+        #TODO we might have to increase hidden size because this is too much, it has to calc both object distance and arm distance, maybe combine them into one make it too hard, maybe two separate network?
 
         arm_relative_pred = self.arm_distance_embedding(
             torch.cat([initial_arm2obj_dist, perception_embed, hidden_rnn], dim=-1)
@@ -167,19 +165,19 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
         # Returns
         Tuple of the `ActorCriticOutput` and recurrent hidden state.
         """
-        initial_arm2obj_dist = self.get_distance_embedding(  # TODO is it okay to use the same embedding for both relative and initial?
+        initial_arm2obj_dist = self.get_distance_embedding(  #TODO is it okay to use the same embedding for both relative and initial?
             observations["initial_agent_arm_to_obj"]
         )
         initial_obj2goal_dist = self.get_distance_embedding(
             observations["initial_obj_to_goal"]
-        )  # TODO maybe we can also input this?
+        )  #TODO maybe we can also input this?
         perception_embed = self.visual_encoder(observations)
 
         arm2obj_dist_list = []
         obj2goal_dist_list = []
         x_out_list = []
         for i in range(perception_embed.shape[0]):
-            # TODO we have to debug solely predicting distance first
+            #TODO we have to debug solely predicting distance first
             prediction = self.predict_relative_distance(
                 initial_arm2obj_dist[i : (i + 1)],
                 initial_obj2goal_dist[i : (i + 1)],

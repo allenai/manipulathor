@@ -367,12 +367,6 @@ class ArmPointNavTaskSampler(SimpleArmPointNavGeneralSampler):
             rotation={"x": 0, "y": 0, "z": 0},
         )
 
-        task_info = {
-            "objectId": source_location["object_id"],
-            "countertop_id": source_location["countertop_id"],
-            "source_location": source_location,
-            "target_location": target_location,
-        }
 
         this_controller = self.env
 
@@ -405,6 +399,21 @@ class ArmPointNavTaskSampler(SimpleArmPointNavGeneralSampler):
         should_visualize_goal_start = [
             x for x in self.visualizers if issubclass(type(x), ImageVisualizer)
         ]
+
+        initial_object_info = self.env.get_object_by_id(source_location["object_id"])
+        initial_agent_location = self.env.controller.last_event.metadata["agent"]
+        initial_hand_state = self.env.get_absolute_hand_state()
+
+        task_info = {
+            "objectId": source_location["object_id"],
+            "countertop_id": source_location["countertop_id"],
+            "source_location": source_location,
+            "target_location": target_location,
+            'agent_initial_state': initial_agent_location,
+            'initial_object_location':initial_object_info,
+            'initial_hand_state': initial_hand_state,
+        }
+
         if len(should_visualize_goal_start) > 0:
             task_info["visualization_source"] = source_data_point
             task_info["visualization_target"] = target_data_point

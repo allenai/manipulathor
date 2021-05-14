@@ -14,6 +14,7 @@ from ithor_arm.arm_calculation_utils import (
     diff_position,
 )
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
+from manipulathor_utils.debugger_util import ForkedPdb
 
 
 class DepthSensorThor(
@@ -113,16 +114,12 @@ class InitialObjectToGoalSensor(Sensor):
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        goal_obj_id = task.task_info["objectId"]
-        object_info = env.get_object_by_id(goal_obj_id)
+        object_source_location = task.task_info['initial_object_location']
         target_state = task.task_info["target_location"]
-
-        #TODO replace with the original locations and everything
-
-        agent_state = env.controller.last_event.metadata["agent"]
+        agent_state = task.task_info['agent_initial_state']
 
         relative_current_obj = convert_world_to_agent_coordinate(
-            object_info, agent_state
+            object_source_location, agent_state
         )
         relative_goal_state = convert_world_to_agent_coordinate(
             target_state, agent_state
@@ -199,16 +196,14 @@ class InitialAgentArmToObjectSensor(Sensor):
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
-        #TODO replace these with initializagtions from task
-        goal_obj_id = task.task_info["objectId"]
-        object_info = env.get_object_by_id(goal_obj_id)
-        hand_state = env.get_absolute_hand_state()
+        object_source_location = task.task_info['initial_object_location']
+        initial_hand_state = task.task_info['initial_hand_state']
 
         relative_goal_obj = convert_world_to_agent_coordinate(
-            object_info, env.controller.last_event.metadata["agent"]
+            object_source_location, env.controller.last_event.metadata["agent"]
         )
         relative_hand_state = convert_world_to_agent_coordinate(
-            hand_state, env.controller.last_event.metadata["agent"]
+            initial_hand_state, env.controller.last_event.metadata["agent"]
         )
         relative_distance = diff_position(relative_goal_obj, relative_hand_state)
         result = convert_state_to_tensor(dict(position=relative_distance))
