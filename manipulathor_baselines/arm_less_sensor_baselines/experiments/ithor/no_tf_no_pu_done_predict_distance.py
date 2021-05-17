@@ -1,3 +1,6 @@
+import gym
+from torch import nn
+
 from ithor_arm.ithor_arm_constants import ENV_ARGS
 from ithor_arm.ithor_arm_sensors import (
     InitialAgentArmToObjectSensor,
@@ -9,9 +12,10 @@ from ithor_arm.ithor_arm_task_samplers import EasyArmPointNavTaskSampler
 from manipulathor_baselines.arm_less_sensor_baselines.experiments.ithor.pred_distance_ithor_base import PredDistanceiThorBaseConfig
 from manipulathor_baselines.arm_less_sensor_baselines.experiments.pred_distance_mixin_ddppo import PredDistanceMixInPPOConfig
 from manipulathor_baselines.arm_less_sensor_baselines.experiments.pred_distance_mixin_simplegru import PredDistanceMixInSimpleGRUConfig
+from manipulathor_baselines.arm_less_sensor_baselines.models.pred_distance_models import PredDistanceBaselineActorCritic
 
 
-class NoPickupDonePredDistanceDepth(
+class NoTFNoPUDonePredDistanceDepth(
     PredDistanceiThorBaseConfig,
     PredDistanceMixInPPOConfig,
     PredDistanceMixInSimpleGRUConfig,
@@ -53,3 +57,14 @@ class NoPickupDonePredDistanceDepth(
     @classmethod
     def tag(cls):
         return cls.__name__
+
+    @classmethod
+    def create_model(cls, **kwargs) -> nn.Module:
+        return PredDistanceBaselineActorCritic(
+            action_space=gym.spaces.Discrete(
+                len(cls.TASK_SAMPLER._TASK_TYPE.class_action_names())
+            ),
+            observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
+            hidden_size=512,
+            teacher_forcing=False,
+        )

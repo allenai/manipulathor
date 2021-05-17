@@ -46,6 +46,7 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
         trainable_masked_hidden_state: bool = False,
         num_rnn_layers=1,
         rnn_type="GRU",
+        teacher_forcing=True,
     ):
         """Initializer.
 
@@ -88,7 +89,7 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
 
         self.create_distance_pred_model()
 
-        self.teacher_forcing = True  #TODO we need to switch this eventually
+        self.teacher_forcing = teacher_forcing  #TODO we need to switch this eventually
 
         self.train()
 
