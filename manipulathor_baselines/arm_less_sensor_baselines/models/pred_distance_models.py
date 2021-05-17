@@ -171,7 +171,10 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
         initial_obj2goal_dist = self.get_distance_embedding(
             observations["initial_obj_to_goal"]
         )  #TODO maybe we can also input this?
+
+
         perception_embed = self.visual_encoder(observations)
+
 
         arm2obj_dist_list = []
         obj2goal_dist_list = []

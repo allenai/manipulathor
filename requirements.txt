@@ -1,7 +1,7 @@
 absl-py==0.12.0
 -e git+https://github.com/allenai/ai2thor.git@bcc2e62970823667acb5c2a56e809419f1521e52#egg=ai2thor
-allenact==0.3.1
-allenact-plugins==0.3.1
+-e "git+https://github.com/allenai/allenact.git@main#egg=allenact_plugins[ithor]&subdirectory=allenact_plugins"
+-e "git+https://github.com/allenai/allenact.git@main#egg=allenact&subdirectory=allenact"
 astunparse==1.6.3
 aws-requests-auth==0.4.3
 botocore==1.20.67
