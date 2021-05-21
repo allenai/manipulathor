@@ -107,7 +107,7 @@ class AbstractBringObjectTask(Task[ManipulaTHOREnvironment]):
     def close(self) -> None:
         self.env.stop()
 
-    def obj_state_aproximity(self, s1, s2):
+    def objects_close_enough(self, s1, s2):
         position1 = s1["position"]
         position2 = s2["position"]
         eps = 0.2 #TODO is this a good metric?
@@ -302,10 +302,10 @@ class EasyBringObjectTask(AbstractBringObjectTask):
                 )  # plus one because this step has not been counted yet
 
         if self.object_picked_up:
-            object_state = self.env.get_object_by_id(object_id)
-            goal_state = self.task_info["target_location"]
-            goal_achieved = self.object_picked_up and self.obj_state_aproximity(
-                object_state, goal_state
+            source_state = self.env.get_object_by_id(object_id)
+            goal_state = self.env.get_object_by_id(self.task_info['goal_object_id'])
+            goal_achieved = self.object_picked_up and self.objects_close_enough(
+                source_state, goal_state
             )
             if goal_achieved:
                 self._took_end_action = True

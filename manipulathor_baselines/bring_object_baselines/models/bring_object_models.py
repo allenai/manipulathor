@@ -150,6 +150,8 @@ class BringObjectBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
             perception_embed, memory.tensor("rnn"), masks
         )
 
+        #TODO I think we need two model one for pick up and one for drop off
+
         actor_out = self.actor(x_out)
         critic_out = self.critic(x_out)
         actor_critic_output = ActorCriticOutput(
