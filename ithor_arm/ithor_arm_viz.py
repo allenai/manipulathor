@@ -99,6 +99,113 @@ class TestMetricLogger(LoggerVisualizer):
         self.action_queue.append(action_str)
         self.log_queue.append(action_str)
 
+class BringObjImageVisualizer(LoggerVisualizer):
+    def finish_episode(self, environment, episode_info, task_info):
+        now = datetime.now()
+        time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f")
+        time_to_write += "log_ind_{}".format(self.logger_index)
+        self.logger_index += 1
+        print("Loggigng", time_to_write, "len", len(self.log_queue))
+
+        source_object_id = task_info["source_object_id"]
+        goal_object_id = task_info["goal_object_id"]
+        pickup_success = episode_info.object_picked_up
+        episode_success = episode_info._success
+
+        # Put back if you want the images
+        # for i, img in enumerate(self.log_queue):
+        #     image_dir = os.path.join(self.log_dir, time_to_write + '_seq{}.png'.format(str(i)))
+        #     cv2.imwrite(image_dir, img[:,:,[2,1,0]])
+
+        episode_success_offset = "succ" if episode_success else "fail"
+        pickup_success_offset = "succ" if pickup_success else "fail"
+
+        gif_name = (
+                time_to_write
+                + "_from_"
+                + source_object_id.split("|")[0]
+                + "_to_"
+                + goal_object_id.split("|")[0]
+                + "_pickup_"
+                + pickup_success_offset
+                + "_episode_"
+                + episode_success_offset
+                + ".gif"
+        )
+        concat_all_images = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
+        save_image_list_to_gif(concat_all_images, gif_name, self.log_dir)
+        this_controller = environment.controller
+        scene = this_controller.last_event.metadata[
+            "sceneName"
+        ]
+        reset_environment_and_additional_commands(this_controller, scene)
+        self.log_start_goal(
+            environment,
+            task_info["visualization_source"],
+            tag="start",
+            img_adr=os.path.join(self.log_dir, time_to_write),
+        )
+        self.log_start_goal(
+            environment,
+            task_info["visualization_target"],
+            tag="goal",
+            img_adr=os.path.join(self.log_dir, time_to_write),
+        )
+
+        self.log_queue = []
+        self.action_queue = []
+
+    def log(self, environment, action_str):
+        image_tensor = environment.current_frame
+        self.action_queue.append(action_str)
+        self.log_queue.append(image_tensor)
+
+    def log_start_goal(self, env, task_info, tag, img_adr):
+        object_location = task_info["object_location"]
+        object_id = task_info["object_id"]
+        agent_state = task_info["agent_pose"]
+        this_controller = env.controller
+        scene = this_controller.last_event.metadata[
+            "sceneName"
+        ]  # maybe we need to reset env actually]
+        #We should not reset here
+        # for start arm from high up as a cheating, this block is very important. never remove
+        event1, event2, event3 = initialize_arm(this_controller)
+        if not (
+                event1.metadata["lastActionSuccess"]
+                and event2.metadata["lastActionSuccess"]
+                and event3.metadata["lastActionSuccess"]
+        ):
+            print("ERROR: ARM MOVEMENT FAILED in logging! SHOULD NEVER HAPPEN")
+
+        event = transport_wrapper(this_controller, object_id, object_location)
+        if event.metadata["lastActionSuccess"] == False:
+            print("ERROR: oh no could not transport in logging")
+
+        event = this_controller.step(
+            dict(
+                action="TeleportFull",
+                standing=True,
+                x=agent_state["position"]["x"],
+                y=agent_state["position"]["y"],
+                z=agent_state["position"]["z"],
+                rotation=dict(
+                    x=agent_state["rotation"]["x"],
+                    y=agent_state["rotation"]["y"],
+                    z=agent_state["rotation"]["z"],
+                ),
+                horizon=agent_state["cameraHorizon"],
+            )
+        )
+        if event.metadata["lastActionSuccess"] == False:
+            print("ERROR: oh no could not teleport in logging")
+
+        image_tensor = this_controller.last_event.frame
+        image_dir = (
+                img_adr + "_obj_" + object_id.split("|")[0] + "_pickup_" + tag + ".png"
+        )
+        cv2.imwrite(image_dir, image_tensor[:, :, [2, 1, 0]])
+
 
 class ImageVisualizer(LoggerVisualizer):
     def finish_episode(self, environment, episode_info, task_info):
@@ -198,61 +305,6 @@ class ImageVisualizer(LoggerVisualizer):
             img_adr + "_obj_" + object_id.split("|")[0] + "_pickup_" + tag + ".png"
         )
         cv2.imwrite(image_dir, image_tensor[:, :, [2, 1, 0]])
-
-
-class ThirdViewVisualizer(LoggerVisualizer):
-    def __init__(self):
-        super(ThirdViewVisualizer, self).__init__()
-        print("This does not work")
-        ForkedPdb().set_trace()
-        # self.init_camera = False
-
-    def finish_episode(self, environment, episode_success, task_info):
-        now = datetime.now()
-        time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f")
-        print("Loggigng", time_to_write, "len", len(self.log_queue))
-
-        for i, img in enumerate(self.log_queue):
-            image_dir = os.path.join(
-                self.log_dir, time_to_write + "_seq{}.png".format(str(i))
-            )
-            cv2.imwrite(image_dir, img[:, :, [2, 1, 0]])
-
-        success_offset = "succ" if episode_success else "fail"
-        gif_name = time_to_write + "_" + success_offset + ".gif"
-        concat_all_images = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
-        save_image_list_to_gif(concat_all_images, gif_name, self.log_dir)
-
-        self.log_queue = []
-        self.action_queue = []
-
-    def log(self, environment, action_str):
-
-        # if True or not self.init_camera:
-        #     # self.init_camera = True
-        #
-        #     agent_state = environment.controller.last_event.metadata['agent']
-        #     offset={'x':1, 'y':1, 'z':1}
-        #     rotation_offset = 0
-        #     # environment.controller.step('UpdateThirdPartyCamera', thirdPartyCameraId=0, rotation=dict(x=0, y=agent_state['rotation']['y']+rotation_offset, z=0), position=dict(x=agent_state['position']['x'] + offset['x'], y=1.0 + offset['y'], z=agent_state['position']['z'] + offset['z']))
-        #     environment.controller.step('UpdateThirdPartyCamera', thirdPartyCameraId=0, rotation=dict(x=0, y=45, z=0), position=dict(x=-1, y=1.5, z=-1), fieldOfView=100)
-
-        # the direction of this might not be ideal
-        image_tensor = environment.controller.last_event.third_party_camera_frames[0]
-        self.action_queue.append(action_str)
-        self.log_queue.append(image_tensor)
-
-
-# def __save_thirdparty_camera(controller, address='/Users/kianae/Desktop/third_camera.png', offset={'x':0, 'y':0, 'z':0}, rotation_offset=0):
-#     This is taking an additional step which messes up the sequence
-#     agent_state = controller.last_event.metadata['agent']
-#     controller.step('UpdateThirdPartyCamera', thirdPartyCameraId=0, rotation=dict(x=0, y=agent_state['rotation']['y']+rotation_offset, z=0), position=dict(x=agent_state['position']['x'] + offset['x'], y=1.0 + offset['y'], z=agent_state['position']['z'] + offset['z']))
-#     frame = controller.last_event.third_party_camera_frames
-#     assert len(frame) == 1
-#     frame = frame[0]
-#     file_adr = address
-#     res = cv2.imwrite(file_adr, frame[:,:,[2,1,0]])
-#     return res
 
 
 def save_image_list_to_gif(image_list, gif_name, gif_dir):

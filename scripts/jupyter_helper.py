@@ -101,7 +101,7 @@ def transport_wrapper(controller, target_object, target_location):
     action_detail_list.append(advance_detail)
     return event, action_detail_list
 
-def is_object_in_receptacle(event,target_obj,target_receptacle):
+def get_parent_receptacles(event, target_obj):
     all_containing_receptacle = set([])
     parent_queue = [target_obj]
     while(len(parent_queue) > 0):
@@ -115,6 +115,10 @@ def is_object_in_receptacle(event,target_obj,target_receptacle):
         else:
             parent_queue += current_parent_list
             all_containing_receptacle.update(set(current_parent_list))
+    return all_containing_receptacle
+
+def is_object_in_receptacle(event,target_obj,target_receptacle):
+    all_containing_receptacle = get_parent_receptacles(event, target_obj)
     return target_receptacle in all_containing_receptacle
 
 def get_reachable_positions(controller):
