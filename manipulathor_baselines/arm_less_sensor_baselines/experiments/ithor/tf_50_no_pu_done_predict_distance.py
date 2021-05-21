@@ -15,7 +15,7 @@ from manipulathor_baselines.arm_less_sensor_baselines.experiments.pred_distance_
 from manipulathor_baselines.arm_less_sensor_baselines.models.pred_distance_models import PredDistanceBaselineActorCritic
 
 
-class NoTFNoPUDonePredDistanceDepth(
+class HalfTFNoPUDonePredDistanceDepth(
     PredDistanceiThorBaseConfig,
     PredDistanceMixInPPOConfig,
     PredDistanceMixInSimpleGRUConfig,
@@ -66,5 +66,5 @@ class NoTFNoPUDonePredDistanceDepth(
             ),
             observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
             hidden_size=512,
-            teacher_forcing=0,
+            teacher_forcing=.5,
         )

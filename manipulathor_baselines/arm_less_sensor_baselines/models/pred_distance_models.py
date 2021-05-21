@@ -3,6 +3,7 @@
 Object navigation is currently available as a Task in AI2-THOR and
 Facebook's Habitat.
 """
+import random
 from typing import Tuple, Optional
 
 import gym
@@ -46,7 +47,7 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
         trainable_masked_hidden_state: bool = False,
         num_rnn_layers=1,
         rnn_type="GRU",
-        teacher_forcing=True,
+        teacher_forcing=1,
     ):
         """Initializer.
 
@@ -188,8 +189,7 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
                 perception_embed[i : (i + 1)],
                 memory.tensor("rnn"),
             )
-
-            if self.teacher_forcing:
+            if random.random() < self.teacher_forcing: #Teacher forcing on
                 arm2obj_dist = self.get_distance_embedding(
                     observations["relative_agent_arm_to_obj"][i : (i + 1)]
                 )
