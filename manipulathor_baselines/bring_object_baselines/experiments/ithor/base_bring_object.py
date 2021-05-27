@@ -15,7 +15,7 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 
 
 
-class RGBBringObject(
+class BaseBringObject(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -30,6 +30,12 @@ class RGBBringObject(
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
+        DepthSensorThor(
+            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            use_normalization=True,
+            uuid="depth_lowres",
+        ),
         # #TODO add this back
         # DestinationObjectSensor(),
         # InitialObjectSensor(),
@@ -41,6 +47,7 @@ class RGBBringObject(
     NUM_PROCESSES = 40
     #TODO these guys should be changed
     TRAIN_SCENES = ['FloorPlan1_physics']
+    TEST_SCENES = ['FloorPlan1_physics']
     OBJECT_TYPES = [('Apple', 'Mug')]
 
     def __init__(self):
@@ -52,7 +59,7 @@ class RGBBringObject(
             and self.VISIBILITY_DISTANCE == 1
             and self.STEP_SIZE == 0.25
         )
-        self.ENV_ARGS = {**ENV_ARGS, "renderDepthImage": False}
+        self.ENV_ARGS = {**ENV_ARGS, "renderDepthImage": True}
 
     @classmethod
     def tag(cls):

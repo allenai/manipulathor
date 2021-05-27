@@ -21,6 +21,7 @@ from allenact.base_abstractions.misc import ActorCriticOutput
 from allenact.embodiedai.models.basic_models import SimpleCNN, RNNStateEncoder
 from gym.spaces.dict import Dict as SpaceDict
 
+from manipulathor_baselines.armpointnav_baselines.models.base_models import LinearActorHeadNoCategory
 from manipulathor_utils.debugger_util import ForkedPdb
 from manipulathor_utils.net_utils import input_embedding_net
 
@@ -81,8 +82,10 @@ class BringObjectBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
             rnn_type=rnn_type,
         )
 
-        self.actor = LinearActorHead(self._hidden_size, action_space.n)
-        self.critic = LinearCriticHead(self._hidden_size)
+        self.actor_pickup = LinearActorHeadNoCategory(self._hidden_size, action_space.n)
+        self.critic_pickup = LinearCriticHead(self._hidden_size)
+        self.actor_dropoff = LinearActorHeadNoCategory(self._hidden_size, action_space.n)
+        self.critic_dropoff = LinearCriticHead(self._hidden_size)
         # initial_dist_embedding_size = torch.Tensor([3, 100, obj_state_embedding_size])
         # self.initial_dist_embedding = input_embedding_net(
         #     initial_dist_embedding_size.long().tolist(), dropout=0
@@ -150,12 +153,28 @@ class BringObjectBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
             perception_embed, memory.tensor("rnn"), masks
         )
 
-        #TODO I think we need two model one for pick up and one for drop off
+        # I think we need two model one for pick up and one for drop off
 
-        actor_out = self.actor(x_out)
-        critic_out = self.critic(x_out)
+        actor_out_pickup = self.actor_pickup(x_out)
+        critic_out_pickup = self.critic_pickup(x_out)
+        actor_out_dropoff = self.actor_dropoff(x_out)
+        critic_out_dropoff = self.critic_dropoff(x_out)
+
+        actor_out_final = actor_out_dropoff
+        critic_out_final = critic_out_dropoff
+
+        pickup_bool = observations["pickedup_object"]
+        before_pickup = pickup_bool == 0  # not used because of our initialization
+
+        actor_out_final[before_pickup] = actor_out_pickup[before_pickup]
+        critic_out_final[before_pickup] = critic_out_pickup[before_pickup]
+
+        actor_out = CategoricalDistr(logits=actor_out_final)
+
+        #TODO check to get gradients on both of them
+
         actor_critic_output = ActorCriticOutput(
-            distributions=actor_out, values=critic_out, extras={}
+            distributions=actor_out, values=critic_out_final, extras={}
         )
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)

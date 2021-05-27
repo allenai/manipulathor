@@ -269,6 +269,17 @@ class EasyBringObjectTask(AbstractBringObjectTask):
 
         action_str = self.class_action_names()[action]
 
+        # #TODO remove
+        # if True:
+        #     action_str = 'something'
+        #     actions = ('MoveArmHeightP', 'MoveArmHeightM', 'MoveArmXP', 'MoveArmXM', 'MoveArmYP', 'MoveArmYM', 'MoveArmZP', 'MoveArmZM', 'MoveAheadContinuous', 'RotateRightContinuous', 'RotateLeftContinuous')
+        #     actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l')
+        #     action = 'm'
+        #     self.env.controller.step('Pass')
+        #     ForkedPdb().set_trace()
+        #     action_str = actions[actions_short.index(action)]
+
+
         self._last_action_str = action_str
         action_dict = {"action": action_str}
         object_id = self.task_info["source_object_id"]
@@ -302,15 +313,23 @@ class EasyBringObjectTask(AbstractBringObjectTask):
                 )  # plus one because this step has not been counted yet
 
         if self.object_picked_up:
-            source_state = self.env.get_object_by_id(object_id)
-            goal_state = self.env.get_object_by_id(self.task_info['goal_object_id'])
-            goal_achieved = self.object_picked_up and self.objects_close_enough(
-                source_state, goal_state
-            )
-            if goal_achieved:
+
+            #TODO remove this
+            if True:
                 self._took_end_action = True
-                self.last_action_success = goal_achieved
-                self._success = goal_achieved
+                self.last_action_success = True
+                self._success = True
+
+            else:
+                source_state = self.env.get_object_by_id(object_id)
+                goal_state = self.env.get_object_by_id(self.task_info['goal_object_id'])
+                goal_achieved = self.object_picked_up and self.objects_close_enough(
+                    source_state, goal_state
+                )
+                if goal_achieved:
+                    self._took_end_action = True
+                    self.last_action_success = goal_achieved
+                    self._success = goal_achieved
 
         step_result = RLStepResult(
             observation=self.get_observations(),
@@ -321,47 +340,132 @@ class EasyBringObjectTask(AbstractBringObjectTask):
         return step_result
 
     def judge(self) -> float:
-        #TODO check all these by doing a manual round
         """Compute the reward after having taken a step."""
-        reward = self.reward_configs["step_penalty"]
+        reward = -0.01#self.reward_configs["step_penalty"]
 
         if not self.last_action_success or (
-            self._last_action_str == PICKUP and not self.object_picked_up
+                self._last_action_str == PICKUP and not self.object_picked_up
         ):
-            reward += self.reward_configs["failed_action_penalty"]
+            reward += -0.03#self.reward_configs["failed_action_penalty"]
 
         if self._took_end_action:
             reward += (
-                self.reward_configs["goal_success_reward"]
+                1 #self.reward_configs["goal_success_reward"]
                 if self._success
-                else self.reward_configs["failed_stop_reward"]
+                else -1#self.reward_configs["failed_stop_reward"]
             )
 
         # increase reward if object pickup and only do it once
-        if not self.got_reward_for_pickup and self.object_picked_up:
-            reward += self.reward_configs["pickup_success_reward"]
-            self.got_reward_for_pickup = True
-
-        current_obj_to_arm_distance = self.arm_distance_from_obj()
-        if self.last_arm_to_obj_distance is None:
-            delta_arm_to_obj_distance_reward = 0
-        else:
-            delta_arm_to_obj_distance_reward = (
-                self.last_arm_to_obj_distance - current_obj_to_arm_distance
-            )
-        self.last_arm_to_obj_distance = current_obj_to_arm_distance
-        reward += delta_arm_to_obj_distance_reward
-
-        current_obj_to_goal_distance = self.obj_distance_from_goal()
-        if self.last_obj_to_goal_distance is None:
-            delta_obj_to_goal_distance_reward = 0
-        else:
-            delta_obj_to_goal_distance_reward = (
-                self.last_obj_to_goal_distance - current_obj_to_goal_distance
-            )
-        self.last_obj_to_goal_distance = current_obj_to_goal_distance
-        reward += delta_obj_to_goal_distance_reward
+        #TODO add the followings later
+        # if not self.got_reward_for_pickup and self.object_picked_up:
+        #     reward += self.reward_configs["pickup_success_reward"]
+        #     self.got_reward_for_pickup = True
+        #
+        # current_obj_to_arm_distance = self.arm_distance_from_obj()
+        # if self.last_arm_to_obj_distance is None:
+        #     delta_arm_to_obj_distance_reward = 0
+        # else:
+        #     delta_arm_to_obj_distance_reward = (
+        #             self.last_arm_to_obj_distance - current_obj_to_arm_distance
+        #     )
+        # self.last_arm_to_obj_distance = current_obj_to_arm_distance
+        # reward += delta_arm_to_obj_distance_reward
+        #
+        # current_obj_to_goal_distance = self.obj_distance_from_goal()
+        # if self.last_obj_to_goal_distance is None:
+        #     delta_obj_to_goal_distance_reward = 0
+        # else:
+        #     delta_obj_to_goal_distance_reward = (
+        #             self.last_obj_to_goal_distance - current_obj_to_goal_distance
+        #     )
+        # self.last_obj_to_goal_distance = current_obj_to_goal_distance
+        # reward += delta_obj_to_goal_distance_reward
 
         # add collision cost, maybe distance to goal objective,...
 
         return float(reward)
+
+    #TODO maybe use the following as well
+    def shaping(self) -> float:
+        rew = 0.0
+
+        if self.reward_configs["shaping_weight"] == 0.0:
+            return rew
+
+        geodesic_distance = self.env.distance_to_object_type(
+            self.task_info["object_type"]
+        )
+
+        # Ensuring the reward magnitude is not greater than the total distance moved
+        max_reward_mag = 0.0
+        if len(self.path) >= 2:
+            p0, p1 = self.path[-2:]
+            max_reward_mag = math.sqrt(
+                (p0["x"] - p1["x"]) ** 2 + (p0["z"] - p1["z"]) ** 2
+            )
+
+        if self.reward_configs.get("positive_only_reward", False):
+            if geodesic_distance > 0.5:
+                rew = max(self.closest_geo_distance - geodesic_distance, 0)
+        else:
+            if (
+                    self.last_geodesic_distance > -0.5 and geodesic_distance > -0.5
+            ):  # (robothor limits)
+                rew += self.last_geodesic_distance - geodesic_distance
+
+        self.last_geodesic_distance = geodesic_distance
+        self.closest_geo_distance = min(self.closest_geo_distance, geodesic_distance)
+
+        return (
+                max(min(rew, max_reward_mag), -max_reward_mag,)
+                * self.reward_configs["shaping_weight"]
+        )
+
+
+    # def judge(self) -> float:
+    #     """Compute the reward after having taken a step."""
+    #     reward = self.reward_configs["step_penalty"]
+    #
+    #     if not self.last_action_success or (
+    #         self._last_action_str == PICKUP and not self.object_picked_up
+    #     ):
+    #         reward += self.reward_configs["failed_action_penalty"]
+    #
+    #     if self._took_end_action:
+    #         reward += (
+    #             self.reward_configs["goal_success_reward"]
+    #             if self._success
+    #             else self.reward_configs["failed_stop_reward"]
+    #         )
+    #
+    #     # increase reward if object pickup and only do it once
+    #     if not self.got_reward_for_pickup and self.object_picked_up:
+    #         reward += self.reward_configs["pickup_success_reward"]
+    #         self.got_reward_for_pickup = True
+    #
+    #     current_obj_to_arm_distance = self.arm_distance_from_obj()
+    #     if self.last_arm_to_obj_distance is None:
+    #         delta_arm_to_obj_distance_reward = 0
+    #     else:
+    #         delta_arm_to_obj_distance_reward = (
+    #             self.last_arm_to_obj_distance - current_obj_to_arm_distance
+    #         )
+    #     self.last_arm_to_obj_distance = current_obj_to_arm_distance
+    #     reward += delta_arm_to_obj_distance_reward
+    #
+    #     current_obj_to_goal_distance = self.obj_distance_from_goal()
+    #     if self.last_obj_to_goal_distance is None:
+    #         delta_obj_to_goal_distance_reward = 0
+    #     else:
+    #         delta_obj_to_goal_distance_reward = (
+    #             self.last_obj_to_goal_distance - current_obj_to_goal_distance
+    #         )
+    #     self.last_obj_to_goal_distance = current_obj_to_goal_distance
+    #     reward += delta_obj_to_goal_distance_reward
+    #
+    #     TODO reomve
+    #     print('reward', reward, 'delta_arm_to_obj_distance_reward', delta_arm_to_obj_distance_reward, 'delta_obj_to_goal_distance_reward', delta_obj_to_goal_distance_reward)
+    #
+    #     # add collision cost, maybe distance to goal objective,...
+    #
+    #     return float(reward)
