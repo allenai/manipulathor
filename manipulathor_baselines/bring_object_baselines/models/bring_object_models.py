@@ -157,6 +157,8 @@ class BringObjectBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
 
         actor_out_pickup = self.actor_pickup(x_out)
         critic_out_pickup = self.critic_pickup(x_out)
+
+
         actor_out_dropoff = self.actor_dropoff(x_out)
         critic_out_dropoff = self.critic_dropoff(x_out)
 

@@ -57,7 +57,7 @@ class PredictDistanceLoss(AbstractActorCriticLoss):
         assert gt_relative_agent_arm_to_obj.shape == pred_agent_arm_to_obj.shape
         assert gt_relative_obj_to_goal.shape == pred_obj_to_goal.shape
 
-        loss_function = torch.nn.SmoothL1Loss() #TODO is this a good choice?
+        loss_function = torch.nn.SmoothL1Loss() TODO is this a good choice?
         arm_to_obj_loss = loss_function(gt_relative_agent_arm_to_obj, pred_agent_arm_to_obj)
         obj_to_goal_loss = loss_function(gt_relative_obj_to_goal, pred_obj_to_goal)
         total_loss = arm_to_obj_loss + obj_to_goal_loss

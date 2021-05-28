@@ -36,7 +36,7 @@ class BaseBringObject(
             use_normalization=True,
             uuid="depth_lowres",
         ),
-        # #TODO add this back
+        #  add this back
         # DestinationObjectSensor(),
         # InitialObjectSensor(),
         PickedUpObjSensor(),

@@ -22,7 +22,7 @@ class PredDistanceBaseConfig(ExperimentConfig, ABC):
     CAMERA_HEIGHT = 224
     SCREEN_SIZE = 224
     MAX_STEPS = 200
-    #TODO this needs to be updated?
+    "TODO this needs to be updated?"==Sum
     def __init__(self):
         self.REWARD_CONFIG = {
             "step_penalty": -0.01,

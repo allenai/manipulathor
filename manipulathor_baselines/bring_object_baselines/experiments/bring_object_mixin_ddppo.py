@@ -33,7 +33,7 @@ class BringObjectMixInPPOConfig(BringObjectBaseConfig):
             update_repeats=update_repeats,
             max_grad_norm=max_grad_norm,
             num_steps=num_steps,
-            named_losses={"ppo_loss": PPO(**PPOConfig)},#, "pred_distance_loss": PredictDistanceLoss()}, #TODO if needed PredictDistanceLoss(**BringObjectConfig)
+            named_losses={"ppo_loss": PPO(**PPOConfig)},#, "pred_distance_loss": PredictDistanceLoss()},
             gamma=gamma,
             use_gae=use_gae,
             gae_lambda=gae_lambda,
@@ -42,7 +42,7 @@ class BringObjectMixInPPOConfig(BringObjectBaseConfig):
                 # PipelineStage(loss_names=["ppo_loss"], max_stage_steps=ppo_steps)
                 PipelineStage(
                     loss_names=["ppo_loss"],#, "pred_distance_loss"],
-                    loss_weights=[1.0],#, 1.0], #TODO change this, just for beginning.
+                    loss_weights=[1.0],#, 1.0],
                     max_stage_steps=ppo_steps,
                 )
             ],

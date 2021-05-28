@@ -1,33 +1,37 @@
 from ithor_arm.ithor_arm_constants import ENV_ARGS
 from ithor_arm.ithor_arm_sensors import (
-    InitialAgentArmToObjectSensor,
-    InitialObjectToGoalSensor,
+    RelativeAgentArmToObjectSensor,
+    RelativeObjectToGoalSensor,
     PickedUpObjSensor,
-    DepthSensorThor, RelativeAgentArmToObjectSensor, RelativeObjectToGoalSensor,
+    DepthSensorThor,
 )
 from ithor_arm.ithor_arm_task_samplers import ArmPointNavTaskSampler
-from manipulathor_baselines.arm_less_sensor_baselines.experiments.ithor.pred_distance_ithor_base import PredDistanceiThorBaseConfig
-from manipulathor_baselines.arm_less_sensor_baselines.experiments.pred_distance_mixin_ddppo import PredDistanceMixInPPOConfig
-from manipulathor_baselines.arm_less_sensor_baselines.experiments.pred_distance_mixin_simplegru import PredDistanceMixInSimpleGRUConfig
+from manipulathor_baselines.armpointnav_baselines.experiments.armpointnav_mixin_ddppo import (
+    ArmPointNavMixInPPOConfig,
+)
+from manipulathor_baselines.armpointnav_baselines.experiments.armpointnav_mixin_simplegru import (
+    ArmPointNavMixInSimpleGRUConfig,
+)
+from manipulathor_baselines.armpointnav_baselines.experiments.ithor.armpointnav_ithor_base import (
+    ArmPointNaviThorBaseConfig,
+)
 
 
-class PredDistanceDepth(
-    PredDistanceiThorBaseConfig,
-    PredDistanceMixInPPOConfig,
-    PredDistanceMixInSimpleGRUConfig,
+class ArmPointNavDepth(
+    ArmPointNaviThorBaseConfig,
+    ArmPointNavMixInPPOConfig,
+    ArmPointNavMixInSimpleGRUConfig,
 ):
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
 
     SENSORS = [
         DepthSensorThor(
-            height=PredDistanceiThorBaseConfig.SCREEN_SIZE,
-            width=PredDistanceiThorBaseConfig.SCREEN_SIZE,
+            height=ArmPointNaviThorBaseConfig.SCREEN_SIZE,
+            width=ArmPointNaviThorBaseConfig.SCREEN_SIZE,
             use_normalization=True,
             uuid="depth_lowres",
         ),
-        InitialAgentArmToObjectSensor(),
-        InitialObjectToGoalSensor(),
         RelativeAgentArmToObjectSensor(),
         RelativeObjectToGoalSensor(),
         PickedUpObjSensor(),
@@ -35,7 +39,7 @@ class PredDistanceDepth(
 
     MAX_STEPS = 200
     TASK_SAMPLER = ArmPointNavTaskSampler
-    NUM_PROCESSES = 40
+    TRAIN_SCENES = TEST_SCENES = ['FloorPlan1_physics']
 
     def __init__(self):
         super().__init__()

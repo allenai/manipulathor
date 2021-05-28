@@ -191,6 +191,10 @@ class EasyBringObjectTaskSampler(BringObjectAbstractTaskSampler):
                         ]
                         self.deterministic_data_list += visible_data
 
+        #TODO I think this is pretty important and make sure we are fine with it, we definitely can't do that
+        random.shuffle(self.all_possible_points)
+
+
         if self.sampler_mode == "test":
             random.shuffle(self.deterministic_data_list)
             self.max_tasks = self.reset_tasks = len(self.deterministic_data_list)
@@ -321,6 +325,8 @@ class EasyBringObjectTaskSampler(BringObjectAbstractTaskSampler):
                 self.sampler_index = 0
                 random.shuffle(self.all_possible_points)
 
+
+
             selected_agent_init_loc = random.choice(
                 self.possible_agent_reachable_poses[scene_name]
             )
@@ -366,6 +372,9 @@ class EasyBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             }
             data_point["initial_agent_pose"] = initial_agent_pose
             self.sampler_index += 1
+
+        #TODO reomve
+        data_point["initial_agent_pose"] = data_point['init_location']['agent_pose']
 
         return data_point
 

@@ -14,7 +14,6 @@ class PredDistanceiThorBaseConfig(PredDistanceThorBaseConfig, ABC):
     # add all the arguments here
     TOTAL_NUMBER_SCENES = 30
 
-    #TODO is this okay now?
     TRAIN_SCENES = [
         "FloorPlan{}_physics".format(str(i))
         for i in range(1, 20 + 1)

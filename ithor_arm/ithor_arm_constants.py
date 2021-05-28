@@ -68,6 +68,9 @@ def reset_environment_and_additional_commands(controller, scene_name):
     controller.step(action="MakeAllObjectsMoveable")
     controller.step(action="MakeObjectsStaticKinematicMassThreshold")
     make_all_objects_unbreakable(controller)
+
+    #TODO remove this?
+    controller.step(action='SetHandSphereRadius', radius=0.2)
     return
 
 

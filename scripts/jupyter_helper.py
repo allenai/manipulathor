@@ -62,8 +62,8 @@ def initialize_arm(controller, scene_starting_cheating_locations):
     scene = controller.last_event.metadata['sceneName']
     initial_pose = scene_starting_cheating_locations[scene]
     event1 = controller.step(dict(action='TeleportFull', standing=True, x=initial_pose['x'], y=initial_pose['y'], z=initial_pose['z'], rotation=dict(x=0, y=initial_pose['rotation'], z=0), horizon=initial_pose['horizon']))
-    event2 = controller.step(dict(action='MoveMidLevelArm',  position=dict(x=0.0, y=0, z=0.35), **ADITIONAL_ARM_ARGS))
-    event3 = controller.step(dict(action='MoveMidLevelArmHeight', y=0.8, **ADITIONAL_ARM_ARGS))
+    event2 = controller.step(dict(action='MoveArm',  position=dict(x=0.0, y=0, z=0.35), **ADITIONAL_ARM_ARGS))
+    event3 = controller.step(dict(action='MoveArmBase', y=0.8, **ADITIONAL_ARM_ARGS))
     return event1, event2, event3
 
 def make_all_objects_unbreakable(controller):
@@ -155,7 +155,7 @@ def execute_command(controller, command,action_dict_addition):
         base_position['h'] -= change_height
     elif command == '/':
         action_details = dict('')
-        pickupable = controller.last_event.metadata['arm']['PickupableObjectsInsideHandSphere']
+        pickupable = controller.last_event.metadata['arm']['pickupableObjects']
         print(pickupable)
     elif command == 'd':
         event = controller.step(action='ReleaseObject')
@@ -176,6 +176,11 @@ def execute_command(controller, command,action_dict_addition):
     elif command == 'p':
         event = controller.step(action='PickupObject')
         action_details = dict(action='PickupObject')
+    elif '!' in command and command[0] == '!':
+        radius = command.replace('!', '')
+        radius = float(radius)
+        event = controller.step(action='SetHandSphereRadius', radius=radius)
+        action_details = dict(action='SetHandSphereRadius', radius=radius)
     elif command == 'q':
         action_details = {}
     else:
@@ -254,3 +259,8 @@ def two_dict_equal(dict1, dict2, threshold=0.001, ignore_keys=[]):
             return equal
     return equal
 
+def find_arm_distance_to_obj(controller, object_type):
+    object_location = controller.last_event.objects_by_type(object_type)[0]['position']
+    hand_location = controller.last_event.metadata['arm']['joints'][-1]['position']
+    distance = sum([(hand_location[k] - object_location[k]) ** 2 for k in hand_location])**0.5
+    return distance
