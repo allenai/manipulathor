@@ -13,6 +13,13 @@ goal_object = 'Mug'
 dataset_adr = 'datasets/apnd-dataset'
 controller = ai2thor.controller.Controller(**ENV_ARGS)
 
+print('Resolve todos')
+pdb.set_trace()
+#LATER_TODO the dataset is actually pretty bad imo,
+
+#LATER_TODO we should randomly sample
+
+
 def read_files(data_adr, scene_name, object_name):
     file_name = os.path.join(data_adr, 'valid_{}_positions_in_{}.json'.format(object_name, scene_name))
     with open(file_name) as f:
@@ -32,7 +39,7 @@ def find_feasible_pairs(initial_object_locations, goal_object_locations):
     initial_object_locations = initial_object_locations[scene_name]
     goal_object_locations = goal_object_locations[scene_name]
 
-    #TODO instead make sure we have samples from each counter top, also 30 is too small maybe? Or maybe set something that checks for the total number of valids to be certain amount
+    #LATER_TODO instead make sure we have samples from each counter top, also 30 is too small maybe? Or maybe set something that checks for the total number of valids to be certain amount
     random.shuffle(initial_object_locations)
     random.shuffle(goal_object_locations)
     initial_object_locations = initial_object_locations[:30]
@@ -78,5 +85,5 @@ def find_all_feasible_pairs(initial_object, scene_name, goal_object, dataset_adr
 
 
 find_all_feasible_pairs(initial_object, initial_scene, goal_object, dataset_adr)
-#TODO calculate for all scenes and objects
+#LATER_TODO calculate for all scenes and objects
 

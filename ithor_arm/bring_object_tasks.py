@@ -169,8 +169,8 @@ class AbstractBringObjectTask(Task[ManipulaTHOREnvironment]):
             ] /= (action_stat["metric/action_stat/" + action_name] + 0.000001)
             action_stat["metric/action_stat/" + action_name] /= seq_len
 
-        succ = [v for v in action_success_stat.values()]
-        sum(succ) / len(succ) #TODO why is this on the air
+        # succ = [v for v in action_success_stat.values()]
+        # sum(succ) / len(succ) TODO why is this on the air
         result = {**action_stat, **action_success_stat}
 
         return result
@@ -248,7 +248,7 @@ class AbstractBringObjectTask(Task[ManipulaTHOREnvironment]):
         raise Exception("Not implemented")
 
 
-class EasyBringObjectTask(AbstractBringObjectTask):
+class EasyPickUpObjectTask(AbstractBringObjectTask):
     _actions = (
         MOVE_ARM_HEIGHT_P,
         MOVE_ARM_HEIGHT_M,
@@ -258,7 +258,7 @@ class EasyBringObjectTask(AbstractBringObjectTask):
         MOVE_ARM_Y_M,
         MOVE_ARM_Z_P,
         MOVE_ARM_Z_M,
-        # MOVE_AHEAD, #TODO put all back
+        # MOVE_AHEAD,
         # ROTATE_RIGHT,
         # ROTATE_LEFT,
         # PICKUP,
@@ -269,15 +269,15 @@ class EasyBringObjectTask(AbstractBringObjectTask):
 
         action_str = self.class_action_names()[action]
 
-        # #TODO remove
-        # if True:
-        #     action_str = 'something'
-        #     actions = ('MoveArmHeightP', 'MoveArmHeightM', 'MoveArmXP', 'MoveArmXM', 'MoveArmYP', 'MoveArmYM', 'MoveArmZP', 'MoveArmZM', 'MoveAheadContinuous', 'RotateRightContinuous', 'RotateLeftContinuous')
-        #     actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l')
-        #     action = 'm'
-        #     self.env.controller.step('Pass')
-        #     ForkedPdb().set_trace()
-        #     action_str = actions[actions_short.index(action)]
+        self.manual = False
+        if self.manual:
+            action_str = 'something'
+            actions = ('MoveArmHeightP', 'MoveArmHeightM', 'MoveArmXP', 'MoveArmXM', 'MoveArmYP', 'MoveArmYM', 'MoveArmZP', 'MoveArmZM', 'MoveAheadContinuous', 'RotateRightContinuous', 'RotateLeftContinuous')
+            actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l')
+            action = 'm'
+            self.env.controller.step('Pass')
+            ForkedPdb().set_trace()
+            action_str = actions[actions_short.index(action)]
 
 
         self._last_action_str = action_str
@@ -314,22 +314,20 @@ class EasyBringObjectTask(AbstractBringObjectTask):
 
         if self.object_picked_up:
 
-            #TODO remove this
-            if True:
-                self._took_end_action = True
-                self.last_action_success = True
-                self._success = True
 
-            else:
-                source_state = self.env.get_object_by_id(object_id)
-                goal_state = self.env.get_object_by_id(self.task_info['goal_object_id'])
-                goal_achieved = self.object_picked_up and self.objects_close_enough(
-                    source_state, goal_state
-                )
-                if goal_achieved:
-                    self._took_end_action = True
-                    self.last_action_success = goal_achieved
-                    self._success = goal_achieved
+            self._took_end_action = True
+            self.last_action_success = True
+            self._success = True
+
+            # source_state = self.env.get_object_by_id(object_id)
+            # goal_state = self.env.get_object_by_id(self.task_info['goal_object_id'])
+            # goal_achieved = self.object_picked_up and self.objects_close_enough(
+            #     source_state, goal_state
+            # )
+            # if goal_achieved:
+            #     self._took_end_action = True
+            #     self.last_action_success = goal_achieved
+            #     self._success = goal_achieved
 
         step_result = RLStepResult(
             observation=self.get_observations(),
@@ -338,53 +336,6 @@ class EasyBringObjectTask(AbstractBringObjectTask):
             info={"last_action_success": self.last_action_success},
         )
         return step_result
-
-    def too_simple_judge(self) -> float:
-        """Compute the reward after having taken a step."""
-        reward = -0.01#self.reward_configs["step_penalty"]
-
-        if not self.last_action_success or (
-                self._last_action_str == PICKUP and not self.object_picked_up
-        ):
-            reward += -0.03#self.reward_configs["failed_action_penalty"]
-
-        if self._took_end_action:
-            reward += (
-                1 #self.reward_configs["goal_success_reward"]
-                if self._success
-                else -1#self.reward_configs["failed_stop_reward"]
-            )
-
-        # increase reward if object pickup and only do it once
-        #TODO add the followings later
-        # if not self.got_reward_for_pickup and self.object_picked_up:
-        #     reward += self.reward_configs["pickup_success_reward"]
-        #     self.got_reward_for_pickup = True
-        #
-        # current_obj_to_arm_distance = self.arm_distance_from_obj()
-        # if self.last_arm_to_obj_distance is None:
-        #     delta_arm_to_obj_distance_reward = 0
-        # else:
-        #     delta_arm_to_obj_distance_reward = (
-        #             self.last_arm_to_obj_distance - current_obj_to_arm_distance
-        #     )
-        # self.last_arm_to_obj_distance = current_obj_to_arm_distance
-        # reward += delta_arm_to_obj_distance_reward
-        #
-        # current_obj_to_goal_distance = self.obj_distance_from_goal()
-        # if self.last_obj_to_goal_distance is None:
-        #     delta_obj_to_goal_distance_reward = 0
-        # else:
-        #     delta_obj_to_goal_distance_reward = (
-        #             self.last_obj_to_goal_distance - current_obj_to_goal_distance
-        #     )
-        # self.last_obj_to_goal_distance = current_obj_to_goal_distance
-        # reward += delta_obj_to_goal_distance_reward
-
-        # add collision cost, maybe distance to goal objective,...
-
-        return float(reward)
-
 
 
     def judge(self) -> float:
@@ -409,6 +360,7 @@ class EasyBringObjectTask(AbstractBringObjectTask):
         #     reward += self.reward_configs["pickup_success_reward"]
         #     self.got_reward_for_pickup = True
         #
+
         current_obj_to_arm_distance = self.arm_distance_from_obj()
         if self.last_arm_to_obj_distance is None:
             delta_arm_to_obj_distance_reward = 0

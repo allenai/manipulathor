@@ -3,6 +3,7 @@
 Object navigation is currently available as a Task in AI2-THOR and
 Facebook's Habitat.
 """
+import copy
 import random
 from typing import Tuple, Optional
 
@@ -19,14 +20,17 @@ from allenact.algorithms.onpolicy_sync.policy import (
 from allenact.base_abstractions.distributions import CategoricalDistr
 from allenact.base_abstractions.misc import ActorCriticOutput
 from allenact.embodiedai.models.basic_models import SimpleCNN, RNNStateEncoder
+from allenact.utils.model_utils import make_cnn, compute_cnn_output
 from gym.spaces.dict import Dict as SpaceDict
+from torch import nn
+from torchvision import models
 
 from manipulathor_baselines.armpointnav_baselines.models.base_models import LinearActorHeadNoCategory
 from manipulathor_utils.debugger_util import ForkedPdb
 from manipulathor_utils.net_utils import input_embedding_net
 
 
-class BringObjectBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
+class SmallPickUpWMaskDepthBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -54,30 +58,17 @@ class BringObjectBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
 
         See class documentation for parameter definitions.
         """
-        print('Deprecated, check todos')
-        ForkedPdb().set_trace()
         super().__init__(action_space=action_space, observation_space=observation_space)
 
         self._hidden_size = hidden_size
         self.object_type_embedding_size = obj_state_embedding_size
 
-        sensor_names = self.observation_space.spaces.keys()
-        self.visual_encoder = SimpleCNN(
-            self.observation_space,
-            self._hidden_size,
-            rgb_uuid="rgb_lowres" if "rgb_lowres" in sensor_names else None,
-            depth_uuid="depth_lowres" if "depth_lowres" in sensor_names else None,
-        )
-
-        if "rgb_lowres" in sensor_names and "depth_lowres" in sensor_names:
-            input_visual_feature_num = 2
-        elif "rgb_lowres" in sensor_names:
-            input_visual_feature_num = 1
-        elif "depth_lowres" in sensor_names:
-            input_visual_feature_num = 1
+        # sensor_names = self.observation_space.spaces.keys()
+        network_args = {'input_channels': 2, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        self.full_visual_encoder = make_cnn(**network_args)
 
         self.state_encoder = RNNStateEncoder(
-            (self._hidden_size) * input_visual_feature_num,
+            512,
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -86,13 +77,6 @@ class BringObjectBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
 
         self.actor_pickup = LinearActorHeadNoCategory(self._hidden_size, action_space.n)
         self.critic_pickup = LinearCriticHead(self._hidden_size)
-        self.actor_dropoff = LinearActorHeadNoCategory(self._hidden_size, action_space.n)
-        self.critic_dropoff = LinearCriticHead(self._hidden_size)
-        # initial_dist_embedding_size = torch.Tensor([3, 100, obj_state_embedding_size])
-        # self.initial_dist_embedding = input_embedding_net(
-        #     initial_dist_embedding_size.long().tolist(), dropout=0
-        # )
-
 
         self.train()
 
@@ -143,17 +127,19 @@ class BringObjectBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
         Tuple of the `ActorCriticOutput` and recurrent hidden state.
         """
 
-        #LATER_TODO maybe we really need to switch to resnet now that visual features are actually important
+        #we really need to switch to resnet now that visual features are actually important
 
-        #LATER_TODO use object type as input
-
-        #LATER_TODO check object nav to see what they do
+        visual_observation = torch.cat([observations['depth_lowres'],observations['target_object_mask']], dim=-1).float()
 
 
-        perception_embed = self.visual_encoder(observations)
+        visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
+
+
+
         x_out, rnn_hidden_states = self.state_encoder(
-            perception_embed, memory.tensor("rnn"), masks
+            visual_observation_encoding, memory.tensor("rnn"), masks
         )
+
 
         # I think we need two model one for pick up and one for drop off
 
@@ -161,21 +147,10 @@ class BringObjectBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
         critic_out_pickup = self.critic_pickup(x_out)
 
 
-        actor_out_dropoff = self.actor_dropoff(x_out)
-        critic_out_dropoff = self.critic_dropoff(x_out)
-
-        actor_out_final = actor_out_dropoff
-        critic_out_final = critic_out_dropoff
-
-        pickup_bool = observations["pickedup_object"]
-        before_pickup = pickup_bool == 0  # not used because of our initialization
-
-        actor_out_final[before_pickup] = actor_out_pickup[before_pickup]
-        critic_out_final[before_pickup] = critic_out_pickup[before_pickup]
+        actor_out_final = actor_out_pickup
+        critic_out_final = critic_out_pickup
 
         actor_out = CategoricalDistr(logits=actor_out_final)
-
-        #LATER_TODO check to get gradients on both of them
 
         actor_critic_output = ActorCriticOutput(
             distributions=actor_out, values=critic_out_final, extras={}

@@ -37,7 +37,6 @@ class NoPickupDonePredDistanceDepth(
     TASK_SAMPLER = EasyArmPointNavTaskSampler
     NUM_PROCESSES = 40
 
-    #TODO maybe try only one room later
 
     def __init__(self):
         super().__init__()

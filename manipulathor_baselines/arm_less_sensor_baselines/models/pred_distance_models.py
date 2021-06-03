@@ -53,6 +53,8 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
 
         See class documentation for parameter definitions.
         """
+        print('deprecated, resolve todos')
+        ForkedPdb().set_trace()
         super().__init__(action_space=action_space, observation_space=observation_space)
 
         self._hidden_size = hidden_size
@@ -90,7 +92,7 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
 
         self.create_distance_pred_model()
 
-        self.teacher_forcing = teacher_forcing  #TODO we need to switch this eventually
+        self.teacher_forcing = teacher_forcing  #LATER_TODO we need to switch this eventually
 
         self.train()
 
@@ -132,7 +134,7 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
     def predict_relative_distance(
         self, initial_arm2obj_dist, initial_obj2goal_dist, perception_embed, hidden_rnn
     ):
-        #TODO we might have to increase hidden size because this is too much, it has to calc both object distance and arm distance, maybe combine them into one make it too hard, maybe two separate network?
+        #LATER_TODO we might have to increase hidden size because this is too much, it has to calc both object distance and arm distance, maybe combine them into one make it too hard, maybe two separate network?
 
         arm_relative_pred = self.arm_distance_embedding(
             torch.cat([initial_arm2obj_dist, perception_embed, hidden_rnn], dim=-1)
@@ -167,12 +169,12 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
         # Returns
         Tuple of the `ActorCriticOutput` and recurrent hidden state.
         """
-        initial_arm2obj_dist = self.get_distance_embedding(  #TODO is it okay to use the same embedding for both relative and initial?
+        initial_arm2obj_dist = self.get_distance_embedding(  #LATER_TODO is it okay to use the same embedding for both relative and initial?
             observations["initial_agent_arm_to_obj"]
         )
         initial_obj2goal_dist = self.get_distance_embedding(
             observations["initial_obj_to_goal"]
-        )  #TODO maybe we can also input this?
+        )  #LATER_TODO maybe we can also input this?
 
 
         perception_embed = self.visual_encoder(observations)
@@ -182,7 +184,7 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
         obj2goal_dist_list = []
         x_out_list = []
         for i in range(perception_embed.shape[0]):
-            #TODO we have to debug solely predicting distance first
+            #LATER_TODO we have to debug solely predicting distance first
             prediction = self.predict_relative_distance(
                 initial_arm2obj_dist[i : (i + 1)],
                 initial_obj2goal_dist[i : (i + 1)],
@@ -231,7 +233,7 @@ class PredDistanceBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
         actor_critic_output = ActorCriticOutput(
             distributions=actor_out, values=critic_out, extras={}
         )
-        actor_critic_output.extras['relative_agent_arm_to_obj_prediction'] = torch.cat(arm2obj_dist_list, dim=0) #TODO is this the right dimension?
+        actor_critic_output.extras['relative_agent_arm_to_obj_prediction'] = torch.cat(arm2obj_dist_list, dim=0) #LATER_TODO is this the right dimension?
         actor_critic_output.extras['relative_agent_obj_to_goal_prediction'] = torch.cat(obj2goal_dist_list, dim=0)
 
         return (

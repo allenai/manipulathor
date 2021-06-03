@@ -206,6 +206,18 @@ class BringObjImageVisualizer(LoggerVisualizer):
         )
         cv2.imwrite(image_dir, image_tensor[:, :, [2, 1, 0]])
 
+        # Saving the mask
+        target_object_id = task_info['object_id']
+        all_visible_masks = this_controller.last_event.instance_masks
+        if target_object_id in all_visible_masks:
+            mask_frame = all_visible_masks[target_object_id]
+        else:
+            mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
+        mask_dir = (
+                img_adr + "_obj_" + object_id.split("|")[0] + "_pickup_" + tag + "_mask.png"
+        )
+        cv2.imwrite(mask_dir, mask_frame.astype(float)*255.)
+
 
 class ImageVisualizer(LoggerVisualizer):
     def finish_episode(self, environment, episode_info, task_info):

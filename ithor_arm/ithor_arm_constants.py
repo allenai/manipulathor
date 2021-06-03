@@ -46,6 +46,7 @@ ENV_ARGS = dict(
     massThreshold=10,
     autoSimulation=False,
     autoSyncTransforms=True,
+    renderInstanceSegmentation=True, #TODO remove or keep? how slower?
 )
 
 TRAIN_OBJECTS = ["Apple", "Bread", "Tomato", "Lettuce", "Pot", "Mug"]
@@ -68,9 +69,7 @@ def reset_environment_and_additional_commands(controller, scene_name):
     controller.step(action="MakeAllObjectsMoveable")
     controller.step(action="MakeObjectsStaticKinematicMassThreshold")
     make_all_objects_unbreakable(controller)
-
-    #TODO remove this?
-    controller.step(action='SetHandSphereRadius', radius=0.2)
+    # controller.step(action='SetHandSphereRadius', radius=0.2)
     return
 
 
