@@ -49,6 +49,26 @@ class TargetObjectMask(Sensor):
 
         return (np.expand_dims(mask_frame.astype(np.float),axis=-1))
 
+class TargetLocationMask(Sensor): #TODO test this and make sure we visualize it
+    def __init__(self, uuid: str = "target_location_mask", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        super().__init__(**prepare_locals_for_super(locals()))
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        target_object_id = task.task_info['goal_object_id']
+        all_visible_masks = env.controller.last_event.instance_masks
+        if target_object_id in all_visible_masks:
+            mask_frame = all_visible_masks[target_object_id]
+        else:
+            mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
+
+        return (np.expand_dims(mask_frame.astype(np.float),axis=-1))
+
+
 class InitialObjectSensor(Sensor):
     def __init__(self, uuid: str = "initial_object", **kwargs: Any):
         observation_space = gym.spaces.Box(
