@@ -49,7 +49,7 @@ class TargetObjectMask(Sensor):
 
         return (np.expand_dims(mask_frame.astype(np.float),axis=-1))
 
-class TargetLocationMask(Sensor): #TODO test this and make sure we visualize it
+class TargetLocationMask(Sensor): #
     def __init__(self, uuid: str = "target_location_mask", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32

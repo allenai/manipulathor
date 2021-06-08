@@ -42,8 +42,8 @@ class RandomPickUPObject(
     MAX_STEPS = 200
     TASK_SAMPLER = PickUPObjectTaskSampler
     NUM_PROCESSES = 40
-    TRAIN_SCENES = ['FloorPlan1_physics']
-    TEST_SCENES = ['FloorPlan1_physics']
+    # TRAIN_SCENES = ['FloorPlan1_physics']
+    # TEST_SCENES = ['FloorPlan1_physics']
     OBJECT_TYPES = [('Apple', 'Mug')]
 
     def __init__(self):

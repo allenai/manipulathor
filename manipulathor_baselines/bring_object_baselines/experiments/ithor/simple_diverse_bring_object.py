@@ -5,8 +5,8 @@ from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn
 
 from ithor_arm.bring_object_sensors import DestinationObjectSensor, InitialObjectSensor, TargetObjectMask, TargetLocationMask
-from ithor_arm.bring_object_task_samplers import BringObjectTaskSampler
-from ithor_arm.ithor_arm_constants import ENV_ARGS
+from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
+from ithor_arm.ithor_arm_constants import ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
 from ithor_arm.ithor_arm_sensors import (
     InitialAgentArmToObjectSensor,
     InitialObjectToGoalSensor,
@@ -21,7 +21,7 @@ from manipulathor_baselines.bring_object_baselines.models.small_bring_object_wit
 from manipulathor_baselines.bring_object_baselines.models.small_depth_pickup_object_with_mask_model import SmallPickUpWMaskDepthBaselineActorCritic
 
 
-class SimpleBringObject(
+class SimpleDiverseBringObject(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -42,11 +42,12 @@ class SimpleBringObject(
     ]
 
     MAX_STEPS = 200
-    TASK_SAMPLER = BringObjectTaskSampler
+    TASK_SAMPLER = DiverseBringObjectTaskSampler
     NUM_PROCESSES = 40
+    #TODO put this back maybe?
     # TRAIN_SCENES = ['FloorPlan1_physics']
     # TEST_SCENES = ['FloorPlan1_physics']
-    OBJECT_TYPES = [('Apple', 'Mug')]
+    OBJECT_TYPES = TRAIN_OBJECTS #TODO + TEST_OBJECTS
 
     def __init__(self):
         super().__init__()
