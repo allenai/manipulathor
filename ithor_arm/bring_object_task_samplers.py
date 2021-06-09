@@ -573,8 +573,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
                     ForkedPdb().set_trace()
                     continue
 
-                #TODO if this is too big I can live with not having it and randomly sample each time
-                import torch
+                # if this is too big I can live with not having it and randomly sample each time
                 all_locations_matrix = torch.tensor([[d['object_location']['x'], d['object_location']['y'], d['object_location']['z']] for d in data_points[scene]])
                 self.all_possible_points[(scene, object)] = dict(
                     data_point_dict=data_points[scene],
@@ -758,15 +757,6 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             data_point['goal_object'] = goal_object_location
             data_point["initial_agent_pose"] = initial_agent_pose
 
-
-
-
-        else:  # we need to fix this for test set, agent init location needs to be fixed, therefore we load a fixed valid agent init that is previously randomized
-            #TODO this needs some changes
-            proper_index = self.sampler_permutation[self.sampler_index]
-            init_location = self.deterministic_data_list[proper_index]
-            data_point = dict(scene_name=init_location['scene_name'], init_location=init_location)
-            self.sampler_index += 1
 
 
 

@@ -45,7 +45,7 @@ class ArmPointNavDepth(
     TRAIN_SCENES = ['FloorPlan1_physics']
     TEST_SCENES = ['FloorPlan1_physics']
 
-    #TODO batch size is 200 do not forget that
+    # batch size is 200 do not forget that
 
     def __init__(self):
         super().__init__()

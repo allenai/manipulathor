@@ -32,6 +32,8 @@ from manipulathor_utils.net_utils import input_embedding_net
 
 class BringObjectResnetWrapper(nn.Module):
     def __init__(self, pretrained=True, flatten=True):
+        print('Deprecated')
+        ForkedPdb().set_trace()
         super().__init__()
         self.resnet_encoder = models.resnet18(pretrained=pretrained)
         del self.resnet_encoder.fc
@@ -46,7 +48,7 @@ class BringObjectResnetWrapper(nn.Module):
         copied_weights[:,3:, :,:] = layer_1_weights.clone()[:, :2]
         with torch.no_grad():
             self.resnet_encoder.conv1.weight.copy_(copied_weights)
-        # #TODO how about batchnorm stufF? how about bias?
+        # #LATER_TODO how about batchnorm stufF? how about bias?
 
         self.final_fc_layer = nn.Sequential(nn.ReLU(), nn.Conv2d(512, 64, 1, 1))
 
@@ -63,7 +65,7 @@ class BringObjectResnetWrapper(nn.Module):
         x = self.final_fc_layer(x)
         if self.flatten:
             b_size, c, w, h = x.shape
-            x = x.contiguous() #TODO do we have to have this?
+            x = x.contiguous() #LATER_TODO do we have to have this?
             x = x.view(b_size, c * w * h)
         return x
 

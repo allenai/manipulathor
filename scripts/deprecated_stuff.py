@@ -427,7 +427,7 @@ class EasyPickUpObjectTask(AbstractBringObjectTask):
                 else self.reward_configs["failed_stop_reward"]
             )
 
-        #TODO put back
+        #LATER_TODO put back
         # # increase reward if object pickup and only do it once
         # if not self.got_reward_for_pickup and self.object_picked_up:
         #     reward += self.reward_configs["pickup_success_reward"]
@@ -443,7 +443,7 @@ class EasyPickUpObjectTask(AbstractBringObjectTask):
             )
         self.last_arm_to_obj_distance = current_obj_to_arm_distance
         reward += delta_arm_to_obj_distance_reward
-        #TODO put back
+        #LATER_TODO put back
         # current_obj_to_goal_distance = self.obj_distance_from_goal()
         # if self.last_obj_to_goal_distance is None:
         #     delta_obj_to_goal_distance_reward = 0

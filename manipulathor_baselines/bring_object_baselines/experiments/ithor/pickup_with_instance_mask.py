@@ -54,8 +54,8 @@ class PickUPObject(
     TEST_SCENES = ['FloorPlan1_physics']
     OBJECT_TYPES = [('Apple', 'Mug')]
 
-    if platform.system() == "Darwin":
-        MAX_STEPS = 200 #TODO remove?
+    # if platform.system() == "Darwin":
+    #     MAX_STEPS = 200 TODO remove?
 
     def __init__(self):
         super().__init__()
