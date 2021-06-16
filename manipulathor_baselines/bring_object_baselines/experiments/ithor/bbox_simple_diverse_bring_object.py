@@ -4,7 +4,7 @@ import gym
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn
 
-from ithor_arm.bring_object_sensors import DestinationObjectSensor, InitialObjectSensor, TargetObjectMask, TargetLocationMask
+from ithor_arm.bring_object_sensors import DestinationObjectSensor, InitialObjectSensor, TargetObjectBBox, TargetLocationBBox
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
 from ithor_arm.ithor_arm_constants import ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
 from ithor_arm.ithor_arm_sensors import (
@@ -21,7 +21,7 @@ from manipulathor_baselines.bring_object_baselines.models.small_bring_object_wit
 from manipulathor_baselines.bring_object_baselines.models.small_depth_pickup_object_with_mask_model import SmallPickUpWMaskDepthBaselineActorCritic
 
 
-class SimpleDiverseBringObject(
+class BBoxSimpleDiverseBringObject(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -37,15 +37,16 @@ class SimpleDiverseBringObject(
             uuid="depth_lowres",
         ),
         PickedUpObjSensor(),
-        TargetObjectMask(),
-        TargetLocationMask(),
+        TargetObjectBBox(),
+        TargetLocationBBox(),
     ]
 
     MAX_STEPS = 200
     TASK_SAMPLER = DiverseBringObjectTaskSampler
     NUM_PROCESSES = 40
-    # TRAIN_SCENES = ['FloorPlan1_physics']
-    # TEST_SCENES = ['FloorPlan1_physics']
+    #TODO remove
+    TRAIN_SCENES = ['FloorPlan1_physics']
+    TEST_SCENES = ['FloorPlan1_physics']
     OBJECT_TYPES = TRAIN_OBJECTS #TODO + TEST_OBJECTS
 
     def __init__(self):

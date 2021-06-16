@@ -6,7 +6,7 @@ from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 # MANIPULATHOR_COMMIT_ID = "68212159d78aab5c611b7f16338380993884a06a"
 # MANIPULATHOR_COMMIT_ID = 'bcc2e62970823667acb5c2a56e809419f1521e52'
 
-#TODO remove change? what?
+# Most updated thor version, thor 3.3.1
 MANIPULATHOR_COMMIT_ID = "d26bb0ef75d95074c39718cf9f1a0890ac2c974f"
 
 MOVE_THR = 0.01
@@ -49,7 +49,7 @@ ENV_ARGS = dict(
     massThreshold=10,
     autoSimulation=False,
     autoSyncTransforms=True,
-    renderInstanceSegmentation=True, #TODO remove or keep? how slower?
+    renderInstanceSegmentation=True, #TODO this can be removed if not used
 )
 
 TRAIN_OBJECTS = ["Apple", "Bread", "Tomato", "Lettuce", "Pot", "Mug"]

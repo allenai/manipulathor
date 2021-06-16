@@ -152,10 +152,6 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         self.all_possible_points = {}
         for scene in self.scenes:
             for object in self.objects:
-                valid_position_adr = "datasets/apnd-dataset/valid_object_positions/valid_{}_positions_in_{}.json".format(
-                    object, scene
-                )
-                #TODO remove the below
                 valid_position_adr = "datasets/apnd-dataset/pruned_object_positions/pruned_v3_valid_{}_positions_in_{}.json".format(
                     object, scene
                 )
@@ -313,16 +309,23 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
     def get_source_target_indices(self):
         if self.sampler_mode == "train" or True: #TODO this needs to be fixed
             all_scenes = [s for (s,o) in self.all_possible_points.keys()]
+
+            #randomly choose a scene
             chosen_scene = random.choice(all_scenes)
             all_objects = [o for (s, o) in self.all_possible_points.keys() if s == chosen_scene]
-            init_obj, goal_obj = random.sample(all_objects, 2)
-            init_object_location = random.choice(self.all_possible_points[(chosen_scene, init_obj)]['data_point_dict'])
 
-            #TODO make this into a proper function
-            current_location = torch.tensor([init_object_location['object_location']['x'], init_object_location['object_location']['y'], init_object_location['object_location']['z']])
+            #randomly choosing initial and goal objects, the whole following needs to be changed if working with static objects
+            init_obj, goal_obj = random.sample(all_objects, 2)
+            #randomly choosing an initial location for first object
+            init_object_location = random.choice(self.all_possible_points[(chosen_scene, init_obj)]['data_point_dict'])
+            initial_location = torch.tensor([init_object_location['object_location']['x'], init_object_location['object_location']['y'], init_object_location['object_location']['z']])
+
+            #calulcate distance of initial object location to all the possible target location
             all_goal_object_locations = self.all_possible_points[(chosen_scene, goal_obj)]['data_point_matrix']
-            all_distances = (all_goal_object_locations - current_location).norm(2, dim=-1)
-            valid_goal_indices = torch.nonzero(all_distances > 1.0) #TODO is this a good number?
+            all_distances = (all_goal_object_locations - initial_location).norm(2, dim=-1)
+
+            #randomly choosing a target location which is far enough from the initial location therefore chances of collisions and failures are low
+            valid_goal_indices = torch.nonzero(all_distances > 1.0)
             chosen_goal_instance = random.choice(valid_goal_indices)
             goal_object_location = self.all_possible_points[(chosen_scene, goal_obj)]['data_point_dict'][chosen_goal_instance]
 

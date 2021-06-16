@@ -110,7 +110,7 @@ class AbstractBringObjectTask(Task[ManipulaTHOREnvironment]):
     def objects_close_enough(self, s1, s2):
         position1 = s1["position"]
         position2 = s2["position"]
-        eps = 0.2 #TODO is this a good metric?
+        eps = 0.2 # is this a good value?
         return (
             abs(position1["x"] - position2["x"]) < eps
             and abs(position1["y"] - position2["y"]) < eps
@@ -335,7 +335,6 @@ class BringObjectTask(AbstractBringObjectTask):
             done=self.is_done(),
             info={"last_action_success": self.last_action_success},
         )
-        #TODO test this to see if it has the effect we want
         return step_result
 
 

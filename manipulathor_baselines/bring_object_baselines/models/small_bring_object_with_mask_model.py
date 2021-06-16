@@ -135,7 +135,7 @@ class SmallBringObjectWMaskDepthBaselineActorCritic(ActorCriticModel[Categorical
         pickup_bool = observations["pickedup_object"]
         after_pickup = pickup_bool == 1
         visual_observation = target_object_observation
-        visual_observation[after_pickup] = target_location_observation[after_pickup] #TODO double check to see if we get correct visuakization
+        visual_observation[after_pickup] = target_location_observation[after_pickup]
 
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)

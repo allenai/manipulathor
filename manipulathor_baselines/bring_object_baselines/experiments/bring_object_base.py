@@ -22,7 +22,6 @@ class BringObjectBaseConfig(ExperimentConfig, ABC):
     CAMERA_HEIGHT = 224
     SCREEN_SIZE = 224
     MAX_STEPS = 200
-    #TODO this needs to be updated?
     def __init__(self):
         self.REWARD_CONFIG = {
             "step_penalty": -0.01,

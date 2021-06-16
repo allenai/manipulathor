@@ -183,7 +183,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         # self.reset_init_params()#**kwargs) removing this fixes one of the crashing problem
 
         # to solve the crash issue
-        #TODO why do we still have this crashing problem?
+        # why do we still have this crashing problem?
         try:
             reset_environment_and_additional_commands(self.controller, scene_name)
         except Exception as e:

@@ -773,7 +773,7 @@ class BringObjectTaskSampler(PickUPObjectTaskSampler):
             scene_name=scene_name, agentMode="arm", agentControllerType="mid-level"
         )
 
-        #TODO this needs to be redone especially wrong for testing
+        #LATER_TODO this needs to be redone especially wrong for testing
         possible_object_types = ["Apple", "Bread", "Tomato", "Lettuce", "Pot", "Mug"] + ["Potato", "SoapBottle", "Pan", "Egg", "Spatula", "Cup"]
         goal_object_type = random.choice(possible_object_types)
         goal_object_id = [o['objectId'] for o in self.env.controller.last_event.metadata['objects'] if o['objectType'] == goal_object_type][0]

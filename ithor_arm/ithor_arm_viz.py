@@ -144,12 +144,16 @@ class BringObjImageVisualizer(LoggerVisualizer):
             task_info["visualization_source"],
             tag="start",
             img_adr=os.path.join(self.log_dir, time_to_write),
+            additional_observations=['target_object_mask'],
+            episode_info=episode_info
         )
         self.log_start_goal(
             environment,
             task_info["visualization_target"],
             tag="goal",
             img_adr=os.path.join(self.log_dir, time_to_write),
+            additional_observations=['target_location_mask'],
+            episode_info=episode_info
         )
 
         self.log_queue = []
@@ -160,7 +164,7 @@ class BringObjImageVisualizer(LoggerVisualizer):
         self.action_queue.append(action_str)
         self.log_queue.append(image_tensor)
 
-    def log_start_goal(self, env, task_info, tag, img_adr):
+    def log_start_goal(self, env, task_info, tag, img_adr, additional_observations=[], episode_info=None):
         object_location = task_info["object_location"]
         object_id = task_info["object_id"]
         agent_state = task_info["agent_pose"]
@@ -207,16 +211,15 @@ class BringObjImageVisualizer(LoggerVisualizer):
         cv2.imwrite(image_dir, image_tensor[:, :, [2, 1, 0]])
 
         # Saving the mask
-        target_object_id = task_info['object_id']
-        all_visible_masks = this_controller.last_event.instance_masks
-        if target_object_id in all_visible_masks:
-            mask_frame = all_visible_masks[target_object_id]
-        else:
-            mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
-        mask_dir = (
-                img_adr + "_obj_" + object_id.split("|")[0] + "_pickup_" + tag + "_mask.png"
-        )
-        cv2.imwrite(mask_dir, mask_frame.astype(float)*255.)
+        if len(additional_observations) > 0:
+            observations = episode_info.get_observations()
+            for sensor_name in additional_observations:
+                assert sensor_name in observations
+                mask_frame = (observations[sensor_name])
+                mask_dir = (
+                        img_adr + "_obj_" + object_id.split("|")[0] + "_pickup_" + tag + "_{}.png".format(sensor_name)
+                )
+                cv2.imwrite(mask_dir, mask_frame.astype(float)*255.)
 
 
 class ImageVisualizer(LoggerVisualizer):
