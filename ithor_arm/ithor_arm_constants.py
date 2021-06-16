@@ -4,7 +4,10 @@ import ai2thor.fifo_server
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 
 # MANIPULATHOR_COMMIT_ID = "68212159d78aab5c611b7f16338380993884a06a"
-MANIPULATHOR_COMMIT_ID = 'bcc2e62970823667acb5c2a56e809419f1521e52'
+# MANIPULATHOR_COMMIT_ID = 'bcc2e62970823667acb5c2a56e809419f1521e52'
+
+#TODO remove change? what?
+MANIPULATHOR_COMMIT_ID = "d26bb0ef75d95074c39718cf9f1a0890ac2c974f"
 
 MOVE_THR = 0.01
 ARM_MIN_HEIGHT = 0.450998873
