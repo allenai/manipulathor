@@ -49,11 +49,11 @@ ENV_ARGS = dict(
     massThreshold=10,
     autoSimulation=False,
     autoSyncTransforms=True,
-    renderInstanceSegmentation=True, #TODO this can be removed if not used
+    renderInstanceSegmentation=True,
 )
 
 TRAIN_OBJECTS = ["Apple", "Bread", "Tomato", "Lettuce", "Pot", "Mug"]
-TEST_OBJECTS = ["Potato", "SoapBottle", "Pan", "Egg", "Spatula", "Cup"]
+TEST_OBJECTS = ["Potato", "Pan", "Egg", "Spatula", "Cup"] # we have to remove soap bottle from categories, "SoapBottle"
 
 
 def make_all_objects_unbreakable(controller):

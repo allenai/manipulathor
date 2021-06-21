@@ -4,7 +4,7 @@ import gym
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn
 
-from ithor_arm.bring_object_sensors import DestinationObjectSensor, InitialObjectSensor, TargetObjectMask, TargetLocationMask
+from ithor_arm.bring_object_sensors import DestinationObjectSensor, TargetObjectMask, TargetLocationMask
 from ithor_arm.bring_object_task_samplers import BringObjectTaskSampler
 from ithor_arm.ithor_arm_constants import ENV_ARGS
 from ithor_arm.ithor_arm_sensors import (

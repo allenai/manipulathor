@@ -1,16 +1,20 @@
 """Utility functions and classes for visualization and logging"""
 import os
 from datetime import datetime
+from typing import Dict
 
 import cv2
 import imageio
 import numpy as np
+import torch
+from gym.spaces import Discrete, Box
 
 from ithor_arm.arm_calculation_utils import initialize_arm
 from ithor_arm.ithor_arm_constants import (
     reset_environment_and_additional_commands,
     transport_wrapper,
 )
+from manipulathor_baselines.bring_object_baselines.models.small_bring_object_pred_box_model import SmallBringObjectPredictBBXDepthBaselineActorCritic
 from manipulathor_utils.debugger_util import ForkedPdb
 
 
@@ -139,6 +143,7 @@ class BringObjImageVisualizer(LoggerVisualizer):
             "sceneName"
         ]
         reset_environment_and_additional_commands(this_controller, scene)
+
         self.log_start_goal(
             environment,
             task_info["visualization_source"],
@@ -163,6 +168,7 @@ class BringObjImageVisualizer(LoggerVisualizer):
         image_tensor = environment.current_frame
         self.action_queue.append(action_str)
         self.log_queue.append(image_tensor)
+
 
     def log_start_goal(self, env, task_info, tag, img_adr, additional_observations=[], episode_info=None):
         object_location = task_info["object_location"]

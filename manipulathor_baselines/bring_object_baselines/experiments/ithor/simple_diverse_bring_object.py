@@ -46,7 +46,7 @@ class SimpleDiverseBringObject(
     NUM_PROCESSES = 40
     # TRAIN_SCENES = ['FloorPlan1_physics']
     # TEST_SCENES = ['FloorPlan1_physics']
-    OBJECT_TYPES = TRAIN_OBJECTS #TODO + TEST_OBJECTS
+    OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
     def __init__(self):
         super().__init__()

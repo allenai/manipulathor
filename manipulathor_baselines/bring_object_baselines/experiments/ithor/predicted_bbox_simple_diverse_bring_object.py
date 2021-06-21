@@ -4,24 +4,25 @@ import gym
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn
 
-from ithor_arm.bring_object_sensors import TargetObjectBBox, TargetLocationBBox
+from ithor_arm.bring_object_sensors import TargetObjectType, TargetLocationType, RawRGBSensorThor
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
 from ithor_arm.ithor_arm_constants import ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
 from ithor_arm.ithor_arm_sensors import (
     InitialAgentArmToObjectSensor,
     InitialObjectToGoalSensor,
     PickedUpObjSensor,
-    DepthSensorThor, RelativeAgentArmToObjectSensor, RelativeObjectToGoalSensor,
+    DepthSensorThor, RelativeAgentArmToObjectSensor, RelativeObjectToGoalSensor
 )
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
 from manipulathor_baselines.bring_object_baselines.models.pickup_object_with_mask_model import PickUpWMaskBaselineActorCritic
+from manipulathor_baselines.bring_object_baselines.models.small_bring_object_pred_box_model import SmallBringObjectPredictBBXDepthBaselineActorCritic
 from manipulathor_baselines.bring_object_baselines.models.small_bring_object_with_mask_model import SmallBringObjectWMaskDepthBaselineActorCritic
 from manipulathor_baselines.bring_object_baselines.models.small_depth_pickup_object_with_mask_model import SmallPickUpWMaskDepthBaselineActorCritic
 
 
-class BBoxSimpleDiverseBringObject(
+class PredictedBBoxSimpleDiverseBringObject(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -36,14 +37,22 @@ class BBoxSimpleDiverseBringObject(
             use_normalization=True,
             uuid="depth_lowres",
         ),
+        RawRGBSensorThor(
+            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            use_resnet_normalization=False,
+            uuid="raw_rgb_lowres",
+        ),
         PickedUpObjSensor(),
-        TargetObjectBBox(),
-        TargetLocationBBox(),
+        TargetObjectType(),
+        TargetLocationType(),
     ]
 
     MAX_STEPS = 200
+
+
     TASK_SAMPLER = DiverseBringObjectTaskSampler
-    NUM_PROCESSES = 40
+    NUM_PROCESSES = 8 #LATER_TODO
     # TRAIN_SCENES = ['FloorPlan1_physics']
     # TEST_SCENES = ['FloorPlan1_physics']
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
@@ -61,7 +70,7 @@ class BBoxSimpleDiverseBringObject(
 
     @classmethod
     def create_model(cls, **kwargs) -> nn.Module:
-        return SmallBringObjectWMaskDepthBaselineActorCritic(
+        return SmallBringObjectPredictBBXDepthBaselineActorCritic(
             action_space=gym.spaces.Discrete(
                 len(cls.TASK_SAMPLER._TASK_TYPE.class_action_names())
             ),
