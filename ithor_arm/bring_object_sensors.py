@@ -1,4 +1,5 @@
 """Utility classes and functions for sensory inputs used by the models."""
+import random
 from typing import Any, Union, Optional
 
 import gym
@@ -152,3 +153,68 @@ class TargetLocationBBox(Sensor): #
 
         return (np.expand_dims(box_as_mask_frame.astype(np.float),axis=-1))
 
+TURN_OFF_RATE = 0.05 #TODO good?
+ADD_PIXEL_RATE = 0.0005 #TODO good?
+REMOVE_RATE = 0.1 #TODO what do you think?
+def add_noise(result):
+    if random.random() < REMOVE_RATE:
+        result[:] = 0.
+    else:
+        w, h, d = result.shape
+        mask = np.random.rand(w, h, d)
+        mask = mask < TURN_OFF_RATE
+        mask = mask & (result == 1)
+        result[mask] = 0
+
+
+        mask = np.random.rand(w, h, d)
+        mask = mask < ADD_PIXEL_RATE
+        mask = mask & (result == 0)
+        result[mask] = 1
+
+    return result
+
+class NoisyTargetLocationBBox(Sensor): #
+    def __init__(self, uuid: str = "target_location_mask", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        super().__init__(**prepare_locals_for_super(locals()))
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        target_object_id = task.task_info['goal_object_id']
+
+        all_visible_masks = env.controller.last_event.instance_detections2D
+        box_as_mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
+        if target_object_id in all_visible_masks:
+            x1, y1, x2, y2 = all_visible_masks[target_object_id]
+            box_as_mask_frame[y1:y2, x1:x2] = 1.
+        result = (np.expand_dims(box_as_mask_frame.astype(np.float),axis=-1))
+
+        return add_noise(result)
+
+
+
+class NoisyTargetObjectBBox(Sensor):
+    def __init__(self, uuid: str = "target_object_mask", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        super().__init__(**prepare_locals_for_super(locals()))
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        target_object_id = task.task_info['source_object_id']
+        all_visible_masks = env.controller.last_event.instance_detections2D
+        box_as_mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
+        if target_object_id in all_visible_masks:
+            x1, y1, x2, y2 = all_visible_masks[target_object_id]
+            box_as_mask_frame[y1:y2, x1:x2] = 1.
+        result = (np.expand_dims(box_as_mask_frame.astype(np.float),axis=-1))
+
+        return add_noise(result)
