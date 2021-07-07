@@ -14,7 +14,7 @@ from ithor_arm.ithor_arm_constants import (
     reset_environment_and_additional_commands,
     transport_wrapper,
 )
-from manipulathor_baselines.bring_object_baselines.models.small_bring_object_pred_box_model import SmallBringObjectPredictBBXDepthBaselineActorCritic
+# from manipulathor_baselines.bring_object_baselines.models.small_bring_object_pred_box_model import SmallBringObjectPredictBBXDepthBaselineActorCritic
 from manipulathor_utils.debugger_util import ForkedPdb
 
 
