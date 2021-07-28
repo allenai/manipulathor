@@ -144,12 +144,19 @@ class BringObjImageVisualizer(LoggerVisualizer):
         ]
         reset_environment_and_additional_commands(this_controller, scene)
 
+        additional_observation_start = []
+        additional_observation_goal = []
+        if 'target_object_mask' in episode_info.get_observations():
+            additional_observation_start.append('target_object_mask')
+        if 'target_location_mask' in episode_info.get_observations():
+            additional_observation_goal.append('target_location_mask')
+
         self.log_start_goal(
             environment,
             task_info["visualization_source"],
             tag="start",
             img_adr=os.path.join(self.log_dir, time_to_write),
-            additional_observations=['target_object_mask'],
+            additional_observations=additional_observation_start,
             episode_info=episode_info
         )
         self.log_start_goal(
@@ -157,7 +164,7 @@ class BringObjImageVisualizer(LoggerVisualizer):
             task_info["visualization_target"],
             tag="goal",
             img_adr=os.path.join(self.log_dir, time_to_write),
-            additional_observations=['target_location_mask'],
+            additional_observations=additional_observation_goal,
             episode_info=episode_info
         )
 

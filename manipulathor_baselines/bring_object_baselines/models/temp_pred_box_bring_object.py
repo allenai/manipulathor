@@ -58,6 +58,9 @@ class PredictBBoxwTFBringObjectModel(ActorCriticModel[CategoricalDistr]):
 
         See class documentation for parameter definitions.
         """
+        print('resovle todos')
+        ForkedPdb().set_trace()
+
         super().__init__(action_space=action_space, observation_space=observation_space)
 
         self._hidden_size = hidden_size
@@ -81,7 +84,7 @@ class PredictBBoxwTFBringObjectModel(ActorCriticModel[CategoricalDistr]):
         self.actor_pickup = LinearActorHeadNoCategory(self._hidden_size, action_space.n)
         self.critic_pickup = LinearCriticHead(self._hidden_size)
 
-        self.teacher_forcing_rate = 1 #TODO change eventually
+        self.teacher_forcing_rate = 1 #LATER_TODO change eventually
 
         self.train()
 

@@ -34,12 +34,13 @@ def main(args):
              --exclude experiment_output/ \
              --exclude test_out/ \
              --exclude docs/ \
-             --exclude trained_weights/  \
+             --exclude datasets/apnd-dataset/weights/  \
              --exclude pretrained_models/  \
+             --exclude *.ipynb_checkpoints/*  \
              --exclude trained_weights/do_not_sync_weights/  \
              ../manipulathor {}:~/'.format(server)
         if args.sync_weights:
-            command = command.replace('--exclude trained_weights/ ', '')
+            command = command.replace('--exclude datasets/apnd-dataset/weights/ ', '')
         if args.sync_specific_weight is not None:
             print('Not implemented yet')
             pdb.set_trace()

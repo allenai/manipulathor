@@ -22,9 +22,10 @@ from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixi
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
 from manipulathor_baselines.bring_object_baselines.losses.bring_object_losses import PredictBoxBCELsss
 from manipulathor_baselines.bring_object_baselines.models.pickup_object_with_mask_model import PickUpWMaskBaselineActorCritic
-from manipulathor_baselines.bring_object_baselines.models.pred_box_bring_object import PredictBBoxwTFBringObjectModel
+from manipulathor_baselines.bring_object_baselines.models.temp_pred_box_bring_object import PredictBBoxwTFBringObjectModel
 from manipulathor_baselines.bring_object_baselines.models.small_bring_object_with_mask_model import SmallBringObjectWMaskDepthBaselineActorCritic
 from manipulathor_baselines.bring_object_baselines.models.small_depth_pickup_object_with_mask_model import SmallPickUpWMaskDepthBaselineActorCritic
+from manipulathor_utils.debugger_util import ForkedPdb
 
 
 class AttentionBBoxBringObject(
@@ -82,14 +83,14 @@ class AttentionBBoxBringObject(
         )
 
     def training_pipeline(self, **kwargs):
+        print('resolve todo')
+        ForkedPdb().set_trace()
         ppo_steps = int(300000000)
         lr = 3e-4
         num_mini_batch = 1
         update_repeats = 4
         num_steps = 128 #self.MAX_STEPS
-        #TODO try with smaller
-        #TODO remove
-        num_steps = 3
+        #
         save_interval = 500000  # from 50k
         log_interval = 1000
         gamma = 0.99
@@ -113,7 +114,7 @@ class AttentionBBoxBringObject(
                 # PipelineStage(loss_names=["ppo_loss"], max_stage_steps=ppo_steps)
                 PipelineStage(
                     loss_names=["ppo_loss", "pred_box_bce"],
-                    loss_weights=[1.0, 1.0], #TODO how is this?
+                    loss_weights=[1.0, 1.0], #LATER_TODO how is this?
                     max_stage_steps=ppo_steps,
                 )
             ],

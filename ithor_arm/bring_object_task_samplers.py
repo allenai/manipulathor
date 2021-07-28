@@ -210,8 +210,6 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         assert init_object["scene_name"] == goal_object["scene_name"] == scene_name
         assert init_object['object_id'] != goal_object['object_id']
 
-
-
         if self.env is None:
             self.env = self._create_environment()
 
@@ -316,64 +314,6 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
 
             #randomly choosing initial and goal objects, the whole following needs to be changed if working with static objects
             init_obj, goal_obj = random.sample(all_objects, 2)
-            #randomly choosing an initial location for first object
-            init_object_location = random.choice(self.all_possible_points[(chosen_scene, init_obj)]['data_point_dict'])
-            initial_location = torch.tensor([init_object_location['object_location']['x'], init_object_location['object_location']['y'], init_object_location['object_location']['z']])
-
-            #calulcate distance of initial object location to all the possible target location
-            all_goal_object_locations = self.all_possible_points[(chosen_scene, goal_obj)]['data_point_matrix']
-            all_distances = (all_goal_object_locations - initial_location).norm(2, dim=-1)
-
-            #randomly choosing a target location which is far enough from the initial location therefore chances of collisions and failures are low
-            valid_goal_indices = torch.nonzero(all_distances > 1.0)
-            chosen_goal_instance = random.choice(valid_goal_indices)
-            goal_object_location = self.all_possible_points[(chosen_scene, goal_obj)]['data_point_dict'][chosen_goal_instance]
-
-            selected_agent_init_loc = random.choice(
-                self.possible_agent_reachable_poses[chosen_scene]
-            )
-            initial_agent_pose = {
-                "name": "agent",
-                "position": {
-                    "x": selected_agent_init_loc["x"],
-                    "y": selected_agent_init_loc["y"],
-                    "z": selected_agent_init_loc["z"],
-                },
-                "rotation": {
-                    "x": -0.0,
-                    "y": selected_agent_init_loc["rotation"],
-                    "z": 0.0,
-                },
-                "cameraHorizon": selected_agent_init_loc["horizon"],
-                "isStanding": True,
-            }
-
-            data_point = {}
-            data_point['scene_name'] = chosen_scene
-            data_point['init_object'] = init_object_location
-            data_point['goal_object'] = goal_object_location
-            data_point["initial_agent_pose"] = initial_agent_pose
-
-
-
-
-        return data_point
-
-
-class OnlyAppleBreadBringObjectTaskSampler(DiverseBringObjectTaskSampler):
-
-
-    def get_source_target_indices(self):
-        if self.sampler_mode == "train" or True:
-            all_scenes = [s for (s,o) in self.all_possible_points.keys()]
-
-            #randomly choose a scene
-            chosen_scene = random.choice(all_scenes)
-            all_objects = [o for (s, o) in self.all_possible_points.keys() if s == chosen_scene]
-
-            #randomly choosing initial and goal objects, the whole following needs to be changed if working with static objects
-            # init_obj, goal_obj = random.sample(all_objects, 2)
-            init_obj, goal_obj = 'Apple', 'Bread'
             #randomly choosing an initial location for first object
             init_object_location = random.choice(self.all_possible_points[(chosen_scene, init_obj)]['data_point_dict'])
             initial_location = torch.tensor([init_object_location['object_location']['x'], init_object_location['object_location']['y'], init_object_location['object_location']['z']])

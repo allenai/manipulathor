@@ -26,11 +26,12 @@ from torch import nn
 from torchvision import models
 
 from manipulathor_baselines.armpointnav_baselines.models.base_models import LinearActorHeadNoCategory
+from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
 from manipulathor_utils.net_utils import input_embedding_net
 
 
-class SmallBringObjectWMaskDepthBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
+class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -67,6 +68,7 @@ class SmallBringObjectWMaskDepthBaselineActorCritic(ActorCriticModel[Categorical
         network_args = {'input_channels': 2, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
 
+        self.detection_model = ConditionalDetectionModel()
 
         self.state_encoder = RNNStateEncoder(
             512,
@@ -80,6 +82,49 @@ class SmallBringObjectWMaskDepthBaselineActorCritic(ActorCriticModel[Categorical
         self.critic_pickup = LinearCriticHead(self._hidden_size)
 
         self.train()
+        self.detection_model.eval()
+
+        #TODO reload the weights
+        weight_dir = 'datasets/apnd-dataset/weights/resnet_based_only_thor_detection_120.pytar'
+        detection_weight_dict = torch.load(weight_dir, map_location='cpu')
+        detection_state_dict = self.detection_model.state_dict()
+        for key in detection_state_dict:
+            param = detection_weight_dict[key]
+            detection_state_dict[key].copy_(param)
+        remained = [k for k in detection_weight_dict if k not in detection_state_dict]
+        assert len(remained) == 0
+        #TODO is the reload correct?
+
+        #TODO this is really bad. Does this even work? you are the worst
+        weight_dir = 'datasets/apnd-dataset/weights/exp_NoisyMaskSimpleDiverseBringObject_noisy_bring_obj_all_rooms_all_obj_mask__stage_00__steps_000053771485.pt'
+        loaded_rl_model_weights = torch.load(weight_dir, map_location='cpu')['model_state_dict']
+        rl_model_state_keys = [k for k in self.state_dict() if k.replace('detection_model.', '') not in detection_state_dict]
+        #TODO this is a freaking small model!
+
+        # print('norm', self.full_visual_encoder.conv_0.weight.norm(), 'mean', self.full_visual_encoder.conv_0.weight.mean())
+
+        rl_model_state_dict = self.state_dict()
+        for key in rl_model_state_keys:
+            param = loaded_rl_model_weights[key]
+            rl_model_state_dict[key].copy_(param)
+        # print('norm', self.full_visual_encoder.conv_0.weight.norm(), 'mean', self.full_visual_encoder.conv_0.weight.mean())
+
+    def get_detection_masks(self, query_images, images): #TODO can we save the detections so we don't have to go through them again?
+        #TODO make sure the weights have stayed the same
+        self.detection_model.eval()
+        with torch.no_grad():
+            images = images.permute(0,1,4,2,3) #Turn wxhxc to cxwxh
+
+            batch, seqlen, c, w, h = images.shape
+
+            images = images.view(batch * seqlen, c, w, h)
+            query_images = query_images.view(batch * seqlen, c, w, h)
+            #LATER_TODO visualize the outputs
+            predictions = self.detection_model(dict(rgb=images, target_cropped_object=query_images))
+            probs_mask = predictions['object_mask']
+            probs_mask = probs_mask.view(batch, seqlen, 2, w, h)
+            mask = probs_mask.argmax(dim=2).float().unsqueeze(-1)#To add the channel back in the end of the image
+            return mask
 
 
     @property
@@ -103,7 +148,6 @@ class SmallBringObjectWMaskDepthBaselineActorCritic(ActorCriticModel[Categorical
                 torch.float32,
             )
         )
-
 
     def forward(  # type:ignore
         self,
@@ -130,14 +174,20 @@ class SmallBringObjectWMaskDepthBaselineActorCritic(ActorCriticModel[Categorical
 
         #we really need to switch to resnet now that visual features are actually important
 
-        target_object_observation = torch.cat([observations['depth_lowres'],observations['target_object_mask']], dim=-1).float()
-        target_location_observation = torch.cat([observations['depth_lowres'],observations['target_location_mask']], dim=-1).float()
+
+        query_source_objects = observations['category_object_source']
+        query_destination_objects = observations['category_object_destination']
+
 
         pickup_bool = observations["pickedup_object"]
         after_pickup = pickup_bool == 1
-        visual_observation = target_object_observation
-        visual_observation[after_pickup] = target_location_observation[after_pickup]
 
+        query_objects = query_source_objects
+        query_objects[after_pickup] = query_destination_objects[after_pickup]
+
+        predicted_masks = self.get_detection_masks(query_objects, observations['only_detection_rgb_lowres'])
+
+        visual_observation = torch.cat([observations['depth_lowres'],predicted_masks], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
 
