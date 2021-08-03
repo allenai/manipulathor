@@ -4,7 +4,7 @@ import gym
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn
 
-from ithor_arm.bring_object_sensors import TargetObjectBBox, TargetLocationBBox, CategorySampleSensor
+from ithor_arm.bring_object_sensors import  CategorySampleSensor, NoisyObjectMask
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
 from ithor_arm.ithor_arm_constants import ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
 from ithor_arm.ithor_arm_sensors import (
@@ -19,11 +19,12 @@ from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixi
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
 from manipulathor_baselines.bring_object_baselines.models.pickup_object_with_mask_model import PickUpWMaskBaselineActorCritic
 from manipulathor_baselines.bring_object_baselines.models.predict_mask_small_bring_object import SmallBringObjectWPredictMaskDepthBaselineActorCritic
+from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_small_bring_object import SmallBringObjectWQueryObjGtMaskDepthBaselineActorCritic
 from manipulathor_baselines.bring_object_baselines.models.small_bring_object_with_mask_model import SmallBringObjectWMaskDepthBaselineActorCritic
 from manipulathor_baselines.bring_object_baselines.models.small_depth_pickup_object_with_mask_model import SmallPickUpWMaskDepthBaselineActorCritic
 
 
-class PredictedMaskSimpleDiverseBringObject(
+class QueryObjGTMaskSimpleDiverseBringObject(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -47,6 +48,8 @@ class PredictedMaskSimpleDiverseBringObject(
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
+        NoisyObjectMask(noise_level=0.2, type='source'),
+        NoisyObjectMask(noise_level=0.2, type='destination'),
     ]
 
     MAX_STEPS = 200
@@ -59,7 +62,6 @@ class PredictedMaskSimpleDiverseBringObject(
 
     TASK_SAMPLER = DiverseBringObjectTaskSampler
     NUM_PROCESSES = 40
-    NUM_PROCESSES = 10 #TODO
 
     # TRAIN_SCENES = ['FloorPlan1_physics']
     # TEST_SCENES = ['FloorPlan1_physics']
@@ -68,8 +70,6 @@ class PredictedMaskSimpleDiverseBringObject(
     TEST_OBJECTS = ["Pan", "Egg", "Spatula", "Cup"] #, 'Potato']
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
-    #TODO remove
-    TEST_SCENES = BringObjectiThorBaseConfig.TRAIN_SCENES
 
     def __init__(self):
         super().__init__()
@@ -80,12 +80,11 @@ class PredictedMaskSimpleDiverseBringObject(
             and self.VISIBILITY_DISTANCE == 1
             and self.STEP_SIZE == 0.25
         )
-        ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS = {**ENV_ARGS, "renderDepthImage": True}
 
     @classmethod
     def create_model(cls, **kwargs) -> nn.Module:
-        return SmallBringObjectWPredictMaskDepthBaselineActorCritic(
+        return SmallBringObjectWQueryObjGtMaskDepthBaselineActorCritic(
             action_space=gym.spaces.Discrete(
                 len(cls.TASK_SAMPLER._TASK_TYPE.class_action_names())
             ),

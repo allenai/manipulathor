@@ -69,7 +69,7 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
         self.object_type_embedding_size = obj_state_embedding_size
 
         # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 5, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        network_args = {'input_channels': 2, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
 
         self.detection_model = ConditionalDetectionModel()
@@ -110,6 +110,7 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
 
         rl_model_state_dict = self.state_dict()
 
+        ForkedPdb().set_trace()
         for key in rl_model_state_keys:
             param = loaded_rl_model_weights[key]
             rl_model_state_dict[key].copy_(param)
@@ -193,8 +194,7 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
 
         predicted_masks = self.get_detection_masks(query_objects, observations['only_detection_rgb_lowres'])
 
-        visual_observation = torch.cat([observations['depth_lowres'],query_objects.permute(0, 1, 3, 4, 2), predicted_masks], dim=-1).float()
-        # visual_observation = torch.cat([observations['depth_lowres'],predicted_masks], dim=-1).float()
+        visual_observation = torch.cat([observations['depth_lowres'],predicted_masks], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
 
@@ -203,34 +203,6 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
         x_out, rnn_hidden_states = self.state_encoder(
             visual_observation_encoding, memory.tensor("rnn"), masks
         )
-
-        self.visualize = platform.system() == "Darwin"
-        #TODO really bad design
-        if self.visualize:
-            def unnormalize_image(img):
-                mean=torch.Tensor([0.485, 0.456, 0.406]).to(img.device)
-                std=torch.Tensor([0.229, 0.224, 0.225]).to(img.device)
-                img = (img * std + mean)
-                img = torch.clamp(img, 0, 1)
-                return img
-            viz_image = observations['only_detection_rgb_lowres']
-            depth = observations['depth_lowres']
-            bsize, seqlen, w, h, c = viz_image.shape
-            if bsize == 1 and seqlen == 1:
-                viz_image = viz_image.squeeze(0).squeeze(0)
-                viz_query_obj = query_objects.squeeze(0).squeeze(0).permute(1,2,0) #TO make it channel last
-                viz_mask = predicted_masks.squeeze(0).squeeze(0).repeat(1,1, 3)
-                viz_image = unnormalize_image(viz_image)
-                viz_query_obj = unnormalize_image(viz_query_obj)
-                combined = torch.cat([viz_image, viz_query_obj, viz_mask], dim=1)
-                directory_to_write_images = 'experiment_output/visualizations_masks'
-                os.makedirs(directory_to_write_images, exist_ok=True)
-                now = datetime.now()
-                time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f.png")
-                cv2.imwrite(os.path.join(directory_to_write_images, time_to_write), (combined[:,:,[2,1,0]] * 255.).int().numpy())
-
-
-
 
 
         # I think we need two model one for pick up and one for drop off

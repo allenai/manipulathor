@@ -234,6 +234,48 @@ class BringObjImageVisualizer(LoggerVisualizer):
                 )
                 cv2.imwrite(mask_dir, mask_frame.astype(float)*255.)
 
+class MaskImageVisualizer(LoggerVisualizer):
+    def finish_episode(self, environment, episode_info, task_info):
+        ForkedPdb().set_trace()
+        now = datetime.now()
+        time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f")
+        time_to_write += "log_ind_{}".format(self.logger_index)
+        self.logger_index += 1
+        print("Loggigng", time_to_write, "len", len(self.log_queue))
+        object_id = task_info["objectId"]
+
+        pickup_success = episode_info.object_picked_up
+        episode_success = episode_info._success
+
+        # Put back if you want the images
+        # for i, img in enumerate(self.log_queue):
+        #     image_dir = os.path.join(self.log_dir, time_to_write + '_seq{}.png'.format(str(i)))
+        #     cv2.imwrite(image_dir, img[:,:,[2,1,0]])
+
+        episode_success_offset = "succ" if episode_success else "fail"
+        pickup_success_offset = "succ" if pickup_success else "fail"
+        gif_name = (
+                time_to_write
+                + "_obj_"
+                + object_id.split("|")[0]
+                + "_pickup_"
+                + pickup_success_offset
+                + "_episode_"
+                + episode_success_offset
+                + ".gif"
+        )
+        concat_all_images = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
+        save_image_list_to_gif(concat_all_images, gif_name, self.log_dir)
+
+        self.log_queue = []
+        self.action_queue = []
+
+    def log(self, environment, action_str):
+        # ForkedPdb().set_trace()
+        image_tensor = environment.current_frame
+        self.action_queue.append(action_str)
+        self.log_queue.append(image_tensor)
+
 
 class ImageVisualizer(LoggerVisualizer):
     def finish_episode(self, environment, episode_info, task_info):

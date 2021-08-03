@@ -25,6 +25,8 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
     if platform.system() == "Darwin":
         VISUALIZE = True
 
+    POTENTIAL_VISUALIZERS = [BringObjImageVisualizer, TestMetricLogger]
+
     NUM_PROCESSES: Optional[int] = None
     TRAIN_GPU_IDS = list(range(torch.cuda.device_count()))
     SAMPLER_GPU_IDS = TRAIN_GPU_IDS
@@ -112,13 +114,12 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
         from datetime import datetime
 
         now = datetime.now()
+
         exp_name_w_time = cls.__name__ + "_" + now.strftime("%m_%d_%Y_%H_%M_%S_%f")
         if cls.VISUALIZE:
             visualizers = [
-                BringObjImageVisualizer(exp_name=exp_name_w_time),
-                TestMetricLogger(exp_name=exp_name_w_time),
+                viz(exp_name=exp_name_w_time) for viz in cls.POTENTIAL_VISUALIZERS
             ]
-
             kwargs["visualizers"] = visualizers
         kwargs["objects"] = cls.OBJECT_TYPES
         kwargs["exp_name"] = exp_name_w_time

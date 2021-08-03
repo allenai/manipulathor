@@ -18,6 +18,7 @@ from ithor_arm.ithor_arm_task_samplers import (
 )
 from ithor_arm.ithor_arm_viz import ImageVisualizer, TestMetricLogger
 from manipulathor_baselines.arm_less_sensor_baselines.experiments.pred_distance_base import PredDistanceBaseConfig
+from manipulathor_utils.debugger_util import ForkedPdb
 
 
 class PredDistanceThorBaseConfig(PredDistanceBaseConfig, ABC):
@@ -48,6 +49,8 @@ class PredDistanceThorBaseConfig(PredDistanceBaseConfig, ABC):
     TEST_SAMPLES_IN_SCENE = 1
 
     NUMBER_OF_TEST_PROCESS = 10
+
+    POTENTIAL_VISUALIZERS = [ImageVisualizer, TestMetricLogger]
 
     def __init__(self):
         super().__init__()
@@ -117,9 +120,9 @@ class PredDistanceThorBaseConfig(PredDistanceBaseConfig, ABC):
         now = datetime.now()
         exp_name_w_time = cls.__name__ + "_" + now.strftime("%m_%d_%Y_%H_%M_%S_%f")
         if cls.VISUALIZE:
+            ForkedPdb().set_trace()
             visualizers = [
-                ImageVisualizer(exp_name=exp_name_w_time),
-                TestMetricLogger(exp_name=exp_name_w_time),
+                viz(exp_name=exp_name_w_time) for viz in cls.POTENTIAL_VISUALIZERS
             ]
 
             kwargs["visualizers"] = visualizers

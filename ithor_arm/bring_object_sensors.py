@@ -32,35 +32,79 @@ class CategorySampleSensor(Sensor):
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
         self.type = type
         uuid = '{}_{}'.format(uuid, type)
-        self.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225]),
-        ])
         super().__init__(**prepare_locals_for_super(locals()))
 
-    def load_and_resize(self, img_name):
-        with open(img_name, 'rb') as fp:
-            image = Image.open(fp).convert('RGB')
-        return self.transform(image)
 
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
         if self.type == 'source':
-            object_type = task.task_info['source_object_id'].split('|')[0]
+            info_to_search = 'source_object_query'
         elif self.type == 'destination':
-            object_type = task.task_info['goal_object_id'].split('|')[0]
+            info_to_search = 'goal_object_query'
         else:
             raise Exception('Not implemented', self.type)
-        object_type = object_type[0].lower() + object_type[1:]
-        #TODO is this too slow?
-        IMAGE_DIR = 'datasets/apnd-dataset/object_query_images/' + object_type
-        all_possible_images = [f for f in glob.glob(os.path.join(IMAGE_DIR, '*.png'))]
-        chosen_image_adr = random.choice(all_possible_images)
-        image = self.load_and_resize(chosen_image_adr)
-        return image #TODO visualize this
+        image = task.task_info[info_to_search]
+        return image
+
+
+class NoisyObjectMask(Sensor):
+    def __init__(self, type: str, uuid: str = "object_mask", noise=0.1, **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        uuid = '{}_{}'.format(uuid, type)
+        self.noise = noise
+        super().__init__(**prepare_locals_for_super(locals()))
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+
+        if self.type == 'source':
+            info_to_search = 'source_object_id'
+        elif self.type == 'destination':
+            info_to_search = 'goal_object_id'
+        else:
+            raise Exception('Not implemented', self.type)
+
+        target_object_id = task.task_info[info_to_search]
+        all_visible_masks = env.controller.last_event.instance_masks
+        if target_object_id in all_visible_masks:
+            mask_frame = all_visible_masks[target_object_id]
+        else:
+            mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
+
+        result = (np.expand_dims(mask_frame.astype(np.float),axis=-1))
+        fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
+        fake_mask = (np.expand_dims(fake_mask.astype(np.float),axis=-1))
+
+        return add_mask_noise(result, fake_mask, noise=self.noise)
+
+
+def add_mask_noise(result, fake_mask, noise):
+    TURN_OFF_RATE = noise
+    REMOVE_RATE = noise
+    REPLACE_WITH_FAKE = noise
+
+    random_prob = random.random()
+    if random_prob < REMOVE_RATE:
+        result[:] = 0.
+    elif random_prob < REMOVE_RATE + REPLACE_WITH_FAKE:
+        result = fake_mask
+    else:
+        w, h, d = result.shape
+        mask = np.random.rand(w, h, d)
+        mask = mask < TURN_OFF_RATE
+        mask = mask & (result == 1)
+        result[mask] = 0
+
+    return result
+
+
 
 
 class DestinationObjectSensor(Sensor):
@@ -198,72 +242,53 @@ class TargetLocationBBox(Sensor): #
         return (np.expand_dims(box_as_mask_frame.astype(np.float),axis=-1))
 
 
-
-def add_mask_noise(result, fake_mask):
-    TURN_OFF_RATE = 0.1
-    REMOVE_RATE = 0.1
-    REPLACE_WITH_FAKE = 0.1
-
-    random_prob = random.random()
-    if random_prob < REMOVE_RATE:
-        result[:] = 0.
-    elif random_prob < REMOVE_RATE + REPLACE_WITH_FAKE:
-        result = fake_mask
-    else:
-        w, h, d = result.shape
-        mask = np.random.rand(w, h, d)
-        mask = mask < TURN_OFF_RATE
-        mask = mask & (result == 1)
-        result[mask] = 0
-
-    return result
-
-class NoisyTargetLocationMask(Sensor): #
-    def __init__(self, uuid: str = "target_location_mask", **kwargs: Any):
-        observation_space = gym.spaces.Box(
-            low=0, high=1, shape=(1,), dtype=np.float32
-        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
-        super().__init__(**prepare_locals_for_super(locals()))
-
-
-    def get_observation(
-            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
-    ) -> Any:
-        target_object_id = task.task_info['goal_object_id']
-        all_visible_masks = env.controller.last_event.instance_masks
-        if target_object_id in all_visible_masks:
-            mask_frame = all_visible_masks[target_object_id]
-        else:
-            mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
-
-        result = (np.expand_dims(mask_frame.astype(np.float),axis=-1))
-        fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
-        fake_mask = (np.expand_dims(fake_mask.astype(np.float),axis=-1))
-
-        return add_mask_noise(result, fake_mask)
-
-class NoisyTargetObjectMask(Sensor):
-
-    def __init__(self, uuid: str = "target_object_mask", **kwargs: Any):
-        observation_space = gym.spaces.Box(
-            low=0, high=1, shape=(1,), dtype=np.float32
-        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
-        super().__init__(**prepare_locals_for_super(locals()))
-
-    def get_observation(
-            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
-    ) -> Any:
-        target_object_id = task.task_info['source_object_id']
-        all_visible_masks = env.controller.last_event.instance_masks
-        if target_object_id in all_visible_masks:
-            mask_frame = all_visible_masks[target_object_id]
-        else:
-            mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
-
-        result = (np.expand_dims(mask_frame.astype(np.float),axis=-1))
-        fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
-        fake_mask = (np.expand_dims(fake_mask.astype(np.float),axis=-1))
-        return add_mask_noise(result, fake_mask)
+#
+# class NoisyTargetLocationMask(Sensor): #
+#     def __init__(self, uuid: str = "target_location_mask", **kwargs: Any):
+#         observation_space = gym.spaces.Box(
+#             low=0, high=1, shape=(1,), dtype=np.float32
+#         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+#         super().__init__(**prepare_locals_for_super(locals()))
+#
+#
+#     def get_observation(
+#             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+#     ) -> Any:
+#         target_object_id = task.task_info['goal_object_id']
+#         all_visible_masks = env.controller.last_event.instance_masks
+#         if target_object_id in all_visible_masks:
+#             mask_frame = all_visible_masks[target_object_id]
+#         else:
+#             mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
+#
+#         result = (np.expand_dims(mask_frame.astype(np.float),axis=-1))
+#         fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
+#         fake_mask = (np.expand_dims(fake_mask.astype(np.float),axis=-1))
+#
+#         return add_mask_noise(result, fake_mask)
+#
+# class NoisyTargetObjectMask(Sensor):
+#
+#     def __init__(self, uuid: str = "target_object_mask", **kwargs: Any):
+#         observation_space = gym.spaces.Box(
+#             low=0, high=1, shape=(1,), dtype=np.float32
+#         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+#         super().__init__(**prepare_locals_for_super(locals()))
+#
+#     def get_observation(
+#             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+#     ) -> Any:
+#         target_object_id = task.task_info['source_object_id']
+#         all_visible_masks = env.controller.last_event.instance_masks
+#         if target_object_id in all_visible_masks:
+#             mask_frame = all_visible_masks[target_object_id]
+#         else:
+#             mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
+#
+#         result = (np.expand_dims(mask_frame.astype(np.float),axis=-1))
+#         fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
+#         fake_mask = (np.expand_dims(fake_mask.astype(np.float),axis=-1))
+#         return add_mask_noise(result, fake_mask)
 
 
 
