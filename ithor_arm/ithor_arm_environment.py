@@ -351,7 +351,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                             event = self.step(dict(action="ReleaseObject"))
             action_dict = {
                 'action': 'Pass'
-            }
+            } #TODO we have to change the last action success if the pik up fails
 
         elif not "MoveArm" in action:
             if "Continuous" in action:

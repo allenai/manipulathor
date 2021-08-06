@@ -30,7 +30,34 @@ class DepthSensorThor(
     """
 
     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
-        return env.controller.last_event.depth_frame.copy()
+
+        depth = (env.controller.last_event.depth_frame.copy())
+
+        # TODO remove
+        # if True:
+        #     try:
+        #         self.depth_dict
+        #     except Exception:
+        #         self.depth_dict = {
+        #             'min': [],
+        #             'max': [],
+        #             'mean': [],
+        #             'norm': [],
+        #
+        #         }
+        #     import torch
+        #     depth_frame = torch.Tensor(depth)
+        #     self.depth_dict['min'].append(depth_frame.min())
+        #     self.depth_dict['max'].append(depth_frame.max())
+        #     self.depth_dict['mean'].append(depth_frame.mean())
+        #     self.depth_dict['norm'].append(depth_frame.norm())
+        #     print('total', len(self.depth_dict['min']),
+        #           'min', sum(self.depth_dict['min']) / len(self.depth_dict['min']),
+        #           'max', sum(self.depth_dict['max']) / len(self.depth_dict['max']),
+        #           'mean', sum(self.depth_dict['mean']) / len(self.depth_dict['mean']),
+        #           'norm', sum(self.depth_dict['norm']) / len(self.depth_dict['norm'])
+        #           )
+        return depth
 
 
 class NoVisionSensorThor(

@@ -63,13 +63,10 @@ class PredictedMaskSimpleDiverseBringObject(
 
     # TRAIN_SCENES = ['FloorPlan1_physics']
     # TEST_SCENES = ['FloorPlan1_physics']
-    #TODO why removed potato?
+    # TODO why removed potato?
     TRAIN_OBJECTS = ["Apple", "Bread", "Tomato", "Lettuce", "Pot", "Mug"]
     TEST_OBJECTS = ["Pan", "Egg", "Spatula", "Cup"] #, 'Potato']
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
-
-    #TODO remove
-    TEST_SCENES = BringObjectiThorBaseConfig.TRAIN_SCENES
 
     def __init__(self):
         super().__init__()

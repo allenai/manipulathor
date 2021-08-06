@@ -59,6 +59,8 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
         rnn_type="GRU",
         teacher_forcing=1,
     ):
+        print('deprecated, resolve todo')
+        ForkedPdb().set_trace()
         """Initializer.
 
         See class documentation for parameter definitions.
@@ -88,7 +90,7 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
         self.train()
         self.detection_model.eval()
 
-        #TODO reload the weights
+        #LATER_TODO reload the weights
         weight_dir = 'datasets/apnd-dataset/weights/full_detection_full_thor_all_objects_segmentation_resnet_2021-07-30_14:47:36_model_state_324.pytar'
         detection_weight_dict = torch.load(weight_dir, map_location='cpu')
         detection_state_dict = self.detection_model.state_dict()
@@ -97,13 +99,13 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
             detection_state_dict[key].copy_(param)
         remained = [k for k in detection_weight_dict if k not in detection_state_dict]
         assert len(remained) == 0
-        #TODO is the reload correct?
+        #LATER_TODO is the reload correct?
 
-        #TODO this is really bad. Does this even work? you are the worst
+        #LATER_TODO this is really bad. Does this even work? you are the worst
         weight_dir = 'datasets/apnd-dataset/weights/exp_QueryObjGTMaskSimpleDiverseBringObject_noise_0.2__stage_00__steps_000048243775.pt'
         loaded_rl_model_weights = torch.load(weight_dir, map_location='cpu')['model_state_dict']
         rl_model_state_keys = [k for k in self.state_dict() if k.replace('detection_model.', '') not in detection_state_dict]
-        #TODO this is a freaking small model!
+        #LATER_TODO this is a freaking small model!
 
 
         # print('norm', self.full_visual_encoder.conv_0.weight.norm(), 'mean', self.full_visual_encoder.conv_0.weight.mean())
@@ -116,8 +118,8 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
             rl_model_state_dict[key].copy_(param)
         # print('norm', self.full_visual_encoder.conv_0.weight.norm(), 'mean', self.full_visual_encoder.conv_0.weight.mean())
 
-    def get_detection_masks(self, query_images, images): #TODO can we save the detections so we don't have to go through them again?
-        #TODO make sure the weights have stayed the same
+    def get_detection_masks(self, query_images, images): #LATER_TODO can we save the detections so we don't have to go through them again?
+        #LATER_TODO make sure the weights have stayed the same
         self.detection_model.eval()
         with torch.no_grad():
             images = images.permute(0,1,4,2,3) #Turn wxhxc to cxwxh
@@ -126,7 +128,7 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
 
             images = images.view(batch * seqlen, c, w, h)
             query_images = query_images.view(batch * seqlen, c, w, h)
-            #LATER_TODO visualize the outputs
+            #LATER_LATER_TODO visualize the outputs
             predictions = self.detection_model(dict(rgb=images, target_cropped_object=query_images))
             probs_mask = predictions['object_mask']
             probs_mask = probs_mask.view(batch, seqlen, 2, w, h)
@@ -223,7 +225,7 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
         self.visualize = platform.system() == "Darwin"
-        #TODO really bad design
+        #LATER_TODO really bad design
         if self.visualize:
             def unnormalize_image(img):
                 mean=torch.Tensor([0.485, 0.456, 0.406]).to(img.device)

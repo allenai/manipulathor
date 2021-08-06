@@ -15,7 +15,7 @@ from allenact.base_abstractions.task import TaskSampler
 from allenact.utils.experiment_utils import set_deterministic_cudnn, set_seed
 
 from ithor_arm.arm_calculation_utils import initialize_arm
-from ithor_arm.bring_object_tasks import BringObjectTask
+from ithor_arm.bring_object_tasks import BringObjectTask, WDoneBringObjectTask
 from ithor_arm.ithor_arm_constants import transport_wrapper
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_tasks import (
@@ -284,15 +284,21 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             with open(img_name, 'rb') as fp:
                 image = Image.open(fp).convert('RGB')
             return transform(image)
-        def get_query_image(object_id):
+        def get_random_query_image(scene_name, object_id):
             object_category = object_id.split('|')[0]
             object_type = object_category[0].lower() + object_category[1:]
             chosen_image_adr = random.choice(self.query_image_dict[object_type])
             image = load_and_resize(chosen_image_adr)
             return image
+        # def get_same_instance_query_image(scene_name, object_id):
+        #     object_category = object_id.split('|')[0]
+        #     scene_name = scene_name.replace('_physics', '')
+        #     img_adr = f'datasets/apnd-dataset/instance_images/{scene_name}_{object_category}.png'
+        #     image = load_and_resize(img_adr)
+        #     return image
 
-        source_object_query = get_query_image(init_object['object_id'])
-        goal_object_query = get_query_image(goal_object['object_id'])
+        source_object_query = get_random_query_image(scene_name,init_object['object_id'])
+        goal_object_query = get_random_query_image(scene_name,goal_object['object_id'])
 
         task_info = {
             'source_object_id': init_object['object_id'],
@@ -305,6 +311,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             'source_object_query': source_object_query,
             'goal_object_query': goal_object_query,
         }
+
 
         if len(should_visualize_goal_start) > 0:
             task_info["visualization_source"] = init_object
@@ -385,3 +392,6 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
 
 
         return data_point
+
+class WDoneDiverseBringObjectTaskSampler(DiverseBringObjectTaskSampler):
+    _TASK_TYPE = WDoneBringObjectTask

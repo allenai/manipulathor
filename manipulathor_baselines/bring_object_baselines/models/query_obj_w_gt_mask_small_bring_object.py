@@ -196,12 +196,15 @@ class SmallBringObjectWQueryObjGtMaskDepthBaselineActorCritic(ActorCriticModel[C
             bsize, seqlen, w, h, c = viz_image.shape
             if bsize == 1 and seqlen == 1:
                 viz_image = viz_image.squeeze(0).squeeze(0)
+                depth = depth.squeeze(0).squeeze(0)
+                depth = depth.clamp(0,10) / 10
+                depth = depth.repeat(1, 1, 3)
                 viz_query_obj = query_objects.squeeze(0).squeeze(0).permute(1,2,0) #TO make it channel last
                 viz_mask = predicted_masks.squeeze(0).squeeze(0).repeat(1,1, 3)
                 viz_image = unnormalize_image(viz_image)
                 viz_query_obj = unnormalize_image(viz_query_obj)
-                combined = torch.cat([viz_image, viz_query_obj, viz_mask], dim=1)
-                directory_to_write_images = 'experiment_output/visualizations_masks'
+                combined = torch.cat([viz_image, depth, viz_query_obj, viz_mask], dim=1)
+                directory_to_write_images = 'experiment_output/visualizations_masks_gt_noisy'
                 os.makedirs(directory_to_write_images, exist_ok=True)
                 now = datetime.now()
                 time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f.png")

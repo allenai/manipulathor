@@ -14,6 +14,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Sync')
     parser.add_argument('-f', '--folder_name', default=None)
     parser.add_argument('--output_type', default='gif')
+    parser.add_argument('--video_name', default='')
     parser.add_argument('--max_len', default=-1, type=int)
 
 
@@ -35,9 +36,9 @@ if args.output_type == 'gif':
         im = cv2.imread(img_name)[:, :, [2,1,0]]
         all_images.append(im)
     concat_all_images = np.expand_dims(np.stack(all_images, axis=0), axis=1)
-    save_image_list_to_gif(concat_all_images, 'generated_gif.gif', folder_name)
+    save_image_list_to_gif(concat_all_images, f'{args.video_name}_generated_gif.gif', folder_name)
 elif args.output_type == 'mp4':
     print('reading images')
     clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_names, fps=3)
     print('making the video')
-    clip.write_videofile(os.path.join(folder_name, 'generated_video.mp4'))
+    clip.write_videofile(os.path.join(folder_name, f'{args.video_name}_generated_video.mp4'))

@@ -284,7 +284,7 @@ class ImageVisualizer(LoggerVisualizer):
         time_to_write += "log_ind_{}".format(self.logger_index)
         self.logger_index += 1
         print("Loggigng", time_to_write, "len", len(self.log_queue))
-        object_id = task_info["objectId"]
+        object_id = task_info["source_object_id"]
 
         pickup_success = episode_info.object_picked_up
         episode_success = episode_info._success
@@ -309,24 +309,27 @@ class ImageVisualizer(LoggerVisualizer):
         concat_all_images = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
         save_image_list_to_gif(concat_all_images, gif_name, self.log_dir)
 
-        self.log_start_goal(
-            environment,
-            task_info["visualization_source"],
-            tag="start",
-            img_adr=os.path.join(self.log_dir, time_to_write),
-        )
-        self.log_start_goal(
-            environment,
-            task_info["visualization_target"],
-            tag="goal",
-            img_adr=os.path.join(self.log_dir, time_to_write),
-        )
+        if 'visualization_source' in task_info:
+            self.log_start_goal(
+                environment,
+                task_info["visualization_source"],
+                tag="start",
+                img_adr=os.path.join(self.log_dir, time_to_write),
+            )
+        if 'visualization_target' in task_info:
+            self.log_start_goal(
+                environment,
+                task_info["visualization_target"],
+                tag="goal",
+                img_adr=os.path.join(self.log_dir, time_to_write),
+            )
 
         self.log_queue = []
         self.action_queue = []
 
     def log(self, environment, action_str):
         image_tensor = environment.current_frame
+        # if action_str in ['MoveAheadContinuous', 'RotateRightContinuous', 'RotateLeftContinuous']: TODO remove this
         self.action_queue.append(action_str)
         self.log_queue.append(image_tensor)
 

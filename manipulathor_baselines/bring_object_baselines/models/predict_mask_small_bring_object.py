@@ -88,7 +88,7 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
         self.train()
         self.detection_model.eval()
 
-        #TODO reload the weights
+        #TODO reload the weights really bad design choice
         weight_dir = 'datasets/apnd-dataset/weights/full_detection_full_thor_all_objects_segmentation_resnet_2021-07-30_14:47:36_model_state_324.pytar'
         detection_weight_dict = torch.load(weight_dir, map_location='cpu')
         detection_state_dict = self.detection_model.state_dict()
@@ -97,9 +97,7 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
             detection_state_dict[key].copy_(param)
         remained = [k for k in detection_weight_dict if k not in detection_state_dict]
         assert len(remained) == 0
-        #TODO is the reload correct?
 
-        #TODO this is really bad. Does this even work? you are the worst
         weight_dir = 'datasets/apnd-dataset/weights/exp_QueryObjGTMaskSimpleDiverseBringObject_noise_0.2__stage_00__steps_000048243775.pt'
         loaded_rl_model_weights = torch.load(weight_dir, map_location='cpu')['model_state_dict']
         rl_model_state_keys = [k for k in self.state_dict() if k.replace('detection_model.', '') not in detection_state_dict]
@@ -116,7 +114,6 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
         # print('norm', self.full_visual_encoder.conv_0.weight.norm(), 'mean', self.full_visual_encoder.conv_0.weight.mean())
 
     def get_detection_masks(self, query_images, images): #TODO can we save the detections so we don't have to go through them again?
-        #TODO make sure the weights have stayed the same
         self.detection_model.eval()
         with torch.no_grad():
             images = images.permute(0,1,4,2,3) #Turn wxhxc to cxwxh
@@ -249,34 +246,6 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
         )
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
-
-        self.visualize = platform.system() == "Darwin"
-        #TODO really bad design
-        if self.visualize:
-            def unnormalize_image(img):
-                mean=torch.Tensor([0.485, 0.456, 0.406]).to(img.device)
-                std=torch.Tensor([0.229, 0.224, 0.225]).to(img.device)
-                img = (img * std + mean)
-                img = torch.clamp(img, 0, 1)
-                return img
-            viz_image = observations['only_detection_rgb_lowres']
-            depth = observations['depth_lowres']
-            predicted_masks
-            bsize, seqlen, w, h, c = viz_image.shape
-            if bsize == 1 and seqlen == 1:
-                viz_image = viz_image.squeeze(0).squeeze(0)
-                viz_query_obj = query_objects.squeeze(0).squeeze(0).permute(1,2,0) #TO make it channel last
-                viz_mask = predicted_masks.squeeze(0).squeeze(0).repeat(1,1, 3)
-                viz_image = unnormalize_image(viz_image)
-                viz_query_obj = unnormalize_image(viz_query_obj)
-                combined = torch.cat([viz_image, viz_query_obj, viz_mask], dim=1)
-                directory_to_write_images = 'experiment_output/visualizations_masks'
-                os.makedirs(directory_to_write_images, exist_ok=True)
-                now = datetime.now()
-                time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f.png")
-                cv2.imwrite(os.path.join(directory_to_write_images, time_to_write), (combined[:,:,[2,1,0]] * 255.).int().numpy())
-
-
 
 
 

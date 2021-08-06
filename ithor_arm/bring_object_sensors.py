@@ -50,7 +50,7 @@ class CategorySampleSensor(Sensor):
 
 
 class NoisyObjectMask(Sensor):
-    def __init__(self, type: str, uuid: str = "object_mask", noise=0.1, **kwargs: Any):
+    def __init__(self, type: str,noise,  uuid: str = "object_mask", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
