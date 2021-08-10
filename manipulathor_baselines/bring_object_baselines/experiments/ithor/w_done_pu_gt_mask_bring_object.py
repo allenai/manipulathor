@@ -62,6 +62,7 @@ class WDoneGTMaskBringObject(
 
     TASK_SAMPLER = WDoneDiverseBringObjectTaskSampler
     NUM_PROCESSES = 40
+    # NUM_PROCESSES = 10 #TODO remove
 
     # TRAIN_SCENES = ['FloorPlan1_physics']
     # TEST_SCENES = ['FloorPlan1_physics']

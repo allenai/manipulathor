@@ -59,7 +59,6 @@ class PredictedMaskSimpleDiverseBringObject(
 
     TASK_SAMPLER = DiverseBringObjectTaskSampler
     NUM_PROCESSES = 40
-    NUM_PROCESSES = 10 #TODO
 
     # TRAIN_SCENES = ['FloorPlan1_physics']
     # TEST_SCENES = ['FloorPlan1_physics']

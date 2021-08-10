@@ -397,14 +397,16 @@ class WDoneBringObjectTask(BringObjectTask):
         MOVE_AHEAD,
         ROTATE_RIGHT,
         ROTATE_LEFT,
-        PICKUP,
-        DONE,
+        PICKUP, #TODO put back
+        # DONE,
     )
     def _step(self, action: int) -> RLStepResult:
 
         action_str = self.class_action_names()[action]
 
-        self.manual = False #
+        # print('action taken', action_str) #TODO remove this one
+
+        self.manual = False #TODO
         if self.manual:
             actions = ('MoveArmHeightP', 'MoveArmHeightM', 'MoveArmXP', 'MoveArmXM', 'MoveArmYP', 'MoveArmYM', 'MoveArmZP', 'MoveArmZM', 'MoveAheadContinuous', 'RotateRightContinuous', 'RotateLeftContinuous', PICKUP, DONE)
             actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l', 'p', 'd')
@@ -419,27 +421,16 @@ class WDoneBringObjectTask(BringObjectTask):
         object_id = self.task_info["source_object_id"]
         if action_str == PICKUP:
             action_dict = {**action_dict, "object_id": object_id}
+            # print('Before pickup ') #TODO
         self.env.step(action_dict)
         self.last_action_success = self.env.last_action_success
-
+        if action_str == PICKUP:
+            self.last_action_success = self.env.is_object_at_low_level_hand(object_id)
+            # print('After pickup ') #TODO
         last_action_name = self._last_action_str
         last_action_success = float(self.last_action_success)
         self.action_sequence_and_success.append((last_action_name, last_action_success))
         self.visualize(last_action_name)
-
-        #  make sure we are doing this in the environment
-        # if not self.object_picked_up:
-        #     if object_id in self.env.controller.last_event.metadata['arm']['pickupableObjects']:
-        #         event = self.env.step(dict(action="PickupObject"))
-        #         #  we are doing an additional pass here, label is not right and if we fail we will do it twice
-        #         object_inventory = self.env.controller.last_event.metadata["arm"][
-        #             "heldObjects"
-        #         ]
-        #         if (
-        #                 len(object_inventory) > 0
-        #                 and object_id not in object_inventory
-        #         ):
-        #             event = self.env.step(dict(action="ReleaseObject"))
 
         if not self.object_picked_up: #if not picked up yet
             if self.env.is_object_at_low_level_hand(object_id):
@@ -449,10 +440,9 @@ class WDoneBringObjectTask(BringObjectTask):
                 )  # plus one because this step has not been counted yet
 
 
-        if action_str == DONE:
-
+        #TODO put back after you put back done
+        if False and action_str == DONE:
             self._took_end_action = True
-
             source_state = self.env.get_object_by_id(object_id)
             goal_state = self.env.get_object_by_id(self.task_info['goal_object_id'])
             goal_achieved = self.object_picked_up and self.objects_close_enough(
@@ -461,6 +451,19 @@ class WDoneBringObjectTask(BringObjectTask):
 
             self.last_action_success = goal_achieved
             self._success = goal_achieved
+
+
+        elif self.object_picked_up:
+
+            source_state = self.env.get_object_by_id(object_id)
+            goal_state = self.env.get_object_by_id(self.task_info['goal_object_id'])
+            goal_achieved = self.object_picked_up and self.objects_close_enough(
+                source_state, goal_state
+            )
+            if goal_achieved:
+                self._took_end_action = True
+                self.last_action_success = goal_achieved
+                self._success = goal_achieved
 
         step_result = RLStepResult(
             observation=self.get_observations(),

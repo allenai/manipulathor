@@ -6,8 +6,13 @@ from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 # MANIPULATHOR_COMMIT_ID = "68212159d78aab5c611b7f16338380993884a06a"
 # MANIPULATHOR_COMMIT_ID = 'bcc2e62970823667acb5c2a56e809419f1521e52'
 
-# Most updated thor version, thor 3.3.1
-MANIPULATHOR_COMMIT_ID = "d26bb0ef75d95074c39718cf9f1a0890ac2c974f"
+# # Most updated thor version, thor 3.3.1
+# MANIPULATHOR_COMMIT_ID = "d26bb0ef75d95074c39718cf9f1a0890ac2c974f"
+# Most updated thor version, thor 3.3.4
+MANIPULATHOR_COMMIT_ID = "39c4a83cecb2daa36b9786b7017a22dc3485a9ea"
+
+#TODO remove just for exp room luca toggle grasper visibility and potentially a boost in FPS
+MANIPULATHOR_COMMIT_ID = "58bf22c0b9aa0d3abe5fd8c3b43479ecc8d2a228"
 
 MOVE_THR = 0.01
 ARM_MIN_HEIGHT = 0.450998873
@@ -72,6 +77,7 @@ def reset_environment_and_additional_commands(controller, scene_name):
     controller.step(action="MakeAllObjectsMoveable")
     controller.step(action="MakeObjectsStaticKinematicMassThreshold")
     make_all_objects_unbreakable(controller)
+    # controller.step('ToggleMagnetVisibility') #TODO do we want to have this here or do we want to have it during training and only change it for obejct detection part?
     # controller.step(action='SetHandSphereRadius', radius=0.2)
     return
 

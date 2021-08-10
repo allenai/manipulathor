@@ -28,6 +28,7 @@ from manipulathor_utils.debugger_util import ForkedPdb
 class BringObjectAbstractTaskSampler(TaskSampler):
 
     _TASK_TYPE = Task
+    #TODO consider all the following TEST_TODO s for making an accurate test set
 
     def __init__(
         self,
@@ -191,7 +192,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             # self.sampler_permutation = [i for i in range(len(self.deterministic_data_list))]
             # random.shuffle(self.sampler_permutation)
             # self.max_tasks = self.reset_tasks = len(self.deterministic_data_list)
-            #TODO I have to rewrite this
+            #TEST_TODO I have to rewrite this
             self.max_tasks = self.reset_tasks = sum(len_all_data_points)
     def find_all_query_objects(self):
         IMAGE_DIR = 'datasets/apnd-dataset/object_query_images/'
@@ -297,8 +298,19 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         #     image = load_and_resize(img_adr)
         #     return image
 
-        source_object_query = get_random_query_image(scene_name,init_object['object_id'])
-        goal_object_query = get_random_query_image(scene_name,goal_object['object_id'])
+        #TODO
+        if True:
+            source_object_query = get_random_query_image(scene_name,init_object['object_id'])
+            goal_object_query = get_random_query_image(scene_name,goal_object['object_id'])
+        else:
+            try:
+                print('Before query images')
+                source_object_query = get_random_query_image(scene_name,init_object['object_id'])
+                goal_object_query = get_random_query_image(scene_name,goal_object['object_id'])
+                print('After query images')
+            except Exception:
+                print('oops FAILED')
+                ForkedPdb().set_trace()
 
         task_info = {
             'source_object_id': init_object['object_id'],
@@ -334,14 +346,14 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         if self.sampler_mode == "train":
             return None
         else:
-            #TODO put back and remove this
+            #TEST_TODO put back and remove this
             return 200
             return min(self.max_tasks, len(self.deterministic_data_list))
 
 
 
     def get_source_target_indices(self):
-        if self.sampler_mode == "train" or True: #TODO this needs to be fixed
+        if self.sampler_mode == "train" or True: #TEST_TODO this needs to be fixed
             all_scenes = [s for (s,o) in self.all_possible_points.keys()]
 
             #randomly choose a scene

@@ -24,27 +24,6 @@ from ithor_arm.arm_calculation_utils import (
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from manipulathor_utils.debugger_util import ForkedPdb
 #
-# class LocoBotRawRGBSensorThor(Sensor):
-#     def __init__(self, uuid: str = "raw_rgb_lowres", **kwargs: Any):
-#         observation_space = gym.spaces.Box(
-#             low=0, high=1, shape=(1,), dtype=np.float32
-#         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
-#         super().__init__(**prepare_locals_for_super(locals()))
-#
-#     def get_observation(
-#             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
-#     ) -> Any:
-#         # env.controller.step('Initialize') #TODO seriously?
-#         #TODO this was env.current_frame. maybe that is not updated?
-#         #TODO whatever we do here we should do for depth
-#
-#         # frame = env.controller.last_event.frame.copy()
-#         # frame = cv2.resize(frame, dsize=(224,224))
-#         # return frame
-#
-#         return env.current_frame.copy()
-
-
 class LocoBotCategorySampleSensor(Sensor):
     def __init__(self, type: str, uuid: str = "category_object", **kwargs: Any):
         observation_space = gym.spaces.Box(
@@ -86,7 +65,6 @@ class LocoBotObjectMask(Sensor):
         if env.last_image_changed is False and self.cache is not None:
             return self.cache
 
-        #TODO there seems to be a lag is this fixed?
         img = env.controller.last_event.frame
         resized_image = cv2.resize(img, dsize=(224,224))
         global input_received, center_x, center_y
@@ -212,7 +190,7 @@ class LocoBotPickedUpObjSensor(Sensor):
 #     cv2.destroyAllWindows()
 #     cv2.waitKey(1)
 #
-#     self.window_size = 20 #TODO do I want to change the size of this one maybe?
+#     self.window_size = 20 TODO do I want to change the size of this one maybe?
 #     mask = np.zeros((224, 224, 1))
 #     if center_y == -1 and center_x == -1:
 #         mask[:,:] = 0.

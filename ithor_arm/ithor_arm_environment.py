@@ -338,6 +338,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                     pickupable_objects = self.get_pickupable_objects()
                     #
                     if object_id in pickupable_objects:
+                        # print('Trying to pickup', object_id) #TODO
                         # This version of the task is actually harder # consider making it easier, are we penalizing failed pickup? yes
                         event = self.step(dict(action="PickupObject"))
                         #  we are doing an additional pass here, label is not right and if we fail we will do it twice
@@ -348,10 +349,11 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                             len(object_inventory) > 0
                             and object_id not in object_inventory
                         ):
+                            print('Picked up the wrong object')
                             event = self.step(dict(action="ReleaseObject"))
             action_dict = {
                 'action': 'Pass'
-            } #TODO we have to change the last action success if the pik up fails
+            } # we have to change the last action success if the pik up fails, we do that in the task now
 
         elif not "MoveArm" in action:
             if "Continuous" in action:
