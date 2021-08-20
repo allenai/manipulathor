@@ -10,8 +10,13 @@ def hacky_visualization(observations, object_mask, query_objects, base_directory
         img = (img * std + mean)
         img = torch.clamp(img, 0, 1)
         return img
-    viz_image = observations['only_detection_rgb_lowres']
     depth = observations['depth_lowres']
+    if 'only_detection_rgb_lowres' in observations:
+        viz_image = observations['only_detection_rgb_lowres']
+    elif 'rgb_lowres' in observations:
+        viz_image = observations['rgb_lowres']
+    else:
+        viz_image = depth
     predicted_masks = object_mask
     bsize, seqlen, w, h, c = viz_image.shape
     if bsize == 1 and seqlen == 1:
