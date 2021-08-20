@@ -18,8 +18,8 @@ from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixi
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
 from manipulathor_baselines.bring_object_baselines.models.pickup_object_with_mask_model import PickUpWMaskBaselineActorCritic
-from manipulathor_baselines.bring_object_baselines.models.predict_mask_small_bring_object import SmallBringObjectWPredictMaskDepthBaselineActorCritic
-from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_small_bring_object import SmallBringObjectWQueryObjGtMaskDepthBaselineActorCritic
+from manipulathor_baselines.bring_object_baselines.models.predict_mask_small_bring_object_model import SmallBringObjectWPredictMaskDepthBaselineActorCritic
+from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_small_bring_object_model import SmallBringObjectWQueryObjGtMaskDepthBaselineActorCritic
 from manipulathor_baselines.bring_object_baselines.models.small_bring_object_with_mask_model import SmallBringObjectWMaskDepthBaselineActorCritic
 from manipulathor_baselines.bring_object_baselines.models.small_depth_pickup_object_with_mask_model import SmallPickUpWMaskDepthBaselineActorCritic
 
@@ -62,13 +62,10 @@ class WDoneGTMaskBringObject(
 
     TASK_SAMPLER = WDoneDiverseBringObjectTaskSampler
     NUM_PROCESSES = 40
-    # NUM_PROCESSES = 10 #TODO remove
+    # NUM_PROCESSES = 10  remove
 
     # TRAIN_SCENES = ['FloorPlan1_physics']
     # TEST_SCENES = ['FloorPlan1_physics']
-    # TODO why removed potato?
-    TRAIN_OBJECTS = ["Apple", "Bread", "Tomato", "Lettuce", "Pot", "Mug"]
-    TEST_OBJECTS = ["Pan", "Egg", "Spatula", "Cup"] #, 'Potato']
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
 

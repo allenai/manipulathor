@@ -33,9 +33,10 @@ from manipulathor_baselines.armpointnav_baselines.models.base_models import Line
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
 from manipulathor_utils.net_utils import input_embedding_net
+from utils.hacky_viz_utils import hacky_visualization
 
 
-class SmallBringObjectWQueryObjGtMaskDepthBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
+class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -69,7 +70,7 @@ class SmallBringObjectWQueryObjGtMaskDepthBaselineActorCritic(ActorCriticModel[C
         self.object_type_embedding_size = obj_state_embedding_size
 
         # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 5, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
 
         # self.detection_model = ConditionalDetectionModel()
@@ -87,6 +88,8 @@ class SmallBringObjectWQueryObjGtMaskDepthBaselineActorCritic(ActorCriticModel[C
 
         self.train()
         # self.detection_model.eval()
+
+        self.starting_time = datetime.now().strftime("{}_%m_%d_%Y_%H_%M_%S_%f".format(self.__class__.__name__))
 
 
 
@@ -154,7 +157,7 @@ class SmallBringObjectWQueryObjGtMaskDepthBaselineActorCritic(ActorCriticModel[C
         gt_mask = source_object_mask
         gt_mask[after_pickup] = destination_object_mask[after_pickup]
 
-        visual_observation = torch.cat([observations['depth_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
+        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
 
@@ -182,33 +185,9 @@ class SmallBringObjectWQueryObjGtMaskDepthBaselineActorCritic(ActorCriticModel[C
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
         self.visualize = platform.system() == "Darwin"
-        #TODO really bad design
+        # TODO really bad design
         if self.visualize:
-            def unnormalize_image(img):
-                mean=torch.Tensor([0.485, 0.456, 0.406]).to(img.device)
-                std=torch.Tensor([0.229, 0.224, 0.225]).to(img.device)
-                img = (img * std + mean)
-                img = torch.clamp(img, 0, 1)
-                return img
-            viz_image = observations['only_detection_rgb_lowres']
-            depth = observations['depth_lowres']
-            predicted_masks = gt_mask
-            bsize, seqlen, w, h, c = viz_image.shape
-            if bsize == 1 and seqlen == 1:
-                viz_image = viz_image.squeeze(0).squeeze(0)
-                depth = depth.squeeze(0).squeeze(0)
-                depth = depth.clamp(0,10) / 10
-                depth = depth.repeat(1, 1, 3)
-                viz_query_obj = query_objects.squeeze(0).squeeze(0).permute(1,2,0) #TO make it channel last
-                viz_mask = predicted_masks.squeeze(0).squeeze(0).repeat(1,1, 3)
-                viz_image = unnormalize_image(viz_image)
-                viz_query_obj = unnormalize_image(viz_query_obj)
-                combined = torch.cat([viz_image, depth, viz_query_obj, viz_mask], dim=1)
-                directory_to_write_images = 'experiment_output/visualizations_masks_gt_noisy'
-                os.makedirs(directory_to_write_images, exist_ok=True)
-                now = datetime.now()
-                time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f.png")
-                cv2.imwrite(os.path.join(directory_to_write_images, time_to_write), (combined[:,:,[2,1,0]] * 255.).int().numpy())
+            hacky_visualization(observations, object_mask=gt_mask, query_objects=query_objects, base_directory_to_right_images=self.starting_time)
 
 
 
@@ -222,3 +201,4 @@ class SmallBringObjectWQueryObjGtMaskDepthBaselineActorCritic(ActorCriticModel[C
             actor_critic_output,
             memory,
         )
+

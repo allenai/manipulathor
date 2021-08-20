@@ -193,6 +193,12 @@ class AbstractBringObjectTask(Task[ManipulaTHOREnvironment]):
             original_distance = self.get_original_object_distance()
             result["metric/average/original_distance"] = original_distance
 
+            category_name = self.task_info['source_object_id'].split('|')[0]
+            result[f'metric/average/final_obj_pickup/{category_name}'] = self.object_picked_up
+            if self.object_picked_up:
+                destination_name = self.task_info['goal_object_id'].split('|')[0]
+                result[f'metric/average/final_success/{destination_name}'] = self._success
+
             # this ratio can be more than 1?
             if self.object_picked_up:
                 ratio_distance_left = final_obj_distance_from_goal / original_distance
@@ -358,7 +364,7 @@ class BringObjectTask(AbstractBringObjectTask):
         if not self.got_reward_for_pickup and self.object_picked_up:
             reward += self.reward_configs["pickup_success_reward"]
             self.got_reward_for_pickup = True
-        #
+
 
         current_obj_to_arm_distance = self.arm_distance_from_obj()
         if self.last_arm_to_obj_distance is None:
@@ -397,14 +403,12 @@ class WDoneBringObjectTask(BringObjectTask):
         MOVE_AHEAD,
         ROTATE_RIGHT,
         ROTATE_LEFT,
-        PICKUP, #TODO put back
+        PICKUP,
         # DONE,
     )
     def _step(self, action: int) -> RLStepResult:
 
         action_str = self.class_action_names()[action]
-
-        # print('action taken', action_str) #TODO remove this one
 
         self.manual = False #TODO
         if self.manual:
@@ -421,12 +425,10 @@ class WDoneBringObjectTask(BringObjectTask):
         object_id = self.task_info["source_object_id"]
         if action_str == PICKUP:
             action_dict = {**action_dict, "object_id": object_id}
-            # print('Before pickup ') #TODO
         self.env.step(action_dict)
         self.last_action_success = self.env.last_action_success
         if action_str == PICKUP:
             self.last_action_success = self.env.is_object_at_low_level_hand(object_id)
-            # print('After pickup ') #TODO
         last_action_name = self._last_action_str
         last_action_success = float(self.last_action_success)
         self.action_sequence_and_success.append((last_action_name, last_action_success))

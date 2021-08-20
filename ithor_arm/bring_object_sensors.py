@@ -8,22 +8,34 @@ import gym
 import numpy as np
 import torch
 from PIL import Image
-from allenact.base_abstractions.sensor import DepthSensor, Sensor, RGBSensor
+
+# from allenact.base_abstractions.sensor import DepthSensor, Sensor, RGBSensor
+from allenact.embodiedai.sensors.vision_sensors import DepthSensor, Sensor, RGBSensor
 from allenact.base_abstractions.task import Task
 from allenact.utils.misc_utils import prepare_locals_for_super
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
+from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 
 from ithor_arm.arm_calculation_utils import (
     convert_world_to_agent_coordinate,
     convert_state_to_tensor,
     diff_position,
 )
+from ithor_arm.ithor_arm_constants import DONT_USE_ALL_POSSIBLE_OBJECTS_EVER
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.thor_category_names import thor_possible_objects
 import torchvision.transforms as transforms
 
+class NoGripperRGBSensorThor(RGBSensorThor):
+    def frame_from_env(
+            self, env: IThorEnvironment, task: Task[IThorEnvironment]
+    ) -> np.ndarray:  # type:ignore
+        env.controller.step('ToggleMagnetVisibility')
+        frame = env.current_frame.copy()
+        env.controller.step('ToggleMagnetVisibility')
+        return frame
 
 class CategorySampleSensor(Sensor):
     def __init__(self, type: str, uuid: str = "category_object", **kwargs: Any):
@@ -79,7 +91,10 @@ class NoisyObjectMask(Sensor):
             mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
 
         result = (np.expand_dims(mask_frame.astype(np.float),axis=-1))
-        fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
+        if len(env.controller.last_event.instance_masks) == 0:
+            fake_mask = np.zeros(env.controller.last_event.frame[:,:,0].shape)
+        else:
+            fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
         fake_mask = (np.expand_dims(fake_mask.astype(np.float),axis=-1))
 
         return add_mask_noise(result, fake_mask, noise=self.noise)
@@ -105,6 +120,52 @@ def add_mask_noise(result, fake_mask, noise):
     return result
 
 
+
+class TempObjectCategorySensor(Sensor):
+    def __init__(self, type: str, uuid: str = "temp_category_code", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        uuid = '{}_{}'.format(uuid, type)
+        self.type = type
+        super().__init__(**prepare_locals_for_super(locals()))
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+
+        if self.type == 'source':
+            info_to_search = 'source_object_id'
+        elif self.type == 'destination':
+            info_to_search = 'goal_object_id'
+        else:
+            raise Exception('Not implemented', self.type)
+        object_type = task.task_info[info_to_search].split('|')[0]
+        object_type_categ_ind = DONT_USE_ALL_POSSIBLE_OBJECTS_EVER.index(object_type)
+        return torch.tensor(object_type_categ_ind)
+
+class TempAllMasksSensor(Sensor):
+    def __init__(self, uuid: str = "all_masks_sensor", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        super().__init__(**prepare_locals_for_super(locals()))
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+
+        result = torch.zeros((224,224))
+        result[:] = -1
+        for (obj, mask) in env.controller.last_event.instance_masks.items():
+            object_type = obj.split('|')[0]
+            if object_type not in DONT_USE_ALL_POSSIBLE_OBJECTS_EVER:
+                continue
+            object_type_categ_ind = DONT_USE_ALL_POSSIBLE_OBJECTS_EVER.index(object_type)
+            result[mask] = object_type_categ_ind
+        return result
 
 
 class DestinationObjectSensor(Sensor):

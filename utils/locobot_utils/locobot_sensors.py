@@ -135,6 +135,7 @@ class LocoBotPickedUpObjSensor(Sensor):
     ) -> Any:
         return False
 
+#TODO are we sure that we don't need to do anything about the depth normalization? we have to clip depth from intel realsense so that the norms are similar to the depth we get from thor? do we do the postprocessing for depth iamges?
 
 
 #With open CV

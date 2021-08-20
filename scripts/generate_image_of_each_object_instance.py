@@ -7,11 +7,12 @@ import cv2
 import torch
 from torchvision.transforms import transforms
 
+from ithor_arm.ithor_arm_constants import TRAIN_OBJECTS, TEST_OBJECTS
+
 controller = ai2thor.controller.Controller(renderInstanceSegmentation=True, width=500, height=500)
 path_to_save = '/Users/kianae/Desktop/instance_images'
 os.makedirs(path_to_save, exist_ok=True)
-TRAIN_OBJECTS = ["Apple", "Bread", "Tomato", "Lettuce", "Pot", "Mug"]
-TEST_OBJECTS = ["Pan", "Egg", "Spatula", "Cup"] #, 'Potato']
+
 OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 SCENE_NAMES = ['FloorPlan{}'.format(i + 1) for i in range(30)]
 

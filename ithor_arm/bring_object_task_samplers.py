@@ -195,7 +195,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             #TEST_TODO I have to rewrite this
             self.max_tasks = self.reset_tasks = sum(len_all_data_points)
     def find_all_query_objects(self):
-        IMAGE_DIR = 'datasets/apnd-dataset/object_query_images/'
+        IMAGE_DIR = 'datasets/apnd-dataset/query_images/'
         all_object_types = [f.split('/')[-1] for f in glob.glob(os.path.join(IMAGE_DIR, '*'))]
         all_possible_images = {object_type: [f for f in glob.glob(os.path.join(IMAGE_DIR, object_type, '*.png'))] for object_type in all_object_types}
         return all_possible_images
@@ -287,7 +287,8 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             return transform(image)
         def get_random_query_image(scene_name, object_id):
             object_category = object_id.split('|')[0]
-            object_type = object_category[0].lower() + object_category[1:]
+            # object_type = object_category[0].lower() + object_category[1:]
+            object_type = object_category
             chosen_image_adr = random.choice(self.query_image_dict[object_type])
             image = load_and_resize(chosen_image_adr)
             return image
@@ -298,19 +299,9 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         #     image = load_and_resize(img_adr)
         #     return image
 
-        #TODO
-        if True:
-            source_object_query = get_random_query_image(scene_name,init_object['object_id'])
-            goal_object_query = get_random_query_image(scene_name,goal_object['object_id'])
-        else:
-            try:
-                print('Before query images')
-                source_object_query = get_random_query_image(scene_name,init_object['object_id'])
-                goal_object_query = get_random_query_image(scene_name,goal_object['object_id'])
-                print('After query images')
-            except Exception:
-                print('oops FAILED')
-                ForkedPdb().set_trace()
+        source_object_query = get_random_query_image(scene_name,init_object['object_id'])
+        goal_object_query = get_random_query_image(scene_name,goal_object['object_id'])
+
 
         task_info = {
             'source_object_id': init_object['object_id'],

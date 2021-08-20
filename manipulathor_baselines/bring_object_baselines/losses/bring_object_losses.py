@@ -70,3 +70,63 @@ class PredictBoxBCELsss(AbstractActorCriticLoss):
             total_loss,
             {"pred_box_bce": total_loss.item(),}
         )
+
+class MaskLoss(AbstractActorCriticLoss):
+    """Expert imitation loss."""
+
+    def loss(  # type: ignore
+            self,
+            step_count: int,
+            batch: ObservationType,
+            actor_critic_output: ActorCriticOutput[CategoricalDistr],
+            *args,
+            **kwargs
+    ):
+        """Computes the Mask Loss
+
+        """
+
+
+        print('calc loss') #TODO remove
+        ForkedPdb().set_trace()
+        observations = cast(Dict[str, torch.Tensor], batch["observations"])
+        extra_model_outputs = actor_critic_output.extras
+
+        predicted_mask = extra_model_outputs['predicted_mask']
+        pickup_sensor = observations['pickedup_object']
+
+        gt_masks_destination = observations['gt_mask_for_loss_destination']
+        gt_masks_source = observations['gt_mask_for_loss_source']
+
+        gt_masks = gt_masks_source
+        gt_masks[pickup_sensor] = gt_masks_destination[pickup_sensor]
+
+        all_masks = observations['all_masks_sensor'] #TODO use this and object_category_source and object_category_destination for more failure analysis later
+
+        intersection = (gt_masks + predicted_mask) == 2
+        union = (gt_masks + predicted_mask) > 0
+        interaction_sum = intersection.sum(dim=-1).sum(dim=-1).sum(dim=-1)
+        union_sum = union.sum(dim=-1).sum(dim=-1).sum(dim=-1) + 1e-9
+        mean_iou = (interaction_sum / union_sum).mean()
+        total_loss = mean_iou
+        #
+        # gt_relative_agent_arm_to_obj = observations['relative_agent_arm_to_obj']
+        # gt_relative_obj_to_goal = observations['relative_obj_to_goal']
+        #
+        # pred_agent_arm_to_obj = extra_model_outputs['relative_agent_arm_to_obj_prediction']
+        # pred_obj_to_goal = extra_model_outputs['relative_agent_obj_to_goal_prediction']
+        #
+        # assert gt_relative_agent_arm_to_obj.shape == pred_agent_arm_to_obj.shape
+        # assert gt_relative_obj_to_goal.shape == pred_obj_to_goal.shape
+        # ForkedPdb().set_trace()
+        # loss_function = torch.nn.SmoothL1Loss() #LATER_TODO is this a good choice?
+        # arm_to_obj_loss = loss_function(gt_relative_agent_arm_to_obj, pred_agent_arm_to_obj)
+        # obj_to_goal_loss = loss_function(gt_relative_obj_to_goal, pred_obj_to_goal)
+        # total_loss = arm_to_obj_loss + obj_to_goal_loss
+
+
+
+        return (
+            total_loss,
+            {"mask_loss": total_loss.item(),}
+        )

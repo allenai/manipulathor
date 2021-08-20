@@ -9,9 +9,9 @@ from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 # # Most updated thor version, thor 3.3.1
 # MANIPULATHOR_COMMIT_ID = "d26bb0ef75d95074c39718cf9f1a0890ac2c974f"
 # Most updated thor version, thor 3.3.4
-MANIPULATHOR_COMMIT_ID = "39c4a83cecb2daa36b9786b7017a22dc3485a9ea"
+# MANIPULATHOR_COMMIT_ID = "39c4a83cecb2daa36b9786b7017a22dc3485a9ea"
 
-#TODO remove just for exp room luca toggle grasper visibility and potentially a boost in FPS
+# for exp room luca toggle grasper visibility and potentially a boost in FPS
 MANIPULATHOR_COMMIT_ID = "58bf22c0b9aa0d3abe5fd8c3b43479ecc8d2a228"
 
 MOVE_THR = 0.01
@@ -58,8 +58,9 @@ ENV_ARGS = dict(
 )
 
 TRAIN_OBJECTS = ["Apple", "Bread", "Tomato", "Lettuce", "Pot", "Mug"]
-TEST_OBJECTS = ["Potato", "Pan", "Egg", "Spatula", "Cup"] # we have to remove soap bottle from categories, "SoapBottle"
+TEST_OBJECTS = ["Potato", "Pan", "Egg", "Spatula", "Cup", 'SoapBottle'] # we have to remove soap bottle from categories, "SoapBottle"
 
+DONT_USE_ALL_POSSIBLE_OBJECTS_EVER = ['ButterKnife', 'Sink', 'GarbageCan', 'Plate', 'PepperShaker', 'Cup', 'Mug', 'CoffeeMachine', 'Knife', 'Spatula', 'Pan', 'Egg', 'Pot', 'Toaster', 'DishSponge', 'Potato', 'Spoon', 'Apple', 'Bread', 'Fork', 'Faucet', 'StoveBurner', 'Lettuce', 'SoapBottle', 'Bowl', 'SaltShaker', 'Tomato']
 
 def make_all_objects_unbreakable(controller):
     all_breakable_objects = [
@@ -77,7 +78,7 @@ def reset_environment_and_additional_commands(controller, scene_name):
     controller.step(action="MakeAllObjectsMoveable")
     controller.step(action="MakeObjectsStaticKinematicMassThreshold")
     make_all_objects_unbreakable(controller)
-    # controller.step('ToggleMagnetVisibility') #TODO do we want to have this here or do we want to have it during training and only change it for obejct detection part?
+    # controller.step('ToggleMagnetVisibility')  do we want to have this here or do we want to have it during training and only change it for obejct detection part?
     # controller.step(action='SetHandSphereRadius', radius=0.2)
     return
 
