@@ -209,7 +209,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         if self.sampler_mode != "train" and self.length <= 0:
             return None
         os.makedirs('datasets/apnd-dataset/bring_object_deterministic_tasks', exist_ok=True)
-        for scene in ["FloorPlan{}_physics".format(str(i)) for i in range(1,31)]:
+        for scene in self.scenes:
             for from_obj in TRAIN_OBJECTS + TEST_OBJECTS:
                 for to_obj in [x for x in (TRAIN_OBJECTS + TEST_OBJECTS) if x != from_obj]:
 
@@ -222,7 +222,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
                     # with open(path_to_file, 'w') as f:
                     #     json.dump(dict(tasks=[]), f)
                     print('working on ', scene, from_obj, to_obj)
-                    #TODO what if this combination never happens?
+                    # what if this combination never happens?
                     try:
                         for task_id in range(NUM_TASKS):
                             data_point = self.get_source_target_indices(from_obj, to_obj,scene)
@@ -278,52 +278,9 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
 
                             if not event.metadata['lastActionSuccess']:
                                 print('ERROR: Teleport failed')
+                                continue
+                            all_tasks.append(data_point)
 
-
-                            should_visualize_goal_start = [
-                                x for x in self.visualizers if issubclass(type(x), BringObjImageVisualizer)
-                            ]
-
-                            initial_object_info = self.env.get_object_by_id(init_object["object_id"])
-                            initial_agent_location = self.env.controller.last_event.metadata["agent"]
-                            initial_hand_state = self.env.get_absolute_hand_state()
-
-                            def load_and_resize(img_name):
-                                transform = transforms.Compose([
-                                    transforms.ToTensor(),
-                                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                                         std=[0.229, 0.224, 0.225]),
-                                ])
-                                with open(img_name, 'rb') as fp:
-                                    image = Image.open(fp).convert('RGB')
-                                return transform(image)
-                            def get_random_query_image(scene_name, object_id):
-                                object_category = object_id.split('|')[0]
-                                # object_type = object_category[0].lower() + object_category[1:]
-                                object_type = object_category
-                                chosen_image_adr = random.choice(self.query_image_dict[object_type])
-                                image = load_and_resize(chosen_image_adr)
-                                return image
-
-                            source_object_query = get_random_query_image(scene_name,init_object['object_id'])
-                            goal_object_query = get_random_query_image(scene_name,goal_object['object_id'])
-
-
-                            task_info = {
-                                'source_object_id': init_object['object_id'],
-                                'goal_object_id': goal_object['object_id'],
-                                "init_location": init_object,
-                                "goal_location": goal_object,
-                                'agent_initial_state': initial_agent_location,
-                                'initial_object_location':initial_object_info,
-                                # 'initial_hand_state': initial_hand_state,
-                                # 'source_object_query': source_object_query,
-                                # 'goal_object_query': goal_object_query,
-                                'episode_number': random.uniform(0, 10000),
-                            }
-
-
-                            all_tasks.append(task_info)
                     except Exception as e:
                         print(e)
 
@@ -333,121 +290,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
                         print('saved ', f.name, len(all_tasks))
 
         #TODO blah
-
-
-
-        data_point = self.get_source_target_indices(from_obj, to_obj,scene)
-        scene_name = data_point["scene_name"]
-        init_object = data_point['init_object']
-        goal_object = data_point['goal_object']
-        agent_state = data_point["initial_agent_pose"]
-        assert init_object["scene_name"] == goal_object["scene_name"] == scene_name
-        assert init_object['object_id'] != goal_object['object_id']
-        if self.env is None:
-            self.env = self._create_environment()
-        self.env.reset(
-            scene_name=scene_name, agentMode="arm", agentControllerType="mid-level"
-        )
-        event1, event2, event3 = initialize_arm(self.env.controller)
-
-        this_controller = self.env
-
-        def put_object_in_location(location_point):
-
-            object_id = location_point['object_id']
-            location = location_point['object_location']
-            event = transport_wrapper(
-                this_controller,
-                object_id,
-                location,
-            )
-            return event
-
-        event_transport_init_obj = put_object_in_location(init_object)
-        event_transport_goal_obj = put_object_in_location(goal_object)
-
-        if not event_transport_goal_obj.metadata['lastActionSuccess'] or not event_transport_init_obj.metadata['lastActionSuccess']:
-            print('scene', scene_name, 'init', init_object['object_id'], 'goal', goal_object['object_id'])
-            print('ERROR: one of transfers fail', 'init', event_transport_init_obj.metadata['errorMessage'], 'goal', event_transport_goal_obj.metadata['errorMessage'])
-
-        event = this_controller.step(
-            dict(
-                action="TeleportFull",
-                standing=True,
-                x=agent_state["position"]["x"],
-                y=agent_state["position"]["y"],
-                z=agent_state["position"]["z"],
-                rotation=dict(
-                    x=agent_state["rotation"]["x"],
-                    y=agent_state["rotation"]["y"],
-                    z=agent_state["rotation"]["z"],
-                ),
-                horizon=agent_state["cameraHorizon"],
-            )
-        )
-
-        if not event.metadata['lastActionSuccess']:
-            print('ERROR: Teleport failed')
-
-
-        should_visualize_goal_start = [
-            x for x in self.visualizers if issubclass(type(x), BringObjImageVisualizer)
-        ]
-
-        initial_object_info = self.env.get_object_by_id(init_object["object_id"])
-        initial_agent_location = self.env.controller.last_event.metadata["agent"]
-        initial_hand_state = self.env.get_absolute_hand_state()
-
-        def load_and_resize(img_name):
-            transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225]),
-            ])
-            with open(img_name, 'rb') as fp:
-                image = Image.open(fp).convert('RGB')
-            return transform(image)
-        def get_random_query_image(scene_name, object_id):
-            object_category = object_id.split('|')[0]
-            # object_type = object_category[0].lower() + object_category[1:]
-            object_type = object_category
-            chosen_image_adr = random.choice(self.query_image_dict[object_type])
-            image = load_and_resize(chosen_image_adr)
-            return image
-
-        source_object_query = get_random_query_image(scene_name,init_object['object_id'])
-        goal_object_query = get_random_query_image(scene_name,goal_object['object_id'])
-
-
-        task_info = {
-            'source_object_id': init_object['object_id'],
-            'goal_object_id': goal_object['object_id'],
-            "init_location": init_object,
-            "goal_location": goal_object,
-            'agent_initial_state': initial_agent_location,
-            'initial_object_location':initial_object_info,
-            'initial_hand_state': initial_hand_state,
-            'source_object_query': source_object_query,
-            'goal_object_query': goal_object_query,
-            'episode_number': random.uniform(0, 10000),
-        }
-
-
-        all_tasks.append(task_info)
-
-        if len(should_visualize_goal_start) > 0:
-            task_info["visualization_source"] = init_object
-            task_info["visualization_target"] = goal_object
-
-        self._last_sampled_task = self._TASK_TYPE(
-            env=self.env,
-            sensors=self.sensors,
-            task_info=task_info,
-            max_steps=self.max_steps,
-            action_space=self._action_space,
-            visualizers=self.visualizers,
-            reward_configs=self.rewards_config,
-        )
+        blah
 
         return self._last_sampled_task
 
