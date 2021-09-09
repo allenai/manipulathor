@@ -50,14 +50,13 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
 
     def __init__(self):
         super().__init__()
-
         assert (
-            self.CAMERA_WIDTH == 224
-            and self.CAMERA_HEIGHT == 224
-            and self.VISIBILITY_DISTANCE == 1
-            and self.STEP_SIZE == 0.25
+                self.CAMERA_WIDTH == 224
+                and self.CAMERA_HEIGHT == 224
+                and self.VISIBILITY_DISTANCE == 1
+                and self.STEP_SIZE == 0.25
         )
-        self.ENV_ARGS = ENV_ARGS
+        self.ENV_ARGS = {**ENV_ARGS, "renderDepthImage": True}
 
     def machine_params(self, mode="train", **kwargs):
         sampler_devices: Sequence[int] = []

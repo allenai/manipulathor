@@ -4,6 +4,7 @@ from typing import Dict, Tuple, List, Any, Optional
 
 import gym
 import numpy as np
+import torch
 from allenact.base_abstractions.misc import RLStepResult
 from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import Task
@@ -27,6 +28,7 @@ from ithor_arm.ithor_arm_constants import (
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
+from scripts.jupyter_helper import get_reachable_positions
 
 
 def position_distance(s1, s2):
@@ -188,7 +190,7 @@ class AbstractBringObjectTask(Task[ManipulaTHOREnvironment]):
                 "metric/average/final_arm_distance_from_obj"
             ] = final_arm_distance_from_obj
             final_obj_pickup = 1 if self.object_picked_up else 0
-            result["metric/average/final_obj_pickup"] = final_obj_pickup
+            result["metric/average/final_obj_pickup/total"] = final_obj_pickup
 
             original_distance = self.get_original_object_distance()
             result["metric/average/original_distance"] = original_distance
@@ -390,7 +392,7 @@ class BringObjectTask(AbstractBringObjectTask):
 
         return float(reward)
 
-class WDoneBringObjectTask(BringObjectTask):
+class WPickUpBringObjectTask(BringObjectTask):
     _actions = (
         MOVE_ARM_HEIGHT_P,
         MOVE_ARM_HEIGHT_M,
@@ -479,6 +481,69 @@ class WDoneBringObjectTask(BringObjectTask):
     def judge(self) -> float:
         """Compute the reward after having taken a step."""
         reward = self.reward_configs["step_penalty"]
+
+        if not self.last_action_success or (
+                self._last_action_str == PICKUP and not self.object_picked_up
+        ):
+            reward += self.reward_configs["failed_action_penalty"]
+
+        if self._took_end_action:
+            reward += (
+                self.reward_configs["goal_success_reward"]
+                if self._success
+                else self.reward_configs["failed_stop_reward"]
+            )
+
+        # increase reward if object pickup and only do it once
+        if not self.got_reward_for_pickup and self.object_picked_up:
+            reward += self.reward_configs["pickup_success_reward"]
+            self.got_reward_for_pickup = True
+        #
+
+        current_obj_to_arm_distance = self.arm_distance_from_obj()
+        if self.last_arm_to_obj_distance is None:
+            delta_arm_to_obj_distance_reward = 0
+        else:
+            delta_arm_to_obj_distance_reward = (
+                    self.last_arm_to_obj_distance - current_obj_to_arm_distance
+            )
+        self.last_arm_to_obj_distance = current_obj_to_arm_distance
+        reward += delta_arm_to_obj_distance_reward
+
+        current_obj_to_goal_distance = self.obj_distance_from_goal()
+        if self.last_obj_to_goal_distance is None:
+            delta_obj_to_goal_distance_reward = 0
+        else:
+            delta_obj_to_goal_distance_reward = (
+                    self.last_obj_to_goal_distance - current_obj_to_goal_distance
+            )
+        self.last_obj_to_goal_distance = current_obj_to_goal_distance
+        reward += delta_obj_to_goal_distance_reward
+
+        # add collision cost, maybe distance to goal objective,...
+
+        return float(reward)
+
+class WPickUPExploreBringObjectTask(WPickUpBringObjectTask):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions(self.env.controller)]
+        self.all_reachable_positions = torch.Tensor(all_locations)
+        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1)) #TODO do something about rotation here
+    def judge(self) -> float:
+        """Compute the reward after having taken a step."""
+        reward = self.reward_configs["step_penalty"]
+
+        current_agent_location = self.env.get_agent_location()
+        current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
+        all_distances = self.all_reachable_positions - current_agent_location
+        all_distances = (all_distances ** 2).sum(dim=-1)
+        location_index = torch.argmin(all_distances)
+        if self.has_visited[location_index] == 0:
+            reward += 0.05 #TODO is this too much?
+        self.has_visited[location_index] = 1
+
 
         if not self.last_action_success or (
                 self._last_action_str == PICKUP and not self.object_picked_up

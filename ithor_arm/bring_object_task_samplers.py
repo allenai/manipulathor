@@ -15,7 +15,7 @@ from allenact.base_abstractions.task import TaskSampler
 from allenact.utils.experiment_utils import set_deterministic_cudnn, set_seed
 
 from ithor_arm.arm_calculation_utils import initialize_arm
-from ithor_arm.bring_object_tasks import BringObjectTask, WDoneBringObjectTask
+from ithor_arm.bring_object_tasks import BringObjectTask, WPickUpBringObjectTask, WPickUPExploreBringObjectTask
 from ithor_arm.ithor_arm_constants import transport_wrapper
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_tasks import (
@@ -313,6 +313,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             'initial_hand_state': initial_hand_state,
             'source_object_query': source_object_query,
             'goal_object_query': goal_object_query,
+            'episode_number': random.uniform(0, 10000), #TODO remove
         }
 
 
@@ -397,4 +398,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         return data_point
 
 class WDoneDiverseBringObjectTaskSampler(DiverseBringObjectTaskSampler):
-    _TASK_TYPE = WDoneBringObjectTask
+    _TASK_TYPE = WPickUpBringObjectTask
+
+class WPickupAndExploreBOTS(DiverseBringObjectTaskSampler):
+    _TASK_TYPE = WPickUPExploreBringObjectTask

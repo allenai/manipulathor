@@ -144,6 +144,18 @@ class TempObjectCategorySensor(Sensor):
         object_type = task.task_info[info_to_search].split('|')[0]
         object_type_categ_ind = DONT_USE_ALL_POSSIBLE_OBJECTS_EVER.index(object_type)
         return torch.tensor(object_type_categ_ind)
+class TempEpisodeNumber(Sensor):
+    def __init__(self, uuid: str = "temp_episode_number", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        super().__init__(**prepare_locals_for_super(locals()))
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        return torch.tensor(task.task_info['episode_number'])
 
 class TempAllMasksSensor(Sensor):
     def __init__(self, uuid: str = "all_masks_sensor", **kwargs: Any):

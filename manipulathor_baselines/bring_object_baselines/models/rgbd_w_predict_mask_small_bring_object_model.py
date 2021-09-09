@@ -37,7 +37,7 @@ from manipulathor_utils.net_utils import input_embedding_net
 from utils.hacky_viz_utils import hacky_visualization, calc_dict_average
 
 
-class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
+class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -74,7 +74,7 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
         self.object_type_embedding_size = obj_state_embedding_size
 
         # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 5, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
 
         self.detection_model = ConditionalDetectionModel()
@@ -100,40 +100,41 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
 
         self.starting_time = datetime.now().strftime("{}_%m_%d_%Y_%H_%M_%S_%f".format(self.__class__.__name__))
 
+        detection_weight_dir = None
+        policy_weight_dir = None
+
+        #TODO remove
+        # detection_weight_dir = '/Users/kianae/Desktop/important_weights/detection_without_color_jitter_model_state_271.pytar'
+        # policy_weight_dir = '/Users/kianae/Desktop/exp_SmallNoiseRGBQueryObjGTMaskSimpleDiverseBringObject_continue_training_w_noise_35__stage_00__steps_000163313525.pt'
+        # # policy_weight_dir = '/Users/kianae/Desktop/important_weights/exp_NoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject_no_pu_no_noise_query_obj_w_gt_mask_and_rgb__stage_00__steps_000065308765.pt'
+        # policy_weight_dir = '/Users/kianae/Desktop/exp_SmallNoiseRGBQueryObjGTMaskSimpleDiverseBringObject_continue_training_w_noise_0.2__stage_00__steps_000070844861.pt'
+
+
         #TODO reload the weights really bad design choice
-        weight_dir = 'datasets/apnd-dataset/weights/full_detection_full_thor_all_objects_segmentation_resnet_2021-07-30_14:47:36_model_state_324.pytar'
-        # weight_dir = '/Users/kianae/Desktop/not_best_on_test_limited_obj_w_removal_99.pytar' TODO remove
-        # weight_dir = '/Users/kianae/Desktop/detection_with_discrimination_model_state_62.pytar' TODO remove
-        # weight_dir = '/Users/kianae/Desktop/detection_without_color_jitter_model_state_271.pytar' #TODO remove
-        detection_weight_dict = torch.load(weight_dir, map_location='cpu')
-        detection_state_dict = self.detection_model.state_dict()
-        for key in detection_state_dict:
-            param = detection_weight_dict[key]
-            detection_state_dict[key].copy_(param)
-        remained = [k for k in detection_weight_dict if k not in detection_state_dict]
-        # assert len(remained) == 0
-        print(
-            'WARNING!',
-            remained
-        )
+        if detection_weight_dir is not None:
+            detection_weight_dict = torch.load(detection_weight_dir, map_location='cpu')
+            detection_state_dict = self.detection_model.state_dict()
+            for key in detection_state_dict:
+                param = detection_weight_dict[key]
+                detection_state_dict[key].copy_(param)
+            remained = [k for k in detection_weight_dict if k not in detection_state_dict]
+            # assert len(remained) == 0
+            print(
+                'WARNING!',
+                remained
+            )
+        else:
+            print('CAREFUL! NO DETECTION WEIGHT, THIS IS USELESS')
+        if policy_weight_dir is not None:
+            loaded_rl_model_weights = torch.load(policy_weight_dir, map_location='cpu')['model_state_dict']
+            rl_model_state_keys = [k for k in self.state_dict() if k.replace('detection_model.', '') not in detection_state_dict]
+            rl_model_state_dict = self.state_dict()
 
-        weight_dir = 'datasets/apnd-dataset/weights/exp_QueryObjGTMaskSimpleDiverseBringObject_noise_0.2__stage_00__steps_000048243775.pt'
+            for key in rl_model_state_keys:
+                param = loaded_rl_model_weights[key]
+                rl_model_state_dict[key].copy_(param)
 
-        loaded_rl_model_weights = torch.load(weight_dir, map_location='cpu')['model_state_dict']
-        rl_model_state_keys = [k for k in self.state_dict() if k.replace('detection_model.', '') not in detection_state_dict]
-        #TODO this is a freaking small model!
-
-
-        # print('norm', self.full_visual_encoder.conv_0.weight.norm(), 'mean', self.full_visual_encoder.conv_0.weight.mean())
-
-        rl_model_state_dict = self.state_dict()
-
-        for key in rl_model_state_keys:
-            param = loaded_rl_model_weights[key]
-            rl_model_state_dict[key].copy_(param)
-        # print('norm', self.full_visual_encoder.conv_0.weight.norm(), 'mean', self.full_visual_encoder.conv_0.weight.mean())
-
-    def get_detection_masks(self, query_images, images): # TODO can we save the detections so we don't have to go through them again?
+    def get_detection_masks(self, query_images, images):
         self.detection_model.eval()
         with torch.no_grad():
             images = images.permute(0,1,4,2,3) #Turn wxhxc to cxwxh
@@ -210,12 +211,9 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
 
         predicted_masks = self.get_detection_masks(query_objects, observations['only_detection_rgb_lowres'])
 
-        visual_observation = torch.cat([observations['depth_lowres'],query_objects.permute(0, 1, 3, 4, 2), predicted_masks], dim=-1).float()
-        # visual_observation = torch.cat([observations['depth_lowres'],predicted_masks], dim=-1).float()
+        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'],query_objects.permute(0, 1, 3, 4, 2), predicted_masks], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
-
-
 
         x_out, rnn_hidden_states = self.state_encoder(
             visual_observation_encoding, memory.tensor("rnn"), masks
@@ -228,10 +226,6 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
             gt_mask[after_pickup] = observations['gt_mask_for_loss_destination'][after_pickup]
             hacky_visualization(observations, object_mask=predicted_masks, query_objects=query_objects, base_directory_to_right_images=self.starting_time, gt_mask = gt_mask)
 
-
-
-
-        # I think we need two model one for pick up and one for drop off
 
         actor_out_pickup = self.actor_pickup(x_out)
         critic_out_pickup = self.critic_pickup(x_out)
@@ -248,10 +242,7 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
-
-
-        # memory = memory.check_append("predicted_segmentation_mask", predicted_masks.detach())
-        actor_critic_output.extras['predicted_mask'] = predicted_masks.detach() #TODO are we using this?
+        actor_critic_output.extras['predicted_mask'] = predicted_masks.detach()
 
         self.calc_losses(observations, actor_critic_output)
 
@@ -325,7 +316,7 @@ class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[Cate
 
         if union.sum() == 0: #it means no mask is provided and none was needed:
             # for the frames that the object does not exist we should not calculate any!
-            return #TODO we can add something that changes the per category so we know if they don't appear at all
+            return
 
         interaction_sum = intersection.sum()
         union_sum = union.sum()

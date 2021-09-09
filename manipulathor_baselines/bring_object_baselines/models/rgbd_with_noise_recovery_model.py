@@ -36,7 +36,7 @@ from manipulathor_utils.net_utils import input_embedding_net
 from utils.hacky_viz_utils import hacky_visualization
 
 
-class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
+class RGBDBringObjectWNoiseRecoveryModel(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -72,6 +72,23 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         # sensor_names = self.observation_space.spaces.keys()
         network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
+
+
+        embed_image_query_mask_args = {'input_channels': 7, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        self.embed_image_query_mask = make_cnn(**embed_image_query_mask_args)
+
+
+        pointwise_embed_args = {'input_channels': 11, 'layer_channels': [1], 'kernel_sizes': [(1,1)], 'strides': [(1,1)], 'paddings': [(0, 0),], 'dilations': [(1, 1)], 'output_height': 224, 'output_width': 224, 'output_channels': 1, 'flatten': False, 'output_relu': False}
+        self.pointwise_embed = make_cnn(**pointwise_embed_args)
+
+        self.combine_mask_embeddings = nn.Sequential(
+            nn.Linear(1024, 512),
+            nn.ReLU(),
+            nn.Linear(512, 128),
+            nn.ReLU(),
+            nn.Linear(128, 10),
+            nn.ReLU(), #TODO why?
+        )
 
         # self.detection_model = ConditionalDetectionModel()
 
@@ -112,7 +129,25 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
                     ("hidden", self.recurrent_hidden_state_size),
                 ),
                 torch.float32,
-            )
+            ),
+            prev_rgb=(
+                (
+                    ("sampler", None),
+                    ("channels", 3),
+                    ("height", 224),
+                    ("width", 224),
+                ),
+                torch.float32,
+            ),
+            prev_noisy_mask=(
+                (
+                    ("sampler", None),
+                    ("channels", 1),
+                    ("height", 224),
+                    ("width", 224),
+                ),
+                torch.float32,
+            ),
         )
 
     def forward(  # type:ignore
@@ -143,6 +178,7 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
 
         query_source_objects = observations['category_object_source']
         query_destination_objects = observations['category_object_destination']
+        rgb_image = observations['rgb_lowres']
 
 
         pickup_bool = observations["pickedup_object"]
@@ -154,10 +190,44 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         source_object_mask = observations['object_mask_source']
         destination_object_mask = observations['object_mask_destination']
 
-        gt_mask = source_object_mask
-        gt_mask[after_pickup] = destination_object_mask[after_pickup]
+        noisy_gt_mask = source_object_mask
+        noisy_gt_mask[after_pickup] = destination_object_mask[after_pickup]
+        reformatted_query_object = query_objects.permute(0, 1, 3, 4, 2)
 
-        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
+        #TODO do we want to do this instead of initializing with zero?
+        # #TODO check that we have prev rgb in the memory  sometimes
+        # if 'prev_rgb' not in memory and 'prev_noisy_mask' not in memory: #This means we have not set it yet
+        #     memory = memory.check_append("prev_noisy_mask", noisy_gt_mask.detach(), sampler_dim=1) #TODO is this the current dimension for all?
+        #     memory = memory.check_append("prev_rgb", rgb_image.detach(), sampler_dim=1) #TODO I think if we don't initially set these we will have problems with them in the rollouts
+
+
+        prev_rgb = memory.tensor('prev_rgb').unsqueeze(1).permute(0, 1, 3, 4, 2)
+        prev_noisy_mask = memory.tensor('prev_noisy_mask').unsqueeze(1).permute(0, 1, 3, 4, 2)
+
+        #TODO remove
+        try:
+            prev_image_query_mask = torch.cat([prev_rgb, reformatted_query_object, prev_noisy_mask], dim=-1).float()
+        except Exception:
+            ForkedPdb().set_trace()
+        prev_image_query_embedding = compute_cnn_output(self.embed_image_query_mask, prev_image_query_mask)
+
+        current_rgb = rgb_image
+        current_noisy_mask = noisy_gt_mask
+        current_image_query_mask = torch.cat([current_rgb, reformatted_query_object, current_noisy_mask], dim=-1).float()
+        current_image_query_embedding = compute_cnn_output(self.embed_image_query_mask, current_image_query_mask)
+
+
+        embedding_combined = torch.cat([prev_image_query_embedding, current_image_query_embedding], dim=-1)
+        refinement = self.combine_mask_embeddings(embedding_combined)
+        refinement = torch.repeat_interleave(refinement.unsqueeze(-2).unsqueeze(-2), 224, dim=-2).repeat_interleave(224, dim=-3) #TODO is this a correct function or the repeat one?
+
+        #TODO this means that the repeated one has more occurences (10 vs 1) are we fine with it?
+        #TODO I think we need something spatial for this
+        refined_gt_mask = compute_cnn_output(self.pointwise_embed, torch.cat([refinement, noisy_gt_mask], dim=-1).float()).permute(0, 1, 3, 4, 2) #TODO add a loss for mask
+
+
+
+        visual_observation = torch.cat([observations['depth_lowres'], rgb_image ,query_objects.permute(0, 1, 3, 4, 2), refined_gt_mask], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
 
@@ -182,12 +252,19 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
             distributions=actor_out, values=critic_out_final, extras={}
         )
 
+
         memory = memory.set_tensor("rnn", rnn_hidden_states)
+
+        memory = memory.set_tensor("prev_rgb", rgb_image.detach().squeeze(1).permute(0,3,1,2)) #TODO make sure dimensons are right and squeeze the batch
+        memory = memory.set_tensor("prev_noisy_mask", refined_gt_mask.detach().squeeze(1).permute(0,3,1,2))
+
+        #TODO how can we check that these are being updated correclty?
 
         self.visualize = platform.system() == "Darwin"
         # TODO really bad design
         if self.visualize:
-            hacky_visualization(observations, object_mask=gt_mask, query_objects=query_objects, base_directory_to_right_images=self.starting_time)
+            #TODO visualize both refined and noisy
+            hacky_visualization(observations, object_mask=noisy_gt_mask, query_objects=query_objects, base_directory_to_right_images=self.starting_time)
 
         return (
             actor_critic_output,

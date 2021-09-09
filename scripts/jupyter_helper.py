@@ -124,6 +124,7 @@ def is_object_in_receptacle(event,target_obj,target_receptacle):
 def get_reachable_positions(controller):
     event = controller.step('GetReachablePositions')
     reachable_positions = event.metadata['reachablePositions']
+
     if reachable_positions is None or len(reachable_positions) == 0:
         reachable_positions = event.metadata['actionReturn']
     if reachable_positions is None or len(reachable_positions) == 0:

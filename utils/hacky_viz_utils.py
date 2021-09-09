@@ -36,7 +36,7 @@ def hacky_visualization(observations, object_mask, query_objects, base_directory
         directory_to_write_images = os.path.join('experiment_output/visualizations_masks', base_directory_to_right_images)
         os.makedirs(directory_to_write_images, exist_ok=True)
         time_to_write = datetime.now().strftime("%m_%d_%Y_%H_%M_%S_%f.png")
-        cv2.imwrite(os.path.join(directory_to_write_images, time_to_write), (combined[:,:,[2,1,0]] * 255.).int().numpy())
+        cv2.imwrite(os.path.join(directory_to_write_images, time_to_write), (combined[:,:,[2,1,0]] * 255.).int().cpu().numpy())
 
 def calc_dict_average(nested_dict):
     if type(nested_dict) == list:
