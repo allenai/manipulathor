@@ -34,12 +34,7 @@ class NoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject(
     input."""
     NOISE_LEVEL = 0
     SENSORS = [
-        # NoGripperRGBSensorThor(
-        #     height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-        #     width=BringObjectiThorBaseConfig.SCREEN_SIZE,
-        #     use_resnet_normalization=True,
-        #     uuid="only_detection_rgb_lowres",
-        # ),
+
         RGBSensorThor(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,

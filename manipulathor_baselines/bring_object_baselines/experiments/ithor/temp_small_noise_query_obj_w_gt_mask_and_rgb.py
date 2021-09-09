@@ -51,3 +51,5 @@ class SmallNoiseRGBQueryObjGTMaskSimpleDiverseBringObject(
         NoisyObjectMask(noise=NOISE_LEVEL, type='source'),
         NoisyObjectMask(noise=NOISE_LEVEL, type='destination'),
     ]
+    TEST_SCENES = NoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject.TRAIN_SCENES + NoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject.VALID_SCENES + NoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject.TEST_SCENES #TODO REMOVE
+    NUMBER_OF_TEST_PROCESS = 1
