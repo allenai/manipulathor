@@ -28,7 +28,6 @@ from manipulathor_utils.debugger_util import ForkedPdb
 class BringObjectAbstractTaskSampler(TaskSampler):
 
     _TASK_TYPE = Task
-    #TODO consider all the following TEST_TODO s for making an accurate test set
 
     def __init__(
         self,
@@ -147,9 +146,28 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             "datasets/apnd-dataset/valid_agent_initial_locations.json"
         )
         if self.sampler_mode == "test":
+            self.deterministic_counter = 0
             possible_initial_locations = (
                 "datasets/apnd-dataset/deterministic_valid_agent_initial_locations.json"
             )
+            self.all_test_tasks = []
+            #TODO remove
+            self.scenes = ['FloorPlan1_physics']
+
+            for scene in self.scenes:
+                for from_obj in self.objects:
+                    for to_obj in self.objects:
+                        if from_obj == to_obj:
+                            continue
+                        #TODO remove this after dataset coimplete and put address back to original one
+                        try:
+                            with open(f'/Users/kianae/Desktop/bring_object_deterministic_tasks/tasks_obj_{from_obj}_to_{to_obj}_scene_{scene}.json') as f:
+                                tasks = json.load(f)['tasks']
+                        except Exception:
+                            continue
+                        self.all_test_tasks += tasks
+
+            random.shuffle(self.all_test_tasks)
         with open(possible_initial_locations) as f:
             self.possible_agent_reachable_poses = json.load(f)
 
@@ -338,14 +356,13 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         if self.sampler_mode == "train":
             return None
         else:
-            #TEST_TODO put back and remove this
-            return 200
-            return min(self.max_tasks, len(self.deterministic_data_list))
+
+            return min(self.max_tasks, len(self.all_test_tasks))
 
 
 
     def get_source_target_indices(self):
-        if self.sampler_mode == "train" or True: #TEST_TODO this needs to be fixed
+        if self.sampler_mode == "train":
             all_scenes = [s for (s,o) in self.all_possible_points.keys()]
 
             #randomly choose a scene
@@ -392,8 +409,12 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             data_point['goal_object'] = goal_object_location
             data_point["initial_agent_pose"] = initial_agent_pose
 
+        else:
 
+            task = self.all_test_tasks[self.deterministic_counter]
+            self.deterministic_counter += 1
 
+            data_point = task
 
         return data_point
 
