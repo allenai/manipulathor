@@ -412,14 +412,14 @@ class WPickUpBringObjectTask(BringObjectTask):
 
         action_str = self.class_action_names()[action]
 
-        self.manual = False #TODO
-        if self.manual:
-            actions = ('MoveArmHeightP', 'MoveArmHeightM', 'MoveArmXP', 'MoveArmXM', 'MoveArmYP', 'MoveArmYM', 'MoveArmZP', 'MoveArmZM', 'MoveAheadContinuous', 'RotateRightContinuous', 'RotateLeftContinuous', PICKUP, DONE)
-            actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l', 'p', 'd')
-            action = 'm'
-            self.env.controller.step('Pass')
-            ForkedPdb().set_trace()
-            action_str = actions[actions_short.index(action)]
+        # self.manual = False
+        # if self.manual:
+        #     actions = ('MoveArmHeightP', 'MoveArmHeightM', 'MoveArmXP', 'MoveArmXM', 'MoveArmYP', 'MoveArmYM', 'MoveArmZP', 'MoveArmZM', 'MoveAheadContinuous', 'RotateRightContinuous', 'RotateLeftContinuous', PICKUP, DONE)
+        #     actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l', 'p', 'd')
+        #     action = 'm'
+        #     self.env.controller.step('Pass')
+        #     ForkedPdb().set_trace()
+        #     action_str = actions[actions_short.index(action)]
 
 
         self._last_action_str = action_str
@@ -444,7 +444,7 @@ class WPickUpBringObjectTask(BringObjectTask):
                 )  # plus one because this step has not been counted yet
 
 
-        #TODO put back after you put back done
+        # TODO put back after you put back done
         if False and action_str == DONE:
             self._took_end_action = True
             source_state = self.env.get_object_by_id(object_id)
@@ -541,7 +541,7 @@ class WPickUPExploreBringObjectTask(WPickUpBringObjectTask):
         all_distances = (all_distances ** 2).sum(dim=-1)
         location_index = torch.argmin(all_distances)
         if self.has_visited[location_index] == 0:
-            reward += 0.05 #TODO is this too much?
+            reward += self.reward_configs["exploration_reward"]
         self.has_visited[location_index] = 1
 
 

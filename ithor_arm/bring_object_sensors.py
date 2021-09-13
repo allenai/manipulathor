@@ -62,13 +62,14 @@ class CategorySampleSensor(Sensor):
 
 
 class NoisyObjectMask(Sensor):
-    def __init__(self, type: str,noise,  uuid: str = "object_mask", **kwargs: Any):
+    def __init__(self, type: str,noise,  uuid: str = "object_mask", distance_thr: float = -1, **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
         self.type = type
         uuid = '{}_{}'.format(uuid, type)
         self.noise = noise
+        self.distance_thr = distance_thr
         super().__init__(**prepare_locals_for_super(locals()))
 
 
@@ -87,6 +88,15 @@ class NoisyObjectMask(Sensor):
         all_visible_masks = env.controller.last_event.instance_masks
         if target_object_id in all_visible_masks:
             mask_frame = all_visible_masks[target_object_id]
+
+            if self.distance_thr > 0:
+
+                agent_location = env.get_agent_location()
+                object_location = env.get_object_by_id(target_object_id)['position']
+                current_agent_distance_to_obj = sum([(object_location[k] - agent_location[k])**2 for k in ['x', 'z']]) ** 0.5
+                if current_agent_distance_to_obj > self.distance_thr or mask_frame.sum() < 20: #TODO objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
+                    mask_frame[:] = 0
+
         else:
             mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
 

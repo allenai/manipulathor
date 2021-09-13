@@ -87,7 +87,6 @@ class MaskLoss(AbstractActorCriticLoss):
         """
 
 
-        print('calc loss') #TODO remove
         ForkedPdb().set_trace()
         observations = cast(Dict[str, torch.Tensor], batch["observations"])
         extra_model_outputs = actor_critic_output.extras
@@ -101,7 +100,8 @@ class MaskLoss(AbstractActorCriticLoss):
         gt_masks = gt_masks_source
         gt_masks[pickup_sensor] = gt_masks_destination[pickup_sensor]
 
-        all_masks = observations['all_masks_sensor'] #TODO use this and object_category_source and object_category_destination for more failure analysis later
+        ForkedPdb().set_trace()
+        # all_masks = observations['all_masks_sensor'] TODO use this and object_category_source and object_category_destination for more failure analysis later
 
         intersection = (gt_masks + predicted_mask) == 2
         union = (gt_masks + predicted_mask) > 0

@@ -26,7 +26,7 @@ from legacy.armpointnav_baselines.models import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization
 
 
-class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
+class SmallBringObjectWQueryObjGtMaskDepthBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -60,7 +60,7 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         self.object_type_embedding_size = obj_state_embedding_size
 
         # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        network_args = {'input_channels': 5, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
 
         # self.detection_model = ConditionalDetectionModel()
@@ -147,7 +147,7 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         gt_mask = source_object_mask
         gt_mask[after_pickup] = destination_object_mask[after_pickup]
 
-        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
+        visual_observation = torch.cat([observations['depth_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
 
@@ -178,6 +178,14 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         # TODO really bad design
         if self.visualize:
             hacky_visualization(observations, object_mask=gt_mask, query_objects=query_objects, base_directory_to_right_images=self.starting_time)
+
+
+
+
+
+        # memory = memory.check_append("predicted_segmentation_mask", predicted_masks.detach())
+        # actor_critic_output.extras['predicted_segmentation_mask'] = predicted_masks.detach()
+
 
         return (
             actor_critic_output,

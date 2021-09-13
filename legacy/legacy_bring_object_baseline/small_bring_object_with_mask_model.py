@@ -3,8 +3,6 @@
 Object navigation is currently available as a Task in AI2-THOR and
 Facebook's Habitat.
 """
-import platform
-from datetime import datetime
 from typing import Tuple, Optional
 
 import gym
@@ -23,10 +21,9 @@ from allenact.utils.model_utils import make_cnn, compute_cnn_output
 from gym.spaces.dict import Dict as SpaceDict
 
 from legacy.armpointnav_baselines.models import LinearActorHeadNoCategory
-from utils.hacky_viz_utils import hacky_visualization
 
 
-class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
+class SmallBringObjectWMaskDepthBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -60,10 +57,9 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         self.object_type_embedding_size = obj_state_embedding_size
 
         # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        network_args = {'input_channels': 2, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
 
-        # self.detection_model = ConditionalDetectionModel()
 
         self.state_encoder = RNNStateEncoder(
             512,
@@ -77,10 +73,6 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         self.critic_pickup = LinearCriticHead(self._hidden_size)
 
         self.train()
-        # self.detection_model.eval()
-
-        self.starting_time = datetime.now().strftime("{}_%m_%d_%Y_%H_%M_%S_%f".format(self.__class__.__name__))
-
 
 
     @property
@@ -104,6 +96,7 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
                 torch.float32,
             )
         )
+
 
     def forward(  # type:ignore
         self,
@@ -130,26 +123,17 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
 
         #we really need to switch to resnet now that visual features are actually important
 
-
-        query_source_objects = observations['category_object_source']
-        query_destination_objects = observations['category_object_destination']
-
+        target_object_observation = torch.cat([observations['depth_lowres'],observations['target_object_mask']], dim=-1).float()
+        target_location_observation = torch.cat([observations['depth_lowres'],observations['target_location_mask']], dim=-1).float()
 
         pickup_bool = observations["pickedup_object"]
         after_pickup = pickup_bool == 1
+        visual_observation = target_object_observation
+        visual_observation[after_pickup] = target_location_observation[after_pickup]
 
-        query_objects = query_source_objects
-        query_objects[after_pickup] = query_destination_objects[after_pickup]
-
-        source_object_mask = observations['object_mask_source']
-        destination_object_mask = observations['object_mask_destination']
-
-        gt_mask = source_object_mask
-        gt_mask[after_pickup] = destination_object_mask[after_pickup]
-
-        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
+
 
 
         x_out, rnn_hidden_states = self.state_encoder(
@@ -174,13 +158,8 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
-        self.visualize = platform.system() == "Darwin"
-        # TODO really bad design
-        if self.visualize:
-            hacky_visualization(observations, object_mask=gt_mask, query_objects=query_objects, base_directory_to_right_images=self.starting_time)
 
         return (
             actor_critic_output,
             memory,
         )
-

@@ -3,8 +3,6 @@
 Object navigation is currently available as a Task in AI2-THOR and
 Facebook's Habitat.
 """
-import platform
-from datetime import datetime
 from typing import Tuple, Optional
 
 import gym
@@ -19,14 +17,55 @@ from allenact.algorithms.onpolicy_sync.policy import (
 from allenact.base_abstractions.distributions import CategoricalDistr
 from allenact.base_abstractions.misc import ActorCriticOutput
 from allenact.embodiedai.models.basic_models import RNNStateEncoder
-from allenact.utils.model_utils import make_cnn, compute_cnn_output
+from allenact.utils.model_utils import compute_cnn_output
 from gym.spaces.dict import Dict as SpaceDict
+from torch import nn
+from torchvision import models
 
 from legacy.armpointnav_baselines.models import LinearActorHeadNoCategory
-from utils.hacky_viz_utils import hacky_visualization
+from manipulathor_utils.debugger_util import ForkedPdb
 
 
-class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
+class BringObjectResnetWrapper(nn.Module):
+    def __init__(self, pretrained=True, flatten=True):
+        print('Deprecated')
+        ForkedPdb().set_trace()
+        super().__init__()
+        self.resnet_encoder = models.resnet18(pretrained=pretrained)
+        del self.resnet_encoder.fc
+        del self.resnet_encoder.avgpool
+        self.flatten = flatten
+        layer_1_weights= self.resnet_encoder.conv1.weight
+
+        self.resnet_encoder.conv1 = nn.Conv2d(5, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+
+        copied_weights = torch.zeros(self.resnet_encoder.conv1.weight.shape).float()
+        copied_weights[:, :3, :, :] = layer_1_weights.clone()
+        copied_weights[:,3:, :,:] = layer_1_weights.clone()[:, :2]
+        with torch.no_grad():
+            self.resnet_encoder.conv1.weight.copy_(copied_weights)
+        # #LATER_TODO how about batchnorm stufF? how about bias?
+
+        self.final_fc_layer = nn.Sequential(nn.ReLU(), nn.Conv2d(512, 64, 1, 1))
+
+    def forward(self, input_to_cnn):
+
+        x = self.resnet_encoder.conv1(input_to_cnn)
+        x = self.resnet_encoder.bn1(x)
+        x = self.resnet_encoder.relu(x)
+        x = self.resnet_encoder.maxpool(x)
+        x = self.resnet_encoder.layer1(x)
+        x = self.resnet_encoder.layer2(x)
+        x = self.resnet_encoder.layer3(x)
+        x = self.resnet_encoder.layer4(x)
+        x = self.final_fc_layer(x)
+        if self.flatten:
+            b_size, c, w, h = x.shape
+            x = x.contiguous() #LATER_TODO do we have to have this?
+            x = x.view(b_size, c * w * h)
+        return x
+
+class PickUpWMaskBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -60,13 +99,11 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         self.object_type_embedding_size = obj_state_embedding_size
 
         # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
-        self.full_visual_encoder = make_cnn(**network_args)
 
-        # self.detection_model = ConditionalDetectionModel()
+        self.full_visual_encoder = BringObjectResnetWrapper()
 
         self.state_encoder = RNNStateEncoder(
-            512,
+            64 * 7 * 7,
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -77,10 +114,6 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         self.critic_pickup = LinearCriticHead(self._hidden_size)
 
         self.train()
-        # self.detection_model.eval()
-
-        self.starting_time = datetime.now().strftime("{}_%m_%d_%Y_%H_%M_%S_%f".format(self.__class__.__name__))
-
 
 
     @property
@@ -104,6 +137,7 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
                 torch.float32,
             )
         )
+
 
     def forward(  # type:ignore
         self,
@@ -130,26 +164,11 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
 
         #we really need to switch to resnet now that visual features are actually important
 
+        visual_observation = torch.cat([observations['rgb_lowres'], observations['depth_lowres'],observations['target_object_mask']], dim=-1 ).float()
 
-        query_source_objects = observations['category_object_source']
-        query_destination_objects = observations['category_object_destination']
-
-
-        pickup_bool = observations["pickedup_object"]
-        after_pickup = pickup_bool == 1
-
-        query_objects = query_source_objects
-        query_objects[after_pickup] = query_destination_objects[after_pickup]
-
-        source_object_mask = observations['object_mask_source']
-        destination_object_mask = observations['object_mask_destination']
-
-        gt_mask = source_object_mask
-        gt_mask[after_pickup] = destination_object_mask[after_pickup]
-
-        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
+
 
 
         x_out, rnn_hidden_states = self.state_encoder(
@@ -174,13 +193,8 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
-        self.visualize = platform.system() == "Darwin"
-        # TODO really bad design
-        if self.visualize:
-            hacky_visualization(observations, object_mask=gt_mask, query_objects=query_objects, base_directory_to_right_images=self.starting_time)
 
         return (
             actor_critic_output,
             memory,
         )
-

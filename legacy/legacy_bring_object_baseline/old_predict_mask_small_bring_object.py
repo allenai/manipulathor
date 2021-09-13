@@ -3,10 +3,12 @@
 Object navigation is currently available as a Task in AI2-THOR and
 Facebook's Habitat.
 """
+import os
 import platform
 from datetime import datetime
 from typing import Tuple, Optional
 
+import cv2
 import gym
 import torch
 from allenact.algorithms.onpolicy_sync.policy import (
@@ -23,10 +25,11 @@ from allenact.utils.model_utils import make_cnn, compute_cnn_output
 from gym.spaces.dict import Dict as SpaceDict
 
 from legacy.armpointnav_baselines.models import LinearActorHeadNoCategory
-from utils.hacky_viz_utils import hacky_visualization
+from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
+from manipulathor_utils.debugger_util import ForkedPdb
 
 
-class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
+class SmallBringObjectWPredictMaskDepthBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -50,6 +53,8 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         rnn_type="GRU",
         teacher_forcing=1,
     ):
+        print('deprecated, resolve todo')
+        ForkedPdb().set_trace()
         """Initializer.
 
         See class documentation for parameter definitions.
@@ -60,10 +65,10 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         self.object_type_embedding_size = obj_state_embedding_size
 
         # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        network_args = {'input_channels': 2, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
 
-        # self.detection_model = ConditionalDetectionModel()
+        self.detection_model = ConditionalDetectionModel()
 
         self.state_encoder = RNNStateEncoder(
             512,
@@ -77,10 +82,52 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         self.critic_pickup = LinearCriticHead(self._hidden_size)
 
         self.train()
-        # self.detection_model.eval()
+        self.detection_model.eval()
 
-        self.starting_time = datetime.now().strftime("{}_%m_%d_%Y_%H_%M_%S_%f".format(self.__class__.__name__))
+        #LATER_TODO reload the weights
+        weight_dir = 'datasets/apnd-dataset/weights/full_detection_full_thor_all_objects_segmentation_resnet_2021-07-30_14:47:36_model_state_324.pytar'
+        detection_weight_dict = torch.load(weight_dir, map_location='cpu')
+        detection_state_dict = self.detection_model.state_dict()
+        for key in detection_state_dict:
+            param = detection_weight_dict[key]
+            detection_state_dict[key].copy_(param)
+        remained = [k for k in detection_weight_dict if k not in detection_state_dict]
+        assert len(remained) == 0
+        #LATER_TODO is the reload correct?
 
+        #LATER_TODO this is really bad. Does this even work? you are the worst
+        weight_dir = 'datasets/apnd-dataset/weights/exp_QueryObjGTMaskSimpleDiverseBringObject_noise_0.2__stage_00__steps_000048243775.pt'
+        loaded_rl_model_weights = torch.load(weight_dir, map_location='cpu')['model_state_dict']
+        rl_model_state_keys = [k for k in self.state_dict() if k.replace('detection_model.', '') not in detection_state_dict]
+        #LATER_TODO this is a freaking small model!
+
+
+        # print('norm', self.full_visual_encoder.conv_0.weight.norm(), 'mean', self.full_visual_encoder.conv_0.weight.mean())
+
+        rl_model_state_dict = self.state_dict()
+
+        ForkedPdb().set_trace()
+        for key in rl_model_state_keys:
+            param = loaded_rl_model_weights[key]
+            rl_model_state_dict[key].copy_(param)
+        # print('norm', self.full_visual_encoder.conv_0.weight.norm(), 'mean', self.full_visual_encoder.conv_0.weight.mean())
+
+    def get_detection_masks(self, query_images, images): #LATER_TODO can we save the detections so we don't have to go through them again?
+        #LATER_TODO make sure the weights have stayed the same
+        self.detection_model.eval()
+        with torch.no_grad():
+            images = images.permute(0,1,4,2,3) #Turn wxhxc to cxwxh
+
+            batch, seqlen, c, w, h = images.shape
+
+            images = images.view(batch * seqlen, c, w, h)
+            query_images = query_images.view(batch * seqlen, c, w, h)
+            #LATER_LATER_TODO visualize the outputs
+            predictions = self.detection_model(dict(rgb=images, target_cropped_object=query_images))
+            probs_mask = predictions['object_mask']
+            probs_mask = probs_mask.view(batch, seqlen, 2, w, h)
+            mask = probs_mask.argmax(dim=2).float().unsqueeze(-1)#To add the channel back in the end of the image
+            return mask
 
 
     @property
@@ -141,15 +188,12 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         query_objects = query_source_objects
         query_objects[after_pickup] = query_destination_objects[after_pickup]
 
-        source_object_mask = observations['object_mask_source']
-        destination_object_mask = observations['object_mask_destination']
+        predicted_masks = self.get_detection_masks(query_objects, observations['only_detection_rgb_lowres'])
 
-        gt_mask = source_object_mask
-        gt_mask[after_pickup] = destination_object_mask[after_pickup]
-
-        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
+        visual_observation = torch.cat([observations['depth_lowres'],predicted_masks], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
+
 
 
         x_out, rnn_hidden_states = self.state_encoder(
@@ -175,12 +219,40 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
         self.visualize = platform.system() == "Darwin"
-        # TODO really bad design
+        #LATER_TODO really bad design
         if self.visualize:
-            hacky_visualization(observations, object_mask=gt_mask, query_objects=query_objects, base_directory_to_right_images=self.starting_time)
+            def unnormalize_image(img):
+                mean=torch.Tensor([0.485, 0.456, 0.406]).to(img.device)
+                std=torch.Tensor([0.229, 0.224, 0.225]).to(img.device)
+                img = (img * std + mean)
+                img = torch.clamp(img, 0, 1)
+                return img
+            viz_image = observations['only_detection_rgb_lowres']
+            depth = observations['depth_lowres']
+            predicted_masks
+            bsize, seqlen, w, h, c = viz_image.shape
+            if bsize == 1 and seqlen == 1:
+                viz_image = viz_image.squeeze(0).squeeze(0)
+                viz_query_obj = query_objects.squeeze(0).squeeze(0).permute(1,2,0) #TO make it channel last
+                viz_mask = predicted_masks.squeeze(0).squeeze(0).repeat(1,1, 3)
+                viz_image = unnormalize_image(viz_image)
+                viz_query_obj = unnormalize_image(viz_query_obj)
+                combined = torch.cat([viz_image, viz_query_obj, viz_mask], dim=1)
+                directory_to_write_images = 'experiment_output/visualizations_masks'
+                os.makedirs(directory_to_write_images, exist_ok=True)
+                now = datetime.now()
+                time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f.png")
+                cv2.imwrite(os.path.join(directory_to_write_images, time_to_write), (combined[:,:,[2,1,0]] * 255.).int().numpy())
+
+
+
+
+
+        # memory = memory.check_append("predicted_segmentation_mask", predicted_masks.detach())
+        # actor_critic_output.extras['predicted_segmentation_mask'] = predicted_masks.detach()
+
 
         return (
             actor_critic_output,
             memory,
         )
-

@@ -23,6 +23,7 @@ from ithor_arm.ithor_arm_tasks import (
 )
 from ithor_arm.ithor_arm_viz import LoggerVisualizer, BringObjImageVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
+from utils.manipulathor_data_loader_utils import get_random_query_image
 
 
 class BringObjectAbstractTaskSampler(TaskSampler):
@@ -145,29 +146,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         possible_initial_locations = (
             "datasets/apnd-dataset/valid_agent_initial_locations.json"
         )
-        if self.sampler_mode == "test":
-            self.deterministic_counter = 0
-            possible_initial_locations = (
-                "datasets/apnd-dataset/deterministic_valid_agent_initial_locations.json"
-            )
-            self.all_test_tasks = []
-            #TODO remove
-            self.scenes = ['FloorPlan1_physics']
 
-            for scene in self.scenes:
-                for from_obj in self.objects:
-                    for to_obj in self.objects:
-                        if from_obj == to_obj:
-                            continue
-                        #TODO remove this after dataset coimplete and put address back to original one
-                        try:
-                            with open(f'/Users/kianae/Desktop/bring_object_deterministic_tasks/tasks_obj_{from_obj}_to_{to_obj}_scene_{scene}.json') as f:
-                                tasks = json.load(f)['tasks']
-                        except Exception:
-                            continue
-                        self.all_test_tasks += tasks
-
-            random.shuffle(self.all_test_tasks)
         with open(possible_initial_locations) as f:
             self.possible_agent_reachable_poses = json.load(f)
 
@@ -206,17 +185,31 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         )
 
         if self.sampler_mode == "test":
-            # self.deterministic_data_list = self.all_possible_points
-            # self.sampler_permutation = [i for i in range(len(self.deterministic_data_list))]
-            # random.shuffle(self.sampler_permutation)
-            # self.max_tasks = self.reset_tasks = len(self.deterministic_data_list)
-            #TEST_TODO I have to rewrite this
-            self.max_tasks = self.reset_tasks = sum(len_all_data_points)
+            self.deterministic_counter = 0
+            self.all_test_tasks = []
+
+            for scene in self.scenes:
+                for from_obj in self.objects:
+                    for to_obj in self.objects:
+                        if from_obj == to_obj:
+                            continue
+
+                        with open(f'datasets/apnd-dataset//bring_object_deterministic_tasks/tasks_obj_{from_obj}_to_{to_obj}_scene_{scene}.json') as f:
+                            tasks = json.load(f)['tasks']
+
+                        self.all_test_tasks += tasks
+
+            random.shuffle(self.all_test_tasks)
+            self.max_tasks = self.reset_tasks = len(self.all_test_tasks)
+
+
     def find_all_query_objects(self):
         IMAGE_DIR = 'datasets/apnd-dataset/query_images/'
         all_object_types = [f.split('/')[-1] for f in glob.glob(os.path.join(IMAGE_DIR, '*'))]
         all_possible_images = {object_type: [f for f in glob.glob(os.path.join(IMAGE_DIR, object_type, '*.png'))] for object_type in all_object_types}
         return all_possible_images
+
+
     def next_task(
             self, force_advance_scene: bool = False
     ) -> Optional[AbstractPickUpDropOffTask]:
@@ -294,31 +287,10 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         initial_agent_location = self.env.controller.last_event.metadata["agent"]
         initial_hand_state = self.env.get_absolute_hand_state()
 
-        def load_and_resize(img_name):
-            transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225]),
-            ])
-            with open(img_name, 'rb') as fp:
-                image = Image.open(fp).convert('RGB')
-            return transform(image)
-        def get_random_query_image(scene_name, object_id):
-            object_category = object_id.split('|')[0]
-            # object_type = object_category[0].lower() + object_category[1:]
-            object_type = object_category
-            chosen_image_adr = random.choice(self.query_image_dict[object_type])
-            image = load_and_resize(chosen_image_adr)
-            return image
-        # def get_same_instance_query_image(scene_name, object_id):
-        #     object_category = object_id.split('|')[0]
-        #     scene_name = scene_name.replace('_physics', '')
-        #     img_adr = f'datasets/apnd-dataset/instance_images/{scene_name}_{object_category}.png'
-        #     image = load_and_resize(img_adr)
-        #     return image
 
-        source_object_query = get_random_query_image(scene_name,init_object['object_id'])
-        goal_object_query = get_random_query_image(scene_name,goal_object['object_id'])
+
+        source_object_query = get_random_query_image(scene_name,init_object['object_id'], self.query_image_dict)
+        goal_object_query = get_random_query_image(scene_name,goal_object['object_id'], self.query_image_dict)
 
 
         task_info = {
@@ -331,7 +303,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             'initial_hand_state': initial_hand_state,
             'source_object_query': source_object_query,
             'goal_object_query': goal_object_query,
-            'episode_number': random.uniform(0, 10000), #TODO remove
+            'episode_number': random.uniform(0, 10000),
         }
 
 

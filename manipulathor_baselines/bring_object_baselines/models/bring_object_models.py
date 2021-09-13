@@ -3,7 +3,6 @@
 Object navigation is currently available as a Task in AI2-THOR and
 Facebook's Habitat.
 """
-import random
 from typing import Tuple, Optional
 
 import gym
@@ -11,7 +10,6 @@ import torch
 from allenact.algorithms.onpolicy_sync.policy import (
     ActorCriticModel,
     LinearCriticHead,
-    LinearActorHead,
     DistributionType,
     Memory,
     ObservationType,
@@ -21,9 +19,8 @@ from allenact.base_abstractions.misc import ActorCriticOutput
 from allenact.embodiedai.models.basic_models import SimpleCNN, RNNStateEncoder
 from gym.spaces.dict import Dict as SpaceDict
 
-from manipulathor_baselines.armpointnav_baselines.models.base_models import LinearActorHeadNoCategory
+from legacy.armpointnav_baselines.models import LinearActorHeadNoCategory
 from manipulathor_utils.debugger_util import ForkedPdb
-from manipulathor_utils.net_utils import input_embedding_net
 
 
 class BringObjectBaselineActorCritic(ActorCriticModel[CategoricalDistr]):

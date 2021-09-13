@@ -26,7 +26,7 @@ from legacy.armpointnav_baselines.models import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization
 
 
-class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
+class BigBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -60,18 +60,20 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         self.object_type_embedding_size = obj_state_embedding_size
 
         # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        # old_network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        network_args = {'input_channels': 8, 'layer_channels': [64, 128, 256, 512], 'kernel_sizes': [(8, 8), (4, 4), (3, 3), (3, 3)], 'strides': [(4, 4), (2, 2), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1), (1, 1)], 'output_height': 10, 'output_width': 10, 'output_channels': 1024, 'flatten': True, 'output_relu': False}
         self.full_visual_encoder = make_cnn(**network_args)
 
         # self.detection_model = ConditionalDetectionModel()
 
         self.state_encoder = RNNStateEncoder(
-            512,
+            1024,
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
             rnn_type=rnn_type,
         )
+
 
         self.actor_pickup = LinearActorHeadNoCategory(self._hidden_size, action_space.n)
         self.critic_pickup = LinearCriticHead(self._hidden_size)
@@ -149,6 +151,13 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
 
         visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
 
+        # #TODO remove
+        # visual_observation = visual_observation.squeeze(0).permute(0,3,1,2)
+        # for layer in self.full_visual_encoder:
+        #     print(visual_observation.shape)
+        #     visual_observation = layer(visual_observation)
+        # ForkedPdb().set_trace()
+
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
 
 
@@ -178,6 +187,7 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         # TODO really bad design
         if self.visualize:
             hacky_visualization(observations, object_mask=gt_mask, query_objects=query_objects, base_directory_to_right_images=self.starting_time)
+
 
         return (
             actor_critic_output,

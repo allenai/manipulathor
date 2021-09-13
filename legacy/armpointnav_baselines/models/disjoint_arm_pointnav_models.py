@@ -3,8 +3,6 @@
 Object navigation is currently available as a Task in AI2-THOR and
 Facebook's Habitat.
 """
-import platform
-from datetime import datetime
 from typing import Tuple, Optional
 
 import gym
@@ -18,22 +16,26 @@ from allenact.algorithms.onpolicy_sync.policy import (
 )
 from allenact.base_abstractions.distributions import CategoricalDistr
 from allenact.base_abstractions.misc import ActorCriticOutput
-from allenact.embodiedai.models.basic_models import RNNStateEncoder
-from allenact.utils.model_utils import make_cnn, compute_cnn_output
+from allenact.embodiedai.models.basic_models import SimpleCNN, RNNStateEncoder
 from gym.spaces.dict import Dict as SpaceDict
 
-from legacy.armpointnav_baselines.models import LinearActorHeadNoCategory
-from utils.hacky_viz_utils import hacky_visualization
+from legacy.armpointnav_baselines.models import (
+    LinearActorHeadNoCategory,
+)
+from manipulathor_utils.net_utils import input_embedding_net
 
 
-class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
-    """Baseline recurrent actor critic model for preddistancenav task.
+class DisjointArmPointNavBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
+    """Disjoint Baseline recurrent actor critic model for armpointnav.
 
     # Attributes
     action_space : The space of actions available to the agent. Currently only discrete
         actions are allowed (so this space will always be of type `gym.spaces.Discrete`).
     observation_space : The observation space expected by the agent. This observation space
-        should include (optionally) 'rgb' images and 'depth' images.
+        should include (optionally) 'rgb' images and 'depth' images and is required to
+        have a component corresponding to the goal `goal_sensor_uuid`.
+    goal_sensor_uuid : The uuid of the sensor of the goal object. See `GoalObjectTypeThorSensor`
+        as an example of such a sensor.
     hidden_size : The hidden size of the GRU RNN.
     object_type_embedding_dim: The dimensionality of the embedding corresponding to the goal
         object type.
@@ -48,7 +50,6 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         trainable_masked_hidden_state: bool = False,
         num_rnn_layers=1,
         rnn_type="GRU",
-        teacher_forcing=1,
     ):
         """Initializer.
 
@@ -59,29 +60,43 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         self._hidden_size = hidden_size
         self.object_type_embedding_size = obj_state_embedding_size
 
-        # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
-        self.full_visual_encoder = make_cnn(**network_args)
-
-        # self.detection_model = ConditionalDetectionModel()
+        self.visual_encoder_pick = SimpleCNN(
+            self.observation_space,
+            self._hidden_size,
+            rgb_uuid=None,
+            depth_uuid="depth_lowres",
+        )
+        self.visual_encoder_drop = SimpleCNN(
+            self.observation_space,
+            self._hidden_size,
+            rgb_uuid=None,
+            depth_uuid="depth_lowres",
+        )
 
         self.state_encoder = RNNStateEncoder(
-            512,
+            (self._hidden_size) + obj_state_embedding_size,
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
             rnn_type=rnn_type,
         )
 
-        self.actor_pickup = LinearActorHeadNoCategory(self._hidden_size, action_space.n)
-        self.critic_pickup = LinearCriticHead(self._hidden_size)
+        self.actor_pick = LinearActorHeadNoCategory(self._hidden_size, action_space.n)
+        self.critic_pick = LinearCriticHead(self._hidden_size)
+        self.actor_drop = LinearActorHeadNoCategory(self._hidden_size, action_space.n)
+        self.critic_drop = LinearCriticHead(self._hidden_size)
+
+        # self.object_state_embedding = nn.Embedding(num_embeddings=6, embedding_dim=obj_state_embedding_size)
+
+        relative_dist_embedding_size = torch.Tensor([3, 100, obj_state_embedding_size])
+        self.relative_dist_embedding_pick = input_embedding_net(
+            relative_dist_embedding_size.long().tolist(), dropout=0
+        )
+        self.relative_dist_embedding_drop = input_embedding_net(
+            relative_dist_embedding_size.long().tolist(), dropout=0
+        )
 
         self.train()
-        # self.detection_model.eval()
-
-        self.starting_time = datetime.now().strftime("{}_%m_%d_%Y_%H_%M_%S_%f".format(self.__class__.__name__))
-
-
 
     @property
     def recurrent_hidden_state_size(self) -> int:
@@ -128,59 +143,49 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         Tuple of the `ActorCriticOutput` and recurrent hidden state.
         """
 
-        #we really need to switch to resnet now that visual features are actually important
+        arm2obj_dist = self.relative_dist_embedding_pick(
+            observations["relative_agent_arm_to_obj"]
+        )
+        obj2goal_dist = self.relative_dist_embedding_drop(
+            observations["relative_obj_to_goal"]
+        )
 
-
-        query_source_objects = observations['category_object_source']
-        query_destination_objects = observations['category_object_destination']
-
+        perception_embed_pick = self.visual_encoder_pick(observations)
+        perception_embed_drop = self.visual_encoder_drop(observations)
 
         pickup_bool = observations["pickedup_object"]
+        before_pickup = pickup_bool == 0  # not used because of our initialization
         after_pickup = pickup_bool == 1
+        distances = arm2obj_dist
+        distances[after_pickup] = obj2goal_dist[after_pickup]
 
-        query_objects = query_source_objects
-        query_objects[after_pickup] = query_destination_objects[after_pickup]
+        perception_embed = perception_embed_pick
+        perception_embed[after_pickup] = perception_embed_drop[after_pickup]
 
-        source_object_mask = observations['object_mask_source']
-        destination_object_mask = observations['object_mask_destination']
+        x = [distances, perception_embed]
 
-        gt_mask = source_object_mask
-        gt_mask[after_pickup] = destination_object_mask[after_pickup]
-
-        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
-
-        visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
-
-
+        x_cat = torch.cat(x, dim=-1)  # type: ignore
         x_out, rnn_hidden_states = self.state_encoder(
-            visual_observation_encoding, memory.tensor("rnn"), masks
+            x_cat, memory.tensor("rnn"), masks
         )
+        actor_out_pick = self.actor_pick(x_out)
+        critic_out_pick = self.critic_pick(x_out)
 
+        actor_out_drop = self.actor_drop(x_out)
+        critic_out_drop = self.critic_drop(x_out)
 
-        # I think we need two model one for pick up and one for drop off
+        actor_out = actor_out_pick
+        actor_out[after_pickup] = actor_out_drop[after_pickup]
+        critic_out = critic_out_pick
+        critic_out[after_pickup] = critic_out_drop[after_pickup]
 
-        actor_out_pickup = self.actor_pickup(x_out)
-        critic_out_pickup = self.critic_pickup(x_out)
-
-
-        actor_out_final = actor_out_pickup
-        critic_out_final = critic_out_pickup
-
-        actor_out = CategoricalDistr(logits=actor_out_final)
-
+        actor_out = CategoricalDistr(logits=actor_out)
         actor_critic_output = ActorCriticOutput(
-            distributions=actor_out, values=critic_out_final, extras={}
+            distributions=actor_out, values=critic_out, extras={}
         )
-
-        memory = memory.set_tensor("rnn", rnn_hidden_states)
-
-        self.visualize = platform.system() == "Darwin"
-        # TODO really bad design
-        if self.visualize:
-            hacky_visualization(observations, object_mask=gt_mask, query_objects=query_objects, base_directory_to_right_images=self.starting_time)
+        updated_memory = memory.set_tensor("rnn", rnn_hidden_states)
 
         return (
             actor_critic_output,
-            memory,
+            updated_memory,
         )
-
