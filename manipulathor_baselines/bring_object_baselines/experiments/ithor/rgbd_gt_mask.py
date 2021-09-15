@@ -20,7 +20,7 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 
 
-class NoPickUpRGBDMaskOnlyClose(
+class RGBDGtMaskNoNoise(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -28,7 +28,6 @@ class NoPickUpRGBDMaskOnlyClose(
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
     NOISE_LEVEL = 0
-    distance_thr = 1.5 #TODO is this a good number?
     SENSORS = [
         RGBSensorThor(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
@@ -45,16 +44,20 @@ class NoPickUpRGBDMaskOnlyClose(
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
-        NoisyObjectMask(noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
-        NoisyObjectMask(noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
+        NoisyObjectMask(noise=NOISE_LEVEL, type='source'),
+        NoisyObjectMask(noise=NOISE_LEVEL, type='destination'),
     ]
 
     MAX_STEPS = 200
+
 
     TASK_SAMPLER = DiverseBringObjectTaskSampler
     NUM_PROCESSES = 40
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
+
+
+
 
 
     @classmethod

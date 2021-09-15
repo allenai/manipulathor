@@ -19,7 +19,8 @@ from allenact.base_abstractions.misc import ActorCriticOutput
 from allenact.embodiedai.models.basic_models import SimpleCNN, RNNStateEncoder
 from gym.spaces.dict import Dict as SpaceDict
 
-from legacy.armpointnav_baselines.models import LinearActorHeadNoCategory
+from utils.model_utils import LinearActorHeadNoCategory
+
 from manipulathor_utils.debugger_util import ForkedPdb
 
 

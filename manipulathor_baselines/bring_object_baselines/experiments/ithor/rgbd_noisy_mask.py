@@ -20,7 +20,7 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 
 
-class QueryObjGTMaskSimpleDiverseBringObject(
+class NoisyMaskQueryObjGTMaskSimpleDiverseBringObject(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -71,16 +71,6 @@ class QueryObjGTMaskSimpleDiverseBringObject(
 
 
 
-    def __init__(self):
-        super().__init__()
-
-        assert (
-            self.CAMERA_WIDTH == 224
-            and self.CAMERA_HEIGHT == 224
-            and self.VISIBILITY_DISTANCE == 1
-            and self.STEP_SIZE == 0.25
-        )
-        self.ENV_ARGS = {**ENV_ARGS, "renderDepthImage": True}
 
     @classmethod
     def create_model(cls, **kwargs) -> nn.Module:
@@ -90,6 +80,7 @@ class QueryObjGTMaskSimpleDiverseBringObject(
             ),
             observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
             hidden_size=512,
+            visualize=cls.VISUALIZE
         )
 
     @classmethod

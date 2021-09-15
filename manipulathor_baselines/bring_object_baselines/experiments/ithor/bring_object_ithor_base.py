@@ -24,22 +24,6 @@ class BringObjectiThorBaseConfig(BringObjectThorBaseConfig, ABC):
         for i in range(26, 31)
     ]
 
-    #
-    # TRAIN_SCENES = [
-    #     "FloorPlan{}_physics".format(str(i))
-    #     for i in range(1, TOTAL_NUMBER_SCENES + 1)
-    #     if (i % 3 == 1 or i % 3 == 0) and i != 28
-    # ]  # last scenes are really bad
-    # TEST_SCENES = [
-    #     "FloorPlan{}_physics".format(str(i))
-    #     for i in range(1, TOTAL_NUMBER_SCENES + 1)
-    #     if i % 3 == 2 and i % 6 == 2
-    # ]
-    # VALID_SCENES = [
-    #     "FloorPlan{}_physics".format(str(i))
-    #     for i in range(1, TOTAL_NUMBER_SCENES + 1)
-    #     if i % 3 == 2 and i % 6 == 5
-    # ]
 
     ALL_SCENES = TRAIN_SCENES + TEST_SCENES + VALID_SCENES
 

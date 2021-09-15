@@ -23,7 +23,7 @@ from allenact.utils.model_utils import make_cnn, compute_cnn_output
 from gym.spaces.dict import Dict as SpaceDict
 
 from ithor_arm.ithor_arm_constants import DONT_USE_ALL_POSSIBLE_OBJECTS_EVER
-from legacy.armpointnav_baselines.models import LinearActorHeadNoCategory
+from utils.model_utils import LinearActorHeadNoCategory #TODO why do we have this?
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from utils.hacky_viz_utils import hacky_visualization, calc_dict_average
 
@@ -96,6 +96,7 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
 
         # TODO remove
         # detection_weight_dir = '/Users/kianae/Desktop/important_weights/detection_without_color_jitter_model_state_271.pytar'
+        # policy_weight_dir = '/Users/kianae/Desktop/exp_NoPickUpRGBDMaskOnlyClose_only_mask_when_close_to_obj__stage_00__steps_000023102240.pt'
         # policy_weight_dir = '/Users/kianae/Desktop/exp_SmallNoiseRGBQueryObjGTMaskSimpleDiverseBringObject_continue_training_w_noise_35__stage_00__steps_000163313525.pt'
         # # policy_weight_dir = '/Users/kianae/Desktop/important_weights/exp_NoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject_no_pu_no_noise_query_obj_w_gt_mask_and_rgb__stage_00__steps_000065308765.pt'
         # policy_weight_dir = '/Users/kianae/Desktop/exp_SmallNoiseRGBQueryObjGTMaskSimpleDiverseBringObject_continue_training_w_noise_0.2__stage_00__steps_000070844861.pt'

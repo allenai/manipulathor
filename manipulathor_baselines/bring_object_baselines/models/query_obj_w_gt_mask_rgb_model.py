@@ -22,7 +22,7 @@ from allenact.embodiedai.models.basic_models import RNNStateEncoder
 from allenact.utils.model_utils import make_cnn, compute_cnn_output
 from gym.spaces.dict import Dict as SpaceDict
 
-from legacy.armpointnav_baselines.models import LinearActorHeadNoCategory
+from utils.model_utils import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization
 
 
@@ -49,12 +49,14 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         num_rnn_layers=1,
         rnn_type="GRU",
         teacher_forcing=1,
+        visualize=False,
     ):
         """Initializer.
 
         See class documentation for parameter definitions.
         """
         super().__init__(action_space=action_space, observation_space=observation_space)
+        self.visualize = visualize
 
         self._hidden_size = hidden_size
         self.object_type_embedding_size = obj_state_embedding_size
@@ -174,10 +176,10 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
-        self.visualize = platform.system() == "Darwin"
         # TODO really bad design
         if self.visualize:
             hacky_visualization(observations, object_mask=gt_mask, query_objects=query_objects, base_directory_to_right_images=self.starting_time)
+
 
         return (
             actor_critic_output,
