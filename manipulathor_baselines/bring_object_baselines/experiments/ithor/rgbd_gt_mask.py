@@ -51,7 +51,6 @@ class RGBDGtMaskNoNoise(
     MAX_STEPS = 200
 
 
-    TASK_SAMPLER = DiverseBringObjectTaskSampler
     NUM_PROCESSES = 40
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
@@ -64,7 +63,7 @@ class RGBDGtMaskNoNoise(
     def create_model(cls, **kwargs) -> nn.Module:
         return SmallBringObjectWQueryObjGtMaskRGBDModel(
             action_space=gym.spaces.Discrete(
-                len(cls.TASK_SAMPLER._TASK_TYPE.class_action_names())
+                len(cls.TASK_TYPE.class_action_names())
             ),
             observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
             hidden_size=512,

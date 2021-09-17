@@ -1,11 +1,16 @@
 from abc import ABC
 
+from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
+from ithor_arm.bring_object_tasks import BringObjectTask
 from ithor_arm.ithor_arm_constants import TRAIN_OBJECTS, TEST_OBJECTS
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_thor_base import BringObjectThorBaseConfig
 
 
 class BringObjectiThorBaseConfig(BringObjectThorBaseConfig, ABC):
     """The base config for all iTHOR ObjectNav experiments."""
+
+    TASK_SAMPLER = DiverseBringObjectTaskSampler
+    TASK_TYPE = BringObjectTask
 
     NUM_PROCESSES = 40
     # add all the arguments here

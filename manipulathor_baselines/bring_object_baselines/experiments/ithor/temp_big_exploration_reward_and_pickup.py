@@ -1,4 +1,5 @@
-from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler, WPickupAndExploreBOTS
+from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
+from ithor_arm.bring_object_tasks import WPickUPExploreBringObjectTask
 
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.rgbd_gt_mask import RGBDGtMaskNoNoise
 
@@ -6,7 +7,8 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.rgbd_gt_mas
 class BigBigExploreRGBDWithPickupMoreExploreExp(
     RGBDGtMaskNoNoise
 ):
-    TASK_SAMPLER = WPickupAndExploreBOTS
+    TASK_SAMPLER = DiverseBringObjectTaskSampler
+    TASK_TYPE = WPickUPExploreBringObjectTask
 
     def __init__(self):
         super().__init__()

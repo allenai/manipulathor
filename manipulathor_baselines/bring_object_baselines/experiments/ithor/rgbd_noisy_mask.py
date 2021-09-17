@@ -62,7 +62,6 @@ class NoisyMaskQueryObjGTMaskSimpleDiverseBringObject(
         MAX_STEPS = 200#3
 
 
-    TASK_SAMPLER = DiverseBringObjectTaskSampler
     NUM_PROCESSES = 40
 
     # TRAIN_SCENES = ['FloorPlan1_physics']
@@ -76,7 +75,7 @@ class NoisyMaskQueryObjGTMaskSimpleDiverseBringObject(
     def create_model(cls, **kwargs) -> nn.Module:
         return SmallBringObjectWQueryObjGtMaskRGBDModel(
             action_space=gym.spaces.Discrete(
-                len(cls.TASK_SAMPLER._TASK_TYPE.class_action_names())
+                len(cls.TASK_TYPE.class_action_names())
             ),
             observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
             hidden_size=512,

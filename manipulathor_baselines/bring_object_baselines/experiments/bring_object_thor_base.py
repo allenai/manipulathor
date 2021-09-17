@@ -9,7 +9,7 @@ import torch
 from allenact.base_abstractions.experiment_config import MachineParams
 from allenact.base_abstractions.preprocessor import SensorPreprocessorGraph
 from allenact.base_abstractions.sensor import SensorSuite, ExpertActionSensor
-from allenact.base_abstractions.task import TaskSampler
+from allenact.base_abstractions.task import TaskSampler, Task
 from allenact.utils.experiment_utils import evenly_distribute_count_into_bins
 
 from ithor_arm.ithor_arm_constants import ENV_ARGS
@@ -21,6 +21,7 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
     """The base config for all iTHOR PointNav experiments."""
 
     TASK_SAMPLER = TaskSampler
+    TASK_TYPE = Task #TODO need to define this for all of them
     VISUALIZE = False
     if platform.system() == "Darwin":
         VISUALIZE = True
@@ -121,6 +122,7 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
             ]
             kwargs["visualizers"] = visualizers
         kwargs["objects"] = cls.OBJECT_TYPES
+        kwargs["task_type"] = cls.TASK_TYPE
         kwargs["exp_name"] = exp_name_w_time
         return cls.TASK_SAMPLER(**kwargs)
 
@@ -160,7 +162,7 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
             "max_steps": self.MAX_STEPS,
             "sensors": self.SENSORS,
             "action_space": gym.spaces.Discrete(
-                len(self.TASK_SAMPLER._TASK_TYPE.class_action_names())
+                len(self.TASK_TYPE.class_action_names())
             ),
             "seed": seeds[process_ind] if seeds is not None else None,
             "deterministic_cudnn": deterministic_cudnn,

@@ -22,7 +22,7 @@ from ithor_arm.ithor_arm_viz import LoggerVisualizer, ImageVisualizer
 
 class AbstractMidLevelArmTaskSampler(TaskSampler):
 
-    _TASK_TYPE = Task
+
 
     def __init__(
         self,
@@ -33,6 +33,7 @@ class AbstractMidLevelArmTaskSampler(TaskSampler):
         action_space: gym.Space,
         rewards_config: Dict,
         objects: List[str],
+        task_type: type,
         scene_period: Optional[Union[int, str]] = None,
         max_tasks: Optional[int] = None,
         seed: Optional[int] = None,
@@ -42,6 +43,7 @@ class AbstractMidLevelArmTaskSampler(TaskSampler):
         *args,
         **kwargs
     ) -> None:
+        self.TASK_TYPE = task_type
         self.rewards_config = rewards_config
         self.env_args = env_args
         self.scenes = scenes
@@ -118,8 +120,6 @@ class AbstractMidLevelArmTaskSampler(TaskSampler):
 
 
 class SimpleArmPointNavGeneralSampler(AbstractMidLevelArmTaskSampler):
-
-    _TASK_TYPE = AbstractPickUpDropOffTask
 
     def __init__(self, **kwargs) -> None:
 
@@ -258,7 +258,7 @@ class SimpleArmPointNavGeneralSampler(AbstractMidLevelArmTaskSampler):
             task_info["visualization_source"] = source_data_point
             task_info["visualization_target"] = target_data_point
 
-        self._last_sampled_task = self._TASK_TYPE(
+        self._last_sampled_task = self.TASK_TYPE(
             env=self.env,
             sensors=self.sensors,
             task_info=task_info,
@@ -322,11 +322,10 @@ class SimpleArmPointNavGeneralSampler(AbstractMidLevelArmTaskSampler):
 
 
 class ArmPointNavTaskSampler(SimpleArmPointNavGeneralSampler):
-    _TASK_TYPE = ArmPointNavTask
 
     def __init__(self, **kwargs) -> None:
 
-        super(ArmPointNavTaskSampler, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         possible_initial_locations = (
             "datasets/apnd-dataset/valid_agent_initial_locations.json"
         )
@@ -419,7 +418,7 @@ class ArmPointNavTaskSampler(SimpleArmPointNavGeneralSampler):
             task_info["visualization_source"] = source_data_point
             task_info["visualization_target"] = target_data_point
 
-        self._last_sampled_task = self._TASK_TYPE(
+        self._last_sampled_task = self.TASK_TYPE(
             env=self.env,
             sensors=self.sensors,
             task_info=task_info,
@@ -491,8 +490,6 @@ class ArmPointNavTaskSampler(SimpleArmPointNavGeneralSampler):
 
         return result
 
-class EasyArmPointNavTaskSampler(ArmPointNavTaskSampler):
-    _TASK_TYPE = EasyArmPointNavTask
 
 def get_all_tuples_from_list(list):
     result = []

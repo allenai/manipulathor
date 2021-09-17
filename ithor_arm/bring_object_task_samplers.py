@@ -28,7 +28,7 @@ from utils.manipulathor_data_loader_utils import get_random_query_image
 
 class BringObjectAbstractTaskSampler(TaskSampler):
 
-    _TASK_TYPE = Task
+    # _TASK_TYPE = Task
 
     def __init__(
         self,
@@ -39,6 +39,7 @@ class BringObjectAbstractTaskSampler(TaskSampler):
         action_space: gym.Space,
         rewards_config: Dict,
         objects: List[str],
+        task_type: type,
         scene_period: Optional[Union[int, str]] = None,
         max_tasks: Optional[int] = None,
         seed: Optional[int] = None,
@@ -48,6 +49,7 @@ class BringObjectAbstractTaskSampler(TaskSampler):
         *args,
         **kwargs
     ) -> None:
+        self.TASK_TYPE = task_type
         self.rewards_config = rewards_config
         self.env_args = env_args
         self.scenes = scenes
@@ -138,10 +140,10 @@ class BringObjectAbstractTaskSampler(TaskSampler):
 
 
 class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
-    _TASK_TYPE = BringObjectTask
+    # _TASK_TYPE = BringObjectTask
     def __init__(self, **kwargs) -> None:
 
-        super(DiverseBringObjectTaskSampler, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         possible_initial_locations = (
             "datasets/apnd-dataset/valid_agent_initial_locations.json"
@@ -311,7 +313,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             task_info["visualization_source"] = init_object
             task_info["visualization_target"] = goal_object
 
-        self._last_sampled_task = self._TASK_TYPE(
+        self._last_sampled_task = self.TASK_TYPE(
             env=self.env,
             sensors=self.sensors,
             task_info=task_info,
@@ -390,11 +392,11 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
 
         return data_point
 
-class WDoneDiverseBringObjectTaskSampler(DiverseBringObjectTaskSampler):
-    _TASK_TYPE = WPickUpBringObjectTask
-
-class WPickupAndExploreBOTS(DiverseBringObjectTaskSampler):
-    _TASK_TYPE = WPickUPExploreBringObjectTask
-
-class NoPickupExploreBOTS(DiverseBringObjectTaskSampler):
-    _TASK_TYPE = NoPickUPExploreBringObjectTask
+# class WDoneDiverseBringObjectTaskSampler(DiverseBringObjectTaskSampler):
+#     # _TASK_TYPE = WPickUpBringObjectTask
+#
+# class WPickupAndExploreBOTS(DiverseBringObjectTaskSampler):
+#     # _TASK_TYPE = WPickUPExploreBringObjectTask
+#
+# class NoPickupExploreBOTS(DiverseBringObjectTaskSampler):
+#     _TASK_TYPE = NoPickUPExploreBringObjectTask

@@ -5,7 +5,8 @@ from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn
 
 from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor
-from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler, WPickupAndExploreBOTS
+from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
+from ithor_arm.bring_object_tasks import WPickUPExploreBringObjectTask
 from ithor_arm.ithor_arm_constants import ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
 from ithor_arm.ithor_arm_sensors import (
     InitialAgentArmToObjectSensor,
@@ -51,7 +52,8 @@ class WithPickUpExploreRGBDMaskOnlyClose(
 
     MAX_STEPS = 200
 
-    TASK_SAMPLER = WPickupAndExploreBOTS
+    TASK_SAMPLER = DiverseBringObjectTaskSampler
+    TASK_TYPE = WPickUPExploreBringObjectTask
     NUM_PROCESSES = 40
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
@@ -67,7 +69,7 @@ class WithPickUpExploreRGBDMaskOnlyClose(
     def create_model(cls, **kwargs) -> nn.Module:
         return SmallBringObjectWQueryObjGtMaskRGBDModel(
             action_space=gym.spaces.Discrete(
-                len(cls.TASK_SAMPLER._TASK_TYPE.class_action_names())
+                len(cls.TASK_TYPE.class_action_names())
             ),
             observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
             hidden_size=512,
