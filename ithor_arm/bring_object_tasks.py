@@ -280,7 +280,7 @@ class BringObjectTask(AbstractBringObjectTask):
         self.manual = False
         if self.manual:
             action_str = 'something'
-            actions = ('MoveArmHeightP', 'MoveArmHeightM', 'MoveArmXP', 'MoveArmXM', 'MoveArmYP', 'MoveArmYM', 'MoveArmZP', 'MoveArmZM', 'MoveAheadContinuous', 'RotateRightContinuous', 'RotateLeftContinuous')
+            # actions = ('MoveArmHeightP', 'MoveArmHeightM', 'MoveArmXP', 'MoveArmXM', 'MoveArmYP', 'MoveArmYM', 'MoveArmZP', 'MoveArmZM', 'MoveAheadContinuous', 'RotateRightContinuous', 'RotateLeftContinuous')
             actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l')
             action = 'm'
             self.env.controller.step('Pass')

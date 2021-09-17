@@ -27,9 +27,10 @@ ADITIONAL_ARM_ARGS = {
     "speed": 1,
 }
 
-MOVE_AHEAD = "MoveAheadContinuous"
-ROTATE_LEFT = "RotateLeftContinuous"
-ROTATE_RIGHT = "RotateRightContinuous"
+MOVE_AHEAD = "MoveAhead"
+MOVE_BACK = "MoveBack"
+ROTATE_LEFT = "RotateLeft"
+ROTATE_RIGHT = "RotateRight"
 MOVE_ARM_HEIGHT_P = "MoveArmHeightP"
 MOVE_ARM_HEIGHT_M = "MoveArmHeightM"
 MOVE_ARM_X_P = "MoveArmXP"
@@ -38,9 +39,12 @@ MOVE_ARM_Y_P = "MoveArmYP"
 MOVE_ARM_Y_M = "MoveArmYM"
 MOVE_ARM_Z_P = "MoveArmZP"
 MOVE_ARM_Z_M = "MoveArmZM"
-PICKUP = "PickUpMidLevel"
-DONE = "DoneMidLevel"
-
+PICKUP = "PickUp"
+DONE = "Done"
+MOVE_WRIST_P = 'MoveWristP'
+MOVE_WRIST_M = 'MoveWristM'
+GRASP_O = 'GraspOpen'
+GRASP_C = 'GraspClose'
 
 ENV_ARGS = dict(
     gridSize=0.25,

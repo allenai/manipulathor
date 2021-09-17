@@ -20,7 +20,7 @@ from ithor_arm.ithor_arm_constants import (
     MOVE_ARM_CONSTANT,
     MANIPULATHOR_COMMIT_ID,
     reset_environment_and_additional_commands,
-    MOVE_THR,
+    MOVE_THR, PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M,
 )
 from manipulathor_utils.debugger_util import ForkedPdb
 
@@ -331,8 +331,8 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
         if self.simplify_physics:
             action_dict["simplifyOPhysics"] = True
-        if action in ["PickUpMidLevel", "DoneMidLevel"]:
-            if action == "PickUpMidLevel":
+        if action in [PICKUP, DONE]:
+            if action == PICKUP:
                 object_id = action_dict["object_id"]
                 if not self.is_object_at_low_level_hand(object_id):
                     pickupable_objects = self.get_pickupable_objects()
@@ -359,15 +359,15 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                 copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
 
                 action_dict = {**action_dict, **copy_aditions}
-                if action in ["MoveAheadContinuous"]:
+                if action in [MOVE_AHEAD]:
                     action_dict["action"] = "MoveAgent"
                     action_dict["ahead"] = 0.2
 
-                elif action in ["RotateRightContinuous"]:
+                elif action in [ROTATE_RIGHT]:
                     action_dict["action"] = "RotateAgent"
                     action_dict["degrees"] = 45
 
-                elif action in ["RotateLeftContinuous"]:
+                elif action in [ROTATE_LEFT]:
                     action_dict["action"] = "RotateAgent"
                     action_dict["degrees"] = -45
 
@@ -378,26 +378,26 @@ class ManipulaTHOREnvironment(IThorEnvironment):
             if "MoveArmHeight" in action:
                 action_dict["action"] = "MoveArmBase"
 
-                if action == "MoveArmHeightP":
+                if action == MOVE_ARM_HEIGHT_P:
                     base_position["h"] += MOVE_ARM_HEIGHT_CONSTANT
-                if action == "MoveArmHeightM":
+                if action == MOVE_ARM_HEIGHT_M:
                     base_position[
                         "h"
                     ] -= MOVE_ARM_HEIGHT_CONSTANT  # height is pretty big!
                 action_dict["y"] = base_position["h"]
             else:
                 action_dict["action"] = "MoveArm"
-                if action == "MoveArmXP":
+                if action == MOVE_ARM_X_P:
                     base_position["x"] += MOVE_ARM_CONSTANT
-                elif action == "MoveArmXM":
+                elif action == MOVE_ARM_X_M:
                     base_position["x"] -= MOVE_ARM_CONSTANT
-                elif action == "MoveArmYP":
+                elif action == MOVE_ARM_Y_P:
                     base_position["y"] += MOVE_ARM_CONSTANT
-                elif action == "MoveArmYM":
+                elif action == MOVE_ARM_Y_M:
                     base_position["y"] -= MOVE_ARM_CONSTANT
-                elif action == "MoveArmZP":
+                elif action == MOVE_ARM_Z_P:
                     base_position["z"] += MOVE_ARM_CONSTANT
-                elif action == "MoveArmZM":
+                elif action == MOVE_ARM_Z_M:
                     base_position["z"] -= MOVE_ARM_CONSTANT
                 action_dict["position"] = {
                     k: v for (k, v) in base_position.items() if k in ["x", "y", "z"]

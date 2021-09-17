@@ -96,6 +96,7 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
 
         # TODO remove
         # detection_weight_dir = '/Users/kianae/Desktop/important_weights/detection_without_color_jitter_model_state_271.pytar'
+        # policy_weight_dir = '/Users/kianae/Desktop/important_weights/exp_BigExploreBeforeObservationRGBDMaskOnlyClose_rgbd_big_exploration_before_observation_gt_mask_only_close__stage_00__steps_000014591380.pt'
         # policy_weight_dir = '/Users/kianae/Desktop/exp_NoPickUpRGBDMaskOnlyClose_only_mask_when_close_to_obj__stage_00__steps_000023102240.pt'
         # policy_weight_dir = '/Users/kianae/Desktop/exp_SmallNoiseRGBQueryObjGTMaskSimpleDiverseBringObject_continue_training_w_noise_35__stage_00__steps_000163313525.pt'
         # # policy_weight_dir = '/Users/kianae/Desktop/important_weights/exp_NoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject_no_pu_no_noise_query_obj_w_gt_mask_and_rgb__stage_00__steps_000065308765.pt'
