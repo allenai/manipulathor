@@ -118,15 +118,8 @@ class StretchEnvironment(ManipulaTHOREnvironment):
 
         self.last_image_changed = True
 
-        if action == MOVE_AHEAD:
-            stretch_action = dict(action='MoveAhead',)
-        elif action == MOVE_BACK:
-            stretch_action = dict(action='MoveBack',)
-        elif action == ROTATE_RIGHT:
-            stretch_action = dict(action='RotateRight',)
-        elif action == ROTATE_LEFT:
-            stretch_action = dict(action='RotateLeft',)
-        elif action == MOVE_ARM_HEIGHT_P:
+
+        if action == MOVE_ARM_HEIGHT_P:
             stretch_action = dict(action='MoveArmBaseP',)
         elif action == MOVE_ARM_HEIGHT_M:
             stretch_action = dict(action='MoveArmBaseN',)
@@ -142,6 +135,14 @@ class StretchEnvironment(ManipulaTHOREnvironment):
             stretch_action = dict(action='GraspOpen',)
         elif action == GRASP_C:
             stretch_action = dict(action='GrapClose',)
+        # elif action == MOVE_AHEAD:
+        #     stretch_action = dict(action='MoveAhead',)
+        # elif action == MOVE_BACK:
+        #     stretch_action = dict(action='MoveBack',)
+        # elif action == ROTATE_RIGHT:
+        #     stretch_action = dict(action='RotateRight',)
+        # elif action == ROTATE_LEFT:
+        #     stretch_action = dict(action='RotateLeft',)
         else:
             print('Action Not Supported')
             self.last_image_changed = False

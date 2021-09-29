@@ -62,15 +62,23 @@ class StretchBringObjectTask(BringObjectTask):
     def _step(self, action: int) -> RLStepResult:
 
         action_str = self.class_action_names()[action]
+        print('Model Said', action_str)
 
         self.manual_action = False #TODO
         if self.manual_action:
             list_of_actions = [MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, PICKUP, DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, GRASP_O, GRASP_C]
             corespond = ['hp', 'hm', 'xp', 'xm', 'yp', 'ym', 'zp', 'zm', 'm', 'r', 'l', 'p', 'd', 'b', 'wp', 'wm', 'go', 'gc']
-            action = 'm'
+            action = ''
             ForkedPdb().set_trace()
-            action_str = list_of_actions[corespond.index(action)]
+            if action != '':
+                action_str = list_of_actions[corespond.index(action)]
 
+        # list_of_actions = [MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, PICKUP, DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, GRASP_O, GRASP_C]
+        # translate = [MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P, MOVE_ARM_Z_P, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_ARM_Z_P, ROTATE_RIGHT, ROTATE_LEFT, PICKUP, DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, GRASP_O, GRASP_C]
+        # translated_action = translate[list_of_actions.index(action_str)]
+        # action_str = translated_action TODO
+
+        # import matplotlib.pyplot as plt; plt.imsave('something.png', self.env.last_event.frame)
 
         print('Action Called', action_str)
 

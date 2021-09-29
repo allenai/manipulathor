@@ -7,8 +7,7 @@ import ai2thor.fifo_server
 
 
 ### CONSTANTS
-
-
+from pyquaternion import Quaternion
 
 ADITIONAL_ARM_ARGS = {
     'disableRendering': True,
@@ -17,6 +16,7 @@ ADITIONAL_ARM_ARGS = {
 }
 
 ARM_MOVE_CONSTANT = 0.05
+WRIST_ROTATION = 10
 
 SCENE_INDICES = [i + 1 for i in range(30)] +[i + 1 for i in range(200,230)] +[i + 1 for i in range(300,330)] +[i + 1 for i in range(400,430)]
 SCENE_NAMES = ['FloorPlan{}_physics'.format(i) for i in SCENE_INDICES]
@@ -135,26 +135,19 @@ def get_reachable_positions(controller):
 def execute_command(controller, command,action_dict_addition):
 
     base_position = get_current_arm_state(controller)
+    # base_position = dict(x=0, y=0, z=0)
     change_height = ARM_MOVE_CONSTANT
     change_value = change_height
     action_details = {}
 
-    if command == 'w':
-        base_position['z'] += change_value
-    elif command == 'z':
-        base_position['z'] -= change_value
-    elif command == 's':
-        base_position['x'] += change_value
-    elif command == 'a':
-        base_position['x'] -= change_value
-    elif command == '3':
+    if command == 'hu':
         base_position['y'] += change_value
-    elif command == '4':
+    elif command == 'hd':
         base_position['y'] -= change_value
-    elif command == 'u':
-        base_position['h'] += change_height
-    elif command == 'j':
-        base_position['h'] -= change_height
+    elif command == 'ao':
+        base_position['z'] += change_value
+    elif command == 'ai':
+        base_position['z'] -= change_value
     elif command == '/':
         action_details = dict('')
         pickupable = controller.last_event.metadata['arm']['pickupableObjects']
@@ -166,6 +159,11 @@ def execute_command(controller, command,action_dict_addition):
         action_dict_addition = copy.deepcopy(action_dict_addition)
         event = controller.step(action='MoveAgent', ahead=0.2,**action_dict_addition)
         action_details = dict(action='MoveAgent', ahead=0.2,**action_dict_addition)
+
+    elif command == 'b':
+        action_dict_addition = copy.deepcopy(action_dict_addition)
+        event = controller.step(action='MoveAgent', ahead=-0.2,**action_dict_addition)
+        action_details = dict(action='MoveAgent', ahead=-0.2,**action_dict_addition)
 
     elif command == 'r':
         action_dict_addition = copy.deepcopy(action_dict_addition)
@@ -185,41 +183,41 @@ def execute_command(controller, command,action_dict_addition):
         action_details = dict(action='SetHandSphereRadius', radius=radius)
     elif command == 'q':
         action_details = {}
+    elif command == 'wp':
+        event = controller.step(action='RotateWristRelative', yaw=-WRIST_ROTATION)
+        action_details = dict(action='RotateWristRelative', yaw=-WRIST_ROTATION)
+    elif command == 'wn':
+        event = controller.step(action='RotateWristRelative', yaw=WRIST_ROTATION)
+        action_details = dict(action='RotateWristRelative', yaw=WRIST_ROTATION)
     else:
         action_details = {}
 
-    if command in ['w', 'z', 's', 'a', '3', '4']:
+    if command in ['hu', 'hd', 'ao', 'ai']:
 
         event = controller.step(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)
         action_details=dict(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)
+        #TODO this does not work
+        # event = controller.step(action='MoveArm', coordinateSpace="wrist", position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)
+        # action_details=dict(action='MoveArm', coordinateSpace="wrist", position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)
         success = event.metadata['lastActionSuccess']
 
 
-    elif command in ['u', 'j']:
-
-        event = controller.step(action='MoveArmBase', y=base_position['h'],**action_dict_addition)
-        action_details=dict(action='MoveArmBase', y=base_position['h'],**action_dict_addition)
-
-        success = event.metadata['lastActionSuccess']
 
     return action_details
 
+def get_current_wrist_state(controller):
+    arm = controller.last_event.metadata['arm']['joints'][-1]
+    rotations = arm['rootRelativeRotation']
+    quaternion = Quaternion(axis=[rotations['x'], rotations['y'], rotations['z']], degrees=rotations['w'])
+    return quaternion
+
+
 def get_current_arm_state(controller):
-    h_min = 0.450998873
-    h_max = 1.8009994
-    agent_base_location = 0.9009995460510254
-    event = controller.last_event
-    offset = event.metadata['agent']['position']['y'] - agent_base_location
-    h_max += offset
-    h_min += offset
-    joints=(event.metadata['arm']['joints'])
-    arm=joints[-1]
-#     assert arm['name'] == 'robot_arm_4_jnt'
-    xyz_dict = copy.deepcopy(arm['rootRelativePosition'])
-    height_arm = joints[0]['position']['y']
-    xyz_dict['h'] = (height_arm - h_min) / (h_max - h_min)
-    #     print_error([x['position']['y'] for x in joints])
-    return xyz_dict
+    arm = controller.last_event.metadata['arm']['joints'] #TODO is this the right one? how about wrist movements
+    z = arm[-1]['rootRelativePosition']['z']
+    x = 0 #arm[-1]['rootRelativePosition']['x']
+    y = arm[0]['rootRelativePosition']['y'] - 0.16297650337219238 #TODO?
+    return dict(x=0,y=y, z=z)
 
 def two_list_equal(l1, l2):
     dict1 = {i: v for (i,v) in enumerate(l1)}
@@ -266,3 +264,66 @@ def find_arm_distance_to_obj(controller, object_type):
     hand_location = controller.last_event.metadata['arm']['joints'][-1]['position']
     distance = sum([(hand_location[k] - object_location[k]) ** 2 for k in hand_location])**0.5
     return distance
+
+# def old_execute_command(controller, command,action_dict_addition):
+#
+#     base_position = get_current_arm_state(controller)
+#     change_height = ARM_MOVE_CONSTANT
+#     change_value = change_height
+#     action_details = {}
+#
+#     if command == 'hu':
+#         base_position['y'] += change_value
+#     elif command == 'hd':
+#         base_position['y'] -= change_value
+#     elif command == 'ao':
+#         base_position['z'] += change_value
+#     elif command == 'ai':
+#         base_position['z'] -= change_value
+#     elif command == '/':
+#         action_details = dict('')
+#         pickupable = controller.last_event.metadata['arm']['pickupableObjects']
+#         print(pickupable)
+#     elif command == 'd':
+#         event = controller.step(action='ReleaseObject')
+#         action_details = dict(action='ReleaseObject')
+#     elif command == 'm':
+#         action_dict_addition = copy.deepcopy(action_dict_addition)
+#         event = controller.step(action='MoveAgent', ahead=0.2,**action_dict_addition)
+#         action_details = dict(action='MoveAgent', ahead=0.2,**action_dict_addition)
+#
+#     elif command == 'b':
+#         action_dict_addition = copy.deepcopy(action_dict_addition)
+#         event = controller.step(action='MoveAgent', ahead=-0.2,**action_dict_addition)
+#         action_details = dict(action='MoveAgent', ahead=-0.2,**action_dict_addition)
+#
+#     elif command == 'r':
+#         action_dict_addition = copy.deepcopy(action_dict_addition)
+#         event = controller.step(action='RotateAgent', degrees = 45,**action_dict_addition)
+#         action_details = dict(action='RotateAgent', degrees = 45,**action_dict_addition)
+#     elif command == 'l':
+#         action_dict_addition = copy.deepcopy(action_dict_addition)
+#         event = controller.step(action='RotateAgent', degrees = -45,**action_dict_addition)
+#         action_details = dict(action='RotateAgent', degrees = -45,**action_dict_addition)
+#     elif command == 'p':
+#         event = controller.step(action='PickupObject')
+#         action_details = dict(action='PickupObject')
+#     elif '!' in command and command[0] == '!':
+#         radius = command.replace('!', '')
+#         radius = float(radius)
+#         event = controller.step(action='SetHandSphereRadius', radius=radius)
+#         action_details = dict(action='SetHandSphereRadius', radius=radius)
+#     elif command == 'q':
+#         action_details = {}
+#     else:
+#         action_details = {}
+#
+#     if command in ['hu', 'hd', 'ao', 'ai']:
+#
+#         event = controller.step(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)
+#         action_details=dict(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)
+#         success = event.metadata['lastActionSuccess']
+#
+#
+#
+#     return action_details

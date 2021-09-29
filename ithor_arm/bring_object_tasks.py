@@ -735,3 +735,80 @@ class ExploreWiseRewardTask(BringObjectTask):
         # add collision cost, maybe distance to goal objective,...
 
         return float(reward)
+
+class ExploreWiseRewardTaskWPU(ExploreWiseRewardTask):
+    _actions = (
+        MOVE_ARM_HEIGHT_P,
+        MOVE_ARM_HEIGHT_M,
+        MOVE_ARM_X_P,
+        MOVE_ARM_X_M,
+        MOVE_ARM_Y_P,
+        MOVE_ARM_Y_M,
+        MOVE_ARM_Z_P,
+        MOVE_ARM_Z_M,
+        MOVE_AHEAD,
+        ROTATE_RIGHT,
+        ROTATE_LEFT,
+        PICKUP,
+    )
+    def _step(self, action: int) -> RLStepResult:
+        action_str = self.class_action_names()[action]
+
+
+        self._last_action_str = action_str
+        action_dict = {"action": action_str}
+        object_id = self.task_info["source_object_id"]
+        if action_str == PICKUP:
+            action_dict = {**action_dict, "object_id": object_id}
+        self.env.step(action_dict)
+        self.last_action_success = self.env.last_action_success
+
+        last_action_name = self._last_action_str
+        last_action_success = float(self.last_action_success)
+        self.action_sequence_and_success.append((last_action_name, last_action_success))
+        self.visualize(last_action_name)
+
+        if not self.object_picked_up:
+            # if object_id in self.env.controller.last_event.metadata['arm']['pickupableObjects']:
+            #     event = self.env.step(dict(action="PickupObject"))
+            #     #  we are doing an additional pass here, label is not right and if we fail we will do it twice
+            #     object_inventory = self.env.controller.last_event.metadata["arm"][
+            #         "heldObjects"
+            #     ]
+            #     if (
+            #             len(object_inventory) > 0
+            #             and object_id not in object_inventory
+            #     ):
+            #         event = self.env.step(dict(action="ReleaseObject"))
+            #
+            if self.env.is_object_at_low_level_hand(object_id):
+                self.object_picked_up = True
+                self.eplen_pickup = (
+                        self._num_steps_taken + 1
+                )  # plus one because this step has not been counted yet
+
+        if self.object_picked_up:
+
+
+            # self._took_end_action = True
+            # self.last_action_success = True
+            # self._success = True
+
+            source_state = self.env.get_object_by_id(object_id)
+            goal_state = self.env.get_object_by_id(self.task_info['goal_object_id'])
+            goal_achieved = self.object_picked_up and self.objects_close_enough(
+                source_state, goal_state
+            )
+            if goal_achieved:
+                self._took_end_action = True
+                self.last_action_success = goal_achieved
+                self._success = goal_achieved
+
+        step_result = RLStepResult(
+            observation=self.get_observations(),
+            reward=self.judge(),
+            done=self.is_done(),
+            info={"last_action_success": self.last_action_success},
+        )
+        return step_result
+

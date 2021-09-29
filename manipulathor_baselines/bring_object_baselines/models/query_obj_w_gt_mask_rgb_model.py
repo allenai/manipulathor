@@ -22,6 +22,7 @@ from allenact.embodiedai.models.basic_models import RNNStateEncoder
 from allenact.utils.model_utils import make_cnn, compute_cnn_output
 from gym.spaces.dict import Dict as SpaceDict
 
+from manipulathor_utils.debugger_util import ForkedPdb
 from utils.model_utils import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization
 

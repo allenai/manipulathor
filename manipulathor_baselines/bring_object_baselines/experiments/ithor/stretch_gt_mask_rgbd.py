@@ -16,7 +16,7 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 from manipulathor_baselines.bring_object_baselines.models.rgbd_w_predict_mask_small_bring_object_model import PredictMaskSmallBringObjectWQueryObjRGBDModel
 from utils.stretch_utils.stretch_bring_object_task_sampler import StretchDiverseBringObjectTaskSampler
-from utils.stretch_utils.stretch_sensors import StretchPickedUpObjSensor, StretchObjectMask
+from utils.stretch_utils.stretch_sensors import StretchPickedUpObjSensor, StretchObjectMask, RGBSensorStretch, DepthSensorStretch
 from utils.stretch_utils.stretch_tasks import StretchBringObjectTask
 
 
@@ -34,13 +34,13 @@ class StretchPredictRGBDExp(
         #     use_resnet_normalization=True,
         #     uuid="only_detection_rgb_lowres",
         # ),
-        RGBSensorThor(
+        RGBSensorStretch(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
-        DepthSensorThor(
+        DepthSensorStretch(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
             use_normalization=True,

@@ -1,6 +1,8 @@
 """Utility classes and functions for sensory inputs used by the models."""
+import datetime
 import glob
 import os
+import platform
 import random
 import time
 from typing import Any, Union, Optional
@@ -15,6 +17,13 @@ from allenact.base_abstractions.sensor import DepthSensor, Sensor, RGBSensor
 from allenact.base_abstractions.task import Task
 from allenact.utils.misc_utils import prepare_locals_for_super
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
+from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
+from detectron2.config import get_cfg
+from detectron2.data import MetadataCatalog
+from detectron2.engine import DefaultPredictor
+from detectron2.model_zoo import model_zoo
+from detectron2.utils.visualizer import Visualizer
+import matplotlib.pyplot as plt
 
 from ithor_arm.arm_calculation_utils import (
     convert_world_to_agent_coordinate,
@@ -22,8 +31,35 @@ from ithor_arm.arm_calculation_utils import (
     diff_position,
 )
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
+from ithor_arm.ithor_arm_sensors import DepthSensorThor
 from manipulathor_utils.debugger_util import ForkedPdb
 #
+from utils.detection_translator_util import THOR2COCO
+
+
+class RGBSensorStretch(
+    RGBSensorThor
+):
+    """Sensor for RGB images in THOR.
+
+    Returns from a running IThorEnvironment instance, the current RGB
+    frame corresponding to the agent's egocentric view.
+    """
+
+    def frame_from_env(
+            self, env: IThorEnvironment, task: Task[IThorEnvironment]
+    ) -> np.ndarray:  # type:ignore
+        #TODO this is weird that the server returns bgr
+        # return env.current_frame[:,:, ::-1].copy()
+        return env.current_frame.copy()
+
+class DepthSensorStretch(
+    DepthSensorThor
+):
+    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+        depth = (env.controller.last_event.depth_frame.copy())
+        return depth
+
 class StretchCategorySampleSensor(Sensor):
     def __init__(self, type: str, uuid: str = "category_object", **kwargs: Any):
         observation_space = gym.spaces.Box(
@@ -46,6 +82,78 @@ class StretchCategorySampleSensor(Sensor):
             raise Exception('Not implemented', self.type)
         image = task.task_info[info_to_search]
         return image
+
+class StretchDetectronObjectMask(Sensor):
+    def __init__(self, type: str,noise,  uuid: str = "object_mask", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        uuid = '{}_{}'.format(uuid, type)
+        self.noise = noise
+        self.cache = None
+        super().__init__(**prepare_locals_for_super(locals()))
+
+        self.cfg = get_cfg()
+        if platform.system() == "Darwin":
+            self.cfg.MODEL.DEVICE = "cpu"
+        # add project-specific config (e.g., TensorMask) here if you're not running a model in detectron2's core library
+        self.cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")) # is this the model we want? Yes it is a pretty good model
+        self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.05  # set threshold for this model #TODO good number?
+        self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.2  # set threshold for this model #TODO good number?
+        # Find a model from detectron2's model zoo. You can use the https://dl.fbaipublicfiles... url as well
+        self.cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")
+        self.predictor = DefaultPredictor(self.cfg)
+        self.class_labels = MetadataCatalog.get(self.cfg.DATASETS.TRAIN[0]).thing_classes
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        if env.last_image_changed is False and self.cache is not None:
+            return self.cache
+
+        im = env.controller.last_event.frame
+        #TODO VERYYYYYY IMPORTANT
+        im = im[:,:,::-1]
+        #TODO the detection requires BGR???
+
+        outputs = self.predictor(im)
+        #TODO should I normalize the image?
+        def visualize_detections(im, outputs ):
+            v = Visualizer(im[:, :, ::-1], MetadataCatalog.get(self.cfg.DATASETS.TRAIN[0]), scale=1.2)
+            out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
+            dir = 'experiment_output/visualization_predictions'
+            timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f.png")
+            os.makedirs(dir, exist_ok=True)
+            print('saving all detections in ', os.path.join(dir, timestamp))
+            plt.imsave(os.path.join(dir, timestamp), out.get_image()[:, :, ::-1])
+        # ForkedPdb().set_trace()
+
+        #TODO remove
+        visualize_detections(im, outputs)
+        ForkedPdb().set_trace()
+
+        if self.type == 'source':
+            info_to_search = 'source_object_id'
+        elif self.type == 'destination':
+            info_to_search = 'goal_object_id'
+        category = task.task_info[info_to_search].split('|')[0]
+        assert category in THOR2COCO
+        class_ind_to_look_for = self.class_labels.index(THOR2COCO[category])
+        all_predicted_labels = outputs['instances'].pred_classes
+        all_predicted_bbox = outputs['instances'].pred_boxes #LATER TODO switch to segmentation
+        mask = torch.zeros((im.shape[0], im.shape[1]))
+        valid_boxes = [all_predicted_bbox[i] for i in range(len(all_predicted_labels)) if all_predicted_labels[i] == class_ind_to_look_for]
+        for box in valid_boxes:
+            x1, y1, x2, y2 = [int(x) for x in box.tensor.squeeze()]
+            mask[y1:y2, x1:x2] = 1
+        mask = torch.nn.functional.interpolate(mask.unsqueeze(0).unsqueeze(0), size=(224, 224)).squeeze(0).squeeze(0)
+        # use these later for visualization purposes?
+
+        # plt.imsave('something.png', im)
+
+        return mask.unsqueeze(-1)
 
 
 class StretchObjectMask(Sensor):
@@ -141,6 +249,7 @@ class StretchPickedUpObjSensor(Sensor):
         return False
 
 #TODO are we sure that we don't need to do anything about the depth normalization? we have to clip depth from intel realsense so that the norms are similar to the depth we get from thor? do we do the postprocessing for depth iamges?
+
 
 
 #With open CV
