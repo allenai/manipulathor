@@ -22,7 +22,7 @@ screen_size=224
 ENV_ARGS['width'] = screen_size
 ENV_ARGS['height'] = screen_size
 ENV_ARGS['agentMode']='stretch'
-ENV_ARGS['commit_id']='8917d82118a663af77e76e0e5701fce186dcaec7'
+ENV_ARGS['commit_id']='756345cf5abb7070f21c8abc7dfb15eafff94088'
 
 
 saved_image_folder = '/Users/kianae/Desktop/saved_stretch_images'
@@ -135,12 +135,15 @@ def print_locations(controller):
     visualize(controller, save=True)
 
 
-def test_arm_movements(controller, scenes= all_scenes, num_tests=NUM_TESTS, episode_len=EPS_LEN, visualize_tests=False):
+def test_arm_movements(controller, scenes= all_scenes, num_tests=NUM_TESTS, episode_len=EPS_LEN, visualize_tests=False, one_by_one=False):
     #TODO add these later , 'go', 'gc', 'wp', 'wn'
     ALL_POSSIBLE_ACTIONS = ['hu', 'hd', 'ao', 'ai'] + ['m', 'r', 'l', 'b'] + ['wp', 'wn']
     times = [1]
     for i in range(num_tests):
-        scene = random.choice(scenes)
+        if one_by_one:
+            scene = scenes[i % len(scenes)]
+        else:
+            scene = random.choice(scenes)
         try:
             controller.reset(scene)
         except Exception:
@@ -246,12 +249,16 @@ def test_arm_scene_generalizations(controller):
 # In[26]:
 
 if __name__ == '__main__':
-    # test_arm_movements(controller, scenes=kitchens, num_tests=100, visualize_tests=False) #TODO add other rooms as well
+    #TODO all the following tests need to pass
+    # test_arm_movements(controller, scenes=kitchens, num_tests=100, visualize_tests=False)
+    # test_arm_movements(controller, scenes=all_scenes, num_tests=len(all_scenes), episode_len = 30, visualize_tests=False, one_by_one=True)
     # test_arm_scene_generalizations(controller)
-    # manual_task('FloorPlan2', logger_number =0, final=False, save_frames=True)
+
+
+    manual_task('FloorPlan2', logger_number =0, final=False, save_frames=True)
 
     # manual_task('FloorPlan15', logger_number =0, final=False, save_frames=True, init_sequence=['m', 'r', 'hd', 'wp', 'ai', 'm', 'hu', 'b', 'wn', 'l', 'ao'], verbose = True)
-    manual_task('FloorPlan15', logger_number =0, final=False, save_frames=True, init_sequence=[], verbose = True)
+    # manual_task('FloorPlan15', logger_number =0, final=False, save_frames=True, init_sequence=[], verbose = True)
     # manual_task('FloorPlan4', logger_number =0, final=False, save_frames=True, init_sequence=['wp', 'm', 'hd', 'hu', 'wp', 'ai', 'r', 'ao', 'l', 'wn', 'b'])
 
     # test_arm_movements(controller, scenes=['FloorPlan2'], num_tests=100, visualize_tests=True)
@@ -261,42 +268,4 @@ if __name__ == '__main__':
     # controller.step(action='RotateWristRelative', yaw=90)
     # print_locations(controller)
 # before=get_current_wrist_state(controller);before; controller.step(action='RotateWristRelative', yaw=10);visualize(controller, save_frames); after=get_current_wrist_state(controller);after; Quaternion.sym_distance(before, after)
-
-#
-# # In[ ]:
-#
-#
-# action = {}
-# action = {
-#     "disableRendering": True,
-#     "restrictMovement": False,
-#     "returnToStart": True,
-#     "speed": 1
-#   }
-# controller.reset('FloorPlan2')
-# # controller.step('RotateRight', degrees=90)
-# controller.step(action='MoveArm', position=dict(x=0, y=0.5, z=0.5), **action)
-# print_locations(controller)
-# controller.step(action='MoveArm', position=dict(x=0, y=0, z=0), **action)
-# print_locations(controller)
-# controller.step(action='MoveArm', position=dict(x=1, y=1, z=1), **action)
-# print_locations(controller)
-#
-#
-# # In[ ]:
-#
-#
-# manual_task('FloorPlan2', logger_number =0, final=False)
-#
-#
-# # In[ ]:
-#
-#
-# controller.step(action='RotateAgent', degrees=45)
-#
-#
-# # In[ ]:
-
-
-
 

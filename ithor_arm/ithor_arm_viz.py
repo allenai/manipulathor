@@ -12,7 +12,7 @@ from gym.spaces import Discrete, Box
 from ithor_arm.arm_calculation_utils import initialize_arm
 from ithor_arm.ithor_arm_constants import (
     reset_environment_and_additional_commands,
-    transport_wrapper, MOVE_AHEAD,ROTATE_LEFT ,ROTATE_RIGHT ,MOVE_ARM_HEIGHT_P ,MOVE_ARM_HEIGHT_M ,MOVE_ARM_X_P ,MOVE_ARM_X_M ,MOVE_ARM_Y_P ,MOVE_ARM_Y_M ,MOVE_ARM_Z_P ,MOVE_ARM_Z_M ,PICKUP ,DONE
+    transport_wrapper, MOVE_AHEAD, ROTATE_LEFT, ROTATE_RIGHT, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, PICKUP, DONE, MOVE_BACK
 )
 # from manipulathor_baselines.bring_object_baselines.models.small_bring_object_pred_box_model import SmallBringObjectPredictBBXDepthBaselineActorCritic
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -403,8 +403,8 @@ def put_action_on_image(images, actions):
     for i in range(len(images) - 1):
         img = images[i]
         action = actions[i]
-        action_names = (MOVE_AHEAD,ROTATE_LEFT ,ROTATE_RIGHT ,MOVE_ARM_HEIGHT_P ,MOVE_ARM_HEIGHT_M ,MOVE_ARM_X_P ,MOVE_ARM_X_M ,MOVE_ARM_Y_P ,MOVE_ARM_Y_M ,MOVE_ARM_Z_P ,MOVE_ARM_Z_M ,PICKUP ,DONE)
-        action_short = ("MOVE_AHEAD","ROTATE_L" ,"ROTATE_R" ,"ARM_H_P" ,"ARM_H_M" ,"ARM_X_P" ,"ARM_X_M" ,"ARM_Y_P" ,"ARM_Y_M" ,"ARM_Z_P" ,"ARM_Z_M" ,"PICKUP" ,"DONE")
+        action_names = (MOVE_AHEAD,ROTATE_LEFT ,ROTATE_RIGHT ,MOVE_ARM_HEIGHT_P ,MOVE_ARM_HEIGHT_M ,MOVE_ARM_X_P ,MOVE_ARM_X_M ,MOVE_ARM_Y_P ,MOVE_ARM_Y_M ,MOVE_ARM_Z_P ,MOVE_ARM_Z_M ,PICKUP ,DONE, MOVE_BACK)
+        action_short = ("MOVE_AHEAD","ROTATE_L" ,"ROTATE_R" ,"ARM_H_P" ,"ARM_H_M" ,"ARM_X_P" ,"ARM_X_M" ,"ARM_Y_P" ,"ARM_Y_M" ,"ARM_Z_P" ,"ARM_Z_M" ,"PICKUP" ,"DONE", "MOVE_BACK")
         action = action_short[action_names.index(action)]
         position = (10,10)
 

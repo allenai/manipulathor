@@ -24,13 +24,13 @@ from ithor_arm.ithor_arm_tasks import (
 )
 from ithor_arm.ithor_arm_viz import LoggerVisualizer, BringObjImageVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
-from utils.stretch_utils.stretch_environment import StretchEnvironment
+from utils.stretch_utils.real_stretch_environment import StretchRealEnvironment
 
 
-class StretchDiverseBringObjectTaskSampler(DiverseBringObjectTaskSampler):
+class RealStretchDiverseBringObjectTaskSampler(DiverseBringObjectTaskSampler):
 
     def _create_environment(self, **kwargs) -> ManipulaTHOREnvironment:
-        env = StretchEnvironment(
+        env = StretchRealEnvironment(
             make_agents_visible=False,
             object_open_speed=0.05,
             env_args=self.env_args,

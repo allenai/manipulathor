@@ -28,7 +28,7 @@ from manipulathor_utils.debugger_util import ForkedPdb
 import ai2thor.robot_controller
 
 
-class StretchEnvironment(ManipulaTHOREnvironment):
+class StretchRealEnvironment(ManipulaTHOREnvironment):
     """Wrapper for the manipulathor controller providing arm functionality
     and bookkeeping.
 

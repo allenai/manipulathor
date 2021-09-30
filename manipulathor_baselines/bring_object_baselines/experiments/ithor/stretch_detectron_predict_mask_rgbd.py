@@ -15,9 +15,9 @@ from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixi
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 from manipulathor_baselines.bring_object_baselines.models.rgbd_w_predict_mask_small_bring_object_model import PredictMaskSmallBringObjectWQueryObjRGBDModel
-from utils.stretch_utils.stretch_bring_object_task_sampler import StretchDiverseBringObjectTaskSampler
-from utils.stretch_utils.stretch_sensors import StretchPickedUpObjSensor, StretchDetectronObjectMask, DepthSensorStretch, RGBSensorStretch
-from utils.stretch_utils.stretch_tasks import StretchBringObjectTask
+from utils.stretch_utils.real_stretch_bring_object_task_sampler import RealStretchDiverseBringObjectTaskSampler
+from utils.stretch_utils.real_stretch_sensors import StretchPickedUpObjSensor, StretchDetectronObjectMask, DepthSensorStretch, RGBSensorStretch
+from utils.stretch_utils.real_stretch_tasks import StretchRealBringObjectTask
 
 
 class StretchPredictRGBDExp(
@@ -67,8 +67,8 @@ class StretchPredictRGBDExp(
     # TEST_SCENES = ['FloorPlan1_physics']
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
-    TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
-    TASK_TYPE = StretchBringObjectTask
+    TASK_SAMPLER = RealStretchDiverseBringObjectTaskSampler
+    TASK_TYPE = StretchRealBringObjectTask
 
 
 

@@ -30,7 +30,7 @@ from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
 
 
-class StretchBringObjectTask(BringObjectTask):
+class StretchRealBringObjectTask(BringObjectTask):
     _actions = (
         MOVE_ARM_HEIGHT_P,
         MOVE_ARM_HEIGHT_M,
