@@ -1,15 +1,10 @@
-import platform
-
 import gym
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn
 
-from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor
-from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
-from ithor_arm.bring_object_tasks import WPickUPExploreBringObjectTask, ExploreWiseRewardTask, ExploreWiseRewardTaskWPU
+from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask
 from ithor_arm.ithor_arm_constants import ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
 from ithor_arm.ithor_arm_sensors import (
-    InitialAgentArmToObjectSensor,
     InitialObjectToGoalSensor,
     PickedUpObjSensor,
     DepthSensorThor, RelativeAgentArmToObjectSensor, RelativeObjectToGoalSensor,
@@ -21,8 +16,7 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 from manipulathor_baselines.stretch_bring_object_baselines.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from manipulathor_baselines.stretch_bring_object_baselines.stretch_utils.stretch_bring_object_tasks import ExploreWiseRewardTaskObjNav
-from manipulathor_baselines.stretch_bring_object_baselines.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
-from manipulathor_baselines.stretch_bring_object_baselines.stretch_utils.stretch_thor_sensors import RGBSensorStretch, DepthSensorStretch, NoisyObjectMaskStretch, DepthSensorStretchIntel, RGBSensorStretchIntel
+from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
 
 
 class ComplexRewardObjectNavStretch(

@@ -1,30 +1,19 @@
 """A wrapper for engaging with the ManipulaTHOR environment."""
 
 import copy
-import math
 import typing
-import warnings
-from typing import Tuple, Dict, List, Set, Union, Any, Optional
+from typing import Dict, Union, Optional
 
 import ai2thor.server
 import numpy as np
 from ai2thor.controller import Controller
-from allenact_plugins.ithor_plugin.ithor_constants import VISIBILITY_DISTANCE, FOV
-from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 
 from ithor_arm.ithor_arm_constants import (
     ADITIONAL_ARM_ARGS,
-    ARM_MIN_HEIGHT,
-    ARM_MAX_HEIGHT,
-    MOVE_ARM_HEIGHT_CONSTANT,
-    MOVE_ARM_CONSTANT,
-    MANIPULATHOR_COMMIT_ID,
-    reset_environment_and_additional_commands,
-    MOVE_THR, PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_BACK,
+    PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_BACK,
 )
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
-from manipulathor_baselines.stretch_bring_object_baselines.stretch_utils.stretch_constants import STRETCH_MANIPULATHOR_COMMIT_ID
-from manipulathor_utils.debugger_util import ForkedPdb
+from utils.stretch_utils.stretch_constants import STRETCH_MANIPULATHOR_COMMIT_ID
 
 
 class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
