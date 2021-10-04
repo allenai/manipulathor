@@ -1,5 +1,6 @@
 import math
 import pdb
+import platform
 
 import ai2thor
 import copy
@@ -15,6 +16,7 @@ import numpy as np
 # from utils.mid_level_constants import  scene_start_cheating_init_pose
 from pyquaternion import Quaternion
 
+from scripts.jupyter_helper import get_reachable_positions
 from scripts.stretch_jupyter_helper import ENV_ARGS, two_dict_equal, ARM_MOVE_CONSTANT, get_current_arm_state, initialize_arm, only_reset_scene, transport_wrapper, ADITIONAL_ARM_ARGS, execute_command, WRIST_ROTATION, get_current_wrist_state
 
 screen_size=224
@@ -22,15 +24,15 @@ screen_size=224
 ENV_ARGS['width'] = screen_size
 ENV_ARGS['height'] = screen_size
 ENV_ARGS['agentMode']='stretch'
-ENV_ARGS['commit_id']='756345cf5abb7070f21c8abc7dfb15eafff94088'
+ENV_ARGS['commit_id']='69d9140a27a03c7313cf7d55e3fa681ae4a56219'
 
-
-saved_image_folder = '/Users/kianae/Desktop/saved_stretch_images'
-os.makedirs(saved_image_folder, exist_ok=True)
+if platform.system() == "Darwin":
+    saved_image_folder = '/Users/kianae/Desktop/saved_stretch_images'
+    os.makedirs(saved_image_folder, exist_ok=True)
 
 ENV_ARGS['renderDepthImage'] = True
 
-controller = ai2thor.controller.Controller(**ENV_ARGS)#, renderInstanceSegmentation=True)
+
 
 action_options = ['m', 'r', 'l', 'b', 'hu', 'hd', 'ao', 'ai', 'go', 'gc', 'wp', 'wn']
 
@@ -97,7 +99,7 @@ def visualize(controller, save=False, addition_str=''):
         plt.imshow(combined)
         plt.show()
 
-def manual_task(scene_name, logger_number =0, final=False, save_frames = False, init_sequence=[], verbose = False):
+def manual_task(controller, scene_name, logger_number =0, final=False, save_frames = False, init_sequence=[], verbose = False):
     only_reset_scene(controller, scene_name)
     all_actions = []
     all_action_details = []
@@ -137,6 +139,7 @@ def print_locations(controller):
 
 def test_arm_movements(controller, scenes= all_scenes, num_tests=NUM_TESTS, episode_len=EPS_LEN, visualize_tests=False, one_by_one=False):
     #TODO add these later , 'go', 'gc', 'wp', 'wn'
+    #TODO add p and d
     ALL_POSSIBLE_ACTIONS = ['hu', 'hd', 'ao', 'ai'] + ['m', 'r', 'l', 'b'] + ['wp', 'wn']
     times = [1]
     for i in range(num_tests):
@@ -164,9 +167,6 @@ def test_arm_movements(controller, scenes= all_scenes, num_tests=NUM_TESTS, epis
                 action = ALL_POSSIBLE_ACTIONS[free_motion]
                 free_motion+=1
             #
-            # #TODO this is quick hack, remove it
-            # if get_current_arm_state(controller)['y'] <= 0.2:
-            #     action = 'hu'
 
 
             all_seq.append(action)
@@ -238,24 +238,65 @@ def test_arm_movements(controller, scenes= all_scenes, num_tests=NUM_TESTS, epis
         #     pdb.set_trace()
 
 def test_arm_scene_generalizations(controller):
+    print('test arm openning all scenes')
     for scene in all_scenes:
         try:
             controller.reset(scene)
         except Exception:
             print('Failed to Start', scene)
             controller = ai2thor.controller.Controller(**ENV_ARGS)
+    print('finished test arm openning all scenes')
+
+def test_teleport_agent(controller, scenes=all_scenes):
+    for scene in scenes:
+        controller.reset(scene)
+        reachable_positions = get_reachable_positions(controller)
+        failed = 0
+        for position in reachable_positions:
+            rotation = {'x':0, 'y':random.choice([i * 30 for i in range(120)]), 'z':0}
+            teleport_detail = dict(action='TeleportFull', standing=True, x=position['x'], y=position['y'], z=position['z'], rotation=dict(x=rotation['x'], y=rotation['y'], z=rotation['z']), horizon=10)
+            event_TeleportFull = controller.step(teleport_detail)
+            if event_TeleportFull:
+                if not two_dict_equal(controller.last_event.metadata['agent']['position'], position):
+                    print('Failed to teleport but said successful')
+            else:
+                failed += 1
+                print(event_TeleportFull)
+                print('scene', scene)
+                print('step', teleport_detail)
+        print('scene', scene, 'failed', failed, 'out of', len(reachable_positions))
+
+def test_fov(controller):
+    ENV_ARGS['width'] = int(720/3)
+    ENV_ARGS['height'] = int(1280/3)
+    # ENV_ARGS['agentMode'] = 'arm'
+    print(ENV_ARGS)
+    controller = ai2thor.controller.Controller(**ENV_ARGS)
+    print('Done')
+    manual_task(controller, 'FloorPlan2', logger_number =0, final=False, save_frames=True)
 
 
 # In[26]:
 
 if __name__ == '__main__':
-    #TODO all the following tests need to pass
-    # test_arm_movements(controller, scenes=kitchens, num_tests=100, visualize_tests=False)
-    # test_arm_movements(controller, scenes=all_scenes, num_tests=len(all_scenes), episode_len = 30, visualize_tests=False, one_by_one=True)
+    controller = ai2thor.controller.Controller(**ENV_ARGS)#, renderInstanceSegmentation=True)
+
+    #TODO add pickup and drop tests
+
+    # #TODO all the following tests need to pass
     # test_arm_scene_generalizations(controller)
+    # print('Testing arm stuck in all scenes')
+    # test_arm_movements(controller, scenes=all_scenes, num_tests=len(all_scenes), episode_len = 30, visualize_tests=False, one_by_one=True)
+    # print('Finished Testing arm stuck in all scenes')
+    # print('Random tests')
+    # test_arm_movements(controller, scenes=all_scenes, num_tests=1000, visualize_tests=False)
+    # print('Finished')
+
+    test_teleport_agent(controller)
+    # test_fov(controller)
 
 
-    manual_task('FloorPlan2', logger_number =0, final=False, save_frames=True)
+    # manual_task(controller, 'FloorPlan2', logger_number =0, final=False, save_frames=True)
 
     # manual_task('FloorPlan15', logger_number =0, final=False, save_frames=True, init_sequence=['m', 'r', 'hd', 'wp', 'ai', 'm', 'hu', 'b', 'wn', 'l', 'ao'], verbose = True)
     # manual_task('FloorPlan15', logger_number =0, final=False, save_frames=True, init_sequence=[], verbose = True)

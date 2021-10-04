@@ -21,6 +21,8 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 from manipulathor_baselines.stretch_bring_object_baselines.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from manipulathor_baselines.stretch_bring_object_baselines.stretch_utils.stretch_bring_object_tasks import ExploreWiseRewardTaskObjNav
+from manipulathor_baselines.stretch_bring_object_baselines.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
+from manipulathor_baselines.stretch_bring_object_baselines.stretch_utils.stretch_thor_sensors import RGBSensorStretch, DepthSensorStretch, NoisyObjectMaskStretch, DepthSensorStretchIntel, RGBSensorStretchIntel
 
 
 class ComplexRewardObjectNavStretch(
@@ -32,25 +34,28 @@ class ComplexRewardObjectNavStretch(
     input."""
     NOISE_LEVEL = 0
     distance_thr = 1.5 #TODO is this a good number?
+    desired_screen_size = 224
     SENSORS = [
         RGBSensorThor(
-            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            height=desired_screen_size,
+            width=desired_screen_size,
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
         DepthSensorThor(
-            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            height=desired_screen_size,
+            width=desired_screen_size,
             use_normalization=True,
             uuid="depth_lowres",
         ),
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
-        NoisyObjectMask(noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
-        NoisyObjectMask(noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
+        NoisyObjectMask(noise=NOISE_LEVEL, type='source', distance_thr=distance_thr, height=desired_screen_size, width=desired_screen_size),
+        NoisyObjectMask(noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr, height=desired_screen_size, width=desired_screen_size),
     ]
+
+    #TODO we should add done to this experiment
 
     MAX_STEPS = 200
 
@@ -68,15 +73,15 @@ class ComplexRewardObjectNavStretch(
         self.REWARD_CONFIG['exploration_reward'] = 0.1 #TODO is this too big?
         self.REWARD_CONFIG['object_found'] = 1 #TODO is this too big?
 
-        assert (
-                self.CAMERA_WIDTH == 224
-                and self.CAMERA_HEIGHT == 224
-                and self.VISIBILITY_DISTANCE == 1
-                and self.STEP_SIZE == 0.25
-        )
-        ENV_ARGS['agentMode'] = 'stretch'
+        # assert ( This is not true anymore, resize them appropriately
+        #         self.CAMERA_WIDTH == 224
+        #         and self.CAMERA_HEIGHT == 224
+        #         and self.VISIBILITY_DISTANCE == 1
+        #         and self.STEP_SIZE == 0.25
+        # )
+
         #TODO camera height and width is going to be different
-        self.ENV_ARGS = {**ENV_ARGS, "renderDepthImage": True}
+        self.ENV_ARGS = {**STRETCH_ENV_ARGS, "renderDepthImage": True}
 
 
     @classmethod

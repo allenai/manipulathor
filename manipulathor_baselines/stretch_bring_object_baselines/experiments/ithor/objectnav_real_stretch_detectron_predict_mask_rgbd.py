@@ -16,8 +16,8 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 from manipulathor_baselines.bring_object_baselines.models.rgbd_w_predict_mask_small_bring_object_model import PredictMaskSmallBringObjectWQueryObjRGBDModel
 from utils.stretch_utils.real_stretch_bring_object_task_sampler import RealStretchDiverseBringObjectTaskSampler
-from utils.stretch_utils.real_stretch_sensors import StretchPickedUpObjSensor, StretchObjectMask, RGBSensorRealStretch, DepthSensorRealStretch
-from utils.stretch_utils.real_stretch_tasks import StretchRealBringObjectTask
+from utils.stretch_utils.real_stretch_sensors import StretchPickedUpObjSensor, StretchDetectronObjectMask, DepthSensorIntelRealStretch, RGBSensorIntelRealStretch
+from utils.stretch_utils.real_stretch_tasks import StretchRealBringObjectTask, StretchRealObjectNavTask
 
 
 class StretchPredictRGBDExp(
@@ -34,23 +34,23 @@ class StretchPredictRGBDExp(
         #     use_resnet_normalization=True,
         #     uuid="only_detection_rgb_lowres",
         # ),
-        RGBSensorRealStretch(
-            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+        RGBSensorIntelRealStretch(
+            height=224, #TODO sure?
+            width=224,
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
-        DepthSensorRealStretch(
-            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+        DepthSensorIntelRealStretch(
+            height=224,
+            width=224,
             use_normalization=True,
             uuid="depth_lowres",
         ),
         StretchPickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
-        StretchObjectMask(noise=0, type='source'),
-        StretchObjectMask(noise=0, type='destination'),
+        StretchDetectronObjectMask(noise=0, source_camera='intel', type='source'),
+        StretchDetectronObjectMask(noise=0, source_camera='intel', type='destination'),
     ]
 
     MAX_STEPS = 200
@@ -68,7 +68,7 @@ class StretchPredictRGBDExp(
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
     TASK_SAMPLER = RealStretchDiverseBringObjectTaskSampler
-    TASK_TYPE = StretchRealBringObjectTask
+    TASK_TYPE = StretchRealObjectNavTask
 
 
 

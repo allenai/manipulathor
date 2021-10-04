@@ -16,7 +16,7 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 from manipulathor_baselines.bring_object_baselines.models.rgbd_w_predict_mask_small_bring_object_model import PredictMaskSmallBringObjectWQueryObjRGBDModel
 from utils.stretch_utils.real_stretch_bring_object_task_sampler import RealStretchDiverseBringObjectTaskSampler
-from utils.stretch_utils.real_stretch_sensors import StretchPickedUpObjSensor, StretchDetectronObjectMask, DepthSensorStretch, RGBSensorStretch
+from utils.stretch_utils.real_stretch_sensors import StretchPickedUpObjSensor, StretchDetectronObjectMask, DepthSensorRealStretch, RGBSensorRealStretch
 from utils.stretch_utils.real_stretch_tasks import StretchRealBringObjectTask
 
 
@@ -34,13 +34,13 @@ class StretchPredictRGBDExp(
         #     use_resnet_normalization=True,
         #     uuid="only_detection_rgb_lowres",
         # ),
-        RGBSensorStretch(
+        RGBSensorRealStretch(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
-        DepthSensorStretch(
+        DepthSensorRealStretch(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
             use_normalization=True,

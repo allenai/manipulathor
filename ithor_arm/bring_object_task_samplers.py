@@ -216,6 +216,9 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             self, force_advance_scene: bool = False
     ) -> Optional[AbstractPickUpDropOffTask]:
 
+        if self.env is None:
+            self.env = self._create_environment()
+
         if self.max_tasks is not None and self.max_tasks <= 0:
             return None
 
@@ -232,8 +235,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         assert init_object["scene_name"] == goal_object["scene_name"] == scene_name
         assert init_object['object_id'] != goal_object['object_id']
 
-        if self.env is None:
-            self.env = self._create_environment()
+
 
         self.env.reset(
             scene_name=scene_name, agentMode="arm", agentControllerType="mid-level"
@@ -279,6 +281,23 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
 
         if not event.metadata['lastActionSuccess']:
             print('ERROR: Teleport failed')
+
+            print(this_controller.last_event.metadata['sceneName'])
+            print(dict(
+                action="TeleportFull",
+                standing=True,
+                x=agent_state["position"]["x"],
+                y=agent_state["position"]["y"],
+                z=agent_state["position"]["z"],
+                rotation=dict(
+                    x=agent_state["rotation"]["x"],
+                    y=agent_state["rotation"]["y"],
+                    z=agent_state["rotation"]["z"],
+                ),
+                horizon=agent_state["cameraHorizon"],
+            ))
+            print(this_controller.last_event)
+            # ForkedPdb().set_trace() #TODO
 
 
         should_visualize_goal_start = [

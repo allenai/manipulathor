@@ -4,6 +4,7 @@ import os
 import random
 from typing import Any, Union, Optional
 
+import cv2
 import gym
 import numpy as np
 import torch
@@ -62,11 +63,13 @@ class CategorySampleSensor(Sensor):
 
 
 class NoisyObjectMask(Sensor):
-    def __init__(self, type: str,noise,  uuid: str = "object_mask", distance_thr: float = -1, **kwargs: Any):
+    def __init__(self, type: str,noise, height, width,  uuid: str = "object_mask", distance_thr: float = -1, **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
         self.type = type
+        self.height = height
+        self.width = width
         uuid = '{}_{}'.format(uuid, type)
         self.noise = noise
         self.distance_thr = distance_thr
@@ -106,8 +109,9 @@ class NoisyObjectMask(Sensor):
         else:
             fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
         fake_mask = (np.expand_dims(fake_mask.astype(np.float),axis=-1))
-
-        return add_mask_noise(result, fake_mask, noise=self.noise)
+        fake_mask = add_mask_noise(result, fake_mask, noise=self.noise)
+        resized_mask = cv2.resize(fake_mask, (self.height, self.width)).reshape(self.width, self.height, 1) #TODO my gut says this is gonna be slow
+        return resized_mask
 
 
 def add_mask_noise(result, fake_mask, noise):

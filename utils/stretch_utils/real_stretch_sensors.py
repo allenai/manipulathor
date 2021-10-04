@@ -37,7 +37,7 @@ from manipulathor_utils.debugger_util import ForkedPdb
 from utils.detection_translator_util import THOR2COCO
 
 
-class RGBSensorStretch(
+class RGBSensorRealStretch(
     RGBSensorThor
 ):
     """Sensor for RGB images in THOR.
@@ -53,12 +53,44 @@ class RGBSensorStretch(
         # return env.current_frame[:,:, ::-1].copy()
         return env.current_frame.copy()
 
-class DepthSensorStretch(
+class DepthSensorRealStretch(
     DepthSensorThor
 ):
     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
         depth = (env.controller.last_event.depth_frame.copy())
         return depth
+
+def normalize_intel_image(image):
+    rotated = cv2.rotate(image, cv2.cv2.ROTATE_90_CLOCKWISE)
+    if len(image.shape) == 3:
+        #TODO this is really important, image is in bgr initially
+        rotated = rotated[:,:,::-1]
+        #TODO why only rgb is flipped?
+        rotated = cv2.flip(rotated,1)
+    return rotated
+
+
+class RGBSensorIntelRealStretch(
+    RGBSensorThor
+):
+    """Sensor for RGB images in THOR.
+
+    Returns from a running IThorEnvironment instance, the current RGB
+    frame corresponding to the agent's egocentric view.
+    """
+
+    def frame_from_env(
+            self, env: IThorEnvironment, task: Task[IThorEnvironment]
+    ) -> np.ndarray:  # type:ignore
+        rgb = env.controller.last_event.third_party_camera_frames[0].copy()
+        return normalize_intel_image(rgb)
+
+class DepthSensorIntelRealStretch(
+    DepthSensorThor
+):
+    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+        depth = env.controller.last_event.third_party_depth_frames[0].copy()
+        return normalize_intel_image(depth)
 
 class StretchCategorySampleSensor(Sensor):
     def __init__(self, type: str, uuid: str = "category_object", **kwargs: Any):
@@ -84,7 +116,7 @@ class StretchCategorySampleSensor(Sensor):
         return image
 
 class StretchDetectronObjectMask(Sensor):
-    def __init__(self, type: str,noise,  uuid: str = "object_mask", **kwargs: Any):
+    def __init__(self, type: str,noise, source_camera = 'azure', uuid: str = "object_mask", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
@@ -93,13 +125,13 @@ class StretchDetectronObjectMask(Sensor):
         self.noise = noise
         self.cache = None
         super().__init__(**prepare_locals_for_super(locals()))
+        self.source_camera = source_camera
 
         self.cfg = get_cfg()
         if platform.system() == "Darwin":
             self.cfg.MODEL.DEVICE = "cpu"
         # add project-specific config (e.g., TensorMask) here if you're not running a model in detectron2's core library
         self.cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")) # is this the model we want? Yes it is a pretty good model
-        self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.05  # set threshold for this model #TODO good number?
         self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.2  # set threshold for this model #TODO good number?
         # Find a model from detectron2's model zoo. You can use the https://dl.fbaipublicfiles... url as well
         self.cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")
@@ -112,8 +144,11 @@ class StretchDetectronObjectMask(Sensor):
     ) -> Any:
         if env.last_image_changed is False and self.cache is not None:
             return self.cache
-
-        im = env.controller.last_event.frame
+        if self.source_camera == 'azure':
+            im = env.controller.last_event.frame.copy()
+        elif self.source_camera == 'intel':
+            im = env.controller.last_event.third_party_camera_frames[0].copy()
+            im = normalize_intel_image(im)
         #TODO VERYYYYYY IMPORTANT
         im = im[:,:,::-1]
         #TODO the detection requires BGR???
@@ -132,7 +167,7 @@ class StretchDetectronObjectMask(Sensor):
 
         #TODO remove
         visualize_detections(im, outputs)
-        ForkedPdb().set_trace()
+        # ForkedPdb().set_trace()
 
         if self.type == 'source':
             info_to_search = 'source_object_id'

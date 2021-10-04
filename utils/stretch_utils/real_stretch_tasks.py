@@ -108,3 +108,11 @@ class StretchRealBringObjectTask(BringObjectTask):
         """Compute the reward after having taken a step."""
         reward = 0
         return reward
+
+class StretchRealObjectNavTask(StretchRealBringObjectTask):
+    _actions = (
+        MOVE_AHEAD,
+        ROTATE_RIGHT,
+        ROTATE_LEFT,
+        MOVE_BACK
+    )
