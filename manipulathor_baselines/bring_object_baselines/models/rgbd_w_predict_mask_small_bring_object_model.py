@@ -82,7 +82,7 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
         self.critic_pickup = LinearCriticHead(self._hidden_size)
 
         self.train()
-        self.detection_model.eval()
+        # self.detection_model.eval()
 
         self.metrics = {'mask_loss':[], 'per_category':{}, 'confusion_matrix':{}, 'object_appeared':{}, 'average_pixel_appearance': {}} #TODO can it be any worse?
 
@@ -128,8 +128,10 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
                 rl_model_state_dict[key].copy_(param)
 
     def get_detection_masks(self, query_images, images):
-        self.detection_model.eval()
-        with torch.no_grad():
+        # self.detection_model.eval()
+        # with torch.no_grad():
+        #TODO remove
+        if True:
             images = images.permute(0,1,4,2,3) #Turn wxhxc to cxwxh
 
             batch, seqlen, c, w, h = images.shape
@@ -237,7 +239,9 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
 
         actor_critic_output.extras['predicted_mask'] = predicted_masks.detach()
 
-        self.calc_losses(observations, actor_critic_output)
+        #TODO we might have to only do this in test
+        if self.visualize:
+            self.calc_losses(observations, actor_critic_output)
 
 
         return (

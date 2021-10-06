@@ -22,7 +22,7 @@ class FeatureLearnerModule(nn.Module):
         del resnet_model.fc
         self.resnet = resnet_model
         # self.detach_level = args.detach_level
-        self.resnet.eval()
+        # self.resnet.eval()
 
         # self.fixed_feature_weights = args.fixed_feature_weights
         self.intermediate_features = None
@@ -34,60 +34,60 @@ class FeatureLearnerModule(nn.Module):
 
 
     def resnet_features(self, x):
-        self.eval()
+        # self.eval()
+        #
+        # with torch.no_grad():
 
-        with torch.no_grad():
+        result = []
 
-            result = []
-
-            x = self.resnet.conv1(x)
-            x = self.resnet.bn1(x)
-            x = self.resnet.relu(x)
-            result.append(x)
-            x = self.resnet.maxpool(x)
-
-
+        x = self.resnet.conv1(x)
+        x = self.resnet.bn1(x)
+        x = self.resnet.relu(x)
+        result.append(x)
+        x = self.resnet.maxpool(x)
 
 
-            x = self.resnet.layer1(x)
-            result.append(x)
-
-            x = self.resnet.layer2(x)
-            result.append(x)
 
 
-            x = self.resnet.layer3(x)
-            result.append(x)
+        x = self.resnet.layer1(x)
+        result.append(x)
+
+        x = self.resnet.layer2(x)
+        result.append(x)
 
 
-            x = self.resnet.layer4[0](x)
-            x = self.resnet.layer4[1](x)
-            result.append(x)
-            x = self.resnet.avgpool(x)
+        x = self.resnet.layer3(x)
+        result.append(x)
 
 
-            x = x.view(x.shape[0], 512)
+        x = self.resnet.layer4[0](x)
+        x = self.resnet.layer4[1](x)
+        result.append(x)
+        x = self.resnet.avgpool(x)
 
-            self.intermediate_features = result
 
-            return x
+        x = x.view(x.shape[0], 512)
+
+        self.intermediate_features = result
+
+        return x
 
     def get_feature(self, images):
-        self.eval()
-        with torch.no_grad():
-            shape = list(images.shape)
-            if len(shape) == 4:
-                features = self.resnet_features(images)
-            else:
-                batchsize = shape[0]
-                sequence_length = shape[1]
-                images = images.contiguous().view([batchsize * sequence_length] + shape[2:])
-                features = self.resnet_features(images)
-                features = features.view(batchsize, sequence_length, 512)
+        # self.eval()
+        # with torch.no_grad():
+        shape = list(images.shape)
+        if len(shape) == 4:
+            features = self.resnet_features(images)
+        else:
+            batchsize = shape[0]
+            sequence_length = shape[1]
+            images = images.contiguous().view([batchsize * sequence_length] + shape[2:])
+            features = self.resnet_features(images)
+            features = features.view(batchsize, sequence_length, 512)
         return features
 
 
     def forward(self, images):
-        with torch.no_grad():
-            self.intermediate_features = None #just a sanity check that they are reinitialized each time
-            return self.get_feature(images)
+        # with torch.no_grad():
+        self.intermediate_features = None #just a sanity check that they are reinitialized each time
+        return self.get_feature(images)

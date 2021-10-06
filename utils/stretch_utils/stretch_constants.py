@@ -20,3 +20,7 @@ STRETCH_ENV_ARGS = dict(
     renderInstanceSegmentation=True,
     agentMode='stretch',
 )
+
+# and as far as your earlier question regarding (H fov vs V fov)
+# the field of view that gets set through the API corresponds to the vertical field of view (https://docs.unity3d.com/ScriptReference/Camera-fieldOfView.html)
+#TODO then 42 would be the correct value probably. Also make sure you set these correctly (and differently for the azure camera)

@@ -21,11 +21,8 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 
 
-class BigExploreBeforeObserveTaskSampler(object):
-    pass
 
-
-class BigExploreBeforeObservationRGBDMaskOnlyClose(
+class ComplexRewardNoPU(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -50,8 +47,8 @@ class BigExploreBeforeObservationRGBDMaskOnlyClose(
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
-        NoisyObjectMask(noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
-        NoisyObjectMask(noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
+        NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
+        NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
     ]
 
     MAX_STEPS = 200
@@ -60,6 +57,8 @@ class BigExploreBeforeObservationRGBDMaskOnlyClose(
     TASK_TYPE = ExploreWiseRewardTask
 
     NUM_PROCESSES = 40
+    #TODO change
+    NUM_PROCESSES = 20
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 

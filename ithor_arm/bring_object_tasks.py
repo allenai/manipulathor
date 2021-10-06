@@ -658,6 +658,11 @@ class ExploreWiseRewardTask(BringObjectTask):
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1)) #TODO do something about rotation here
         self.source_observed_reward = False
         self.goal_observed_reward = False
+    def metrics(self) -> Dict[str, Any]:
+        result = super(type(self), self).metrics()
+        if self.is_done():
+            result['percent_room_visited'] = self.has_visited.mean()
+        return result
 
     def judge(self) -> float:
         """Compute the reward after having taken a step."""

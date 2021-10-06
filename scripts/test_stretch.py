@@ -25,12 +25,13 @@ ENV_ARGS['width'] = screen_size
 ENV_ARGS['height'] = screen_size
 ENV_ARGS['agentMode']='stretch'
 ENV_ARGS['commit_id']='69d9140a27a03c7313cf7d55e3fa681ae4a56219'
+ENV_ARGS['renderDepthImage'] = True
 
 if platform.system() == "Darwin":
     saved_image_folder = '/Users/kianae/Desktop/saved_stretch_images'
     os.makedirs(saved_image_folder, exist_ok=True)
 
-ENV_ARGS['renderDepthImage'] = True
+
 
 
 

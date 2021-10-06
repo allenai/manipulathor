@@ -204,6 +204,10 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             random.shuffle(self.all_test_tasks)
             self.max_tasks = self.reset_tasks = len(self.all_test_tasks)
 
+    def reset_scene(self, scene_name):
+        self.env.reset(
+            scene_name=scene_name, agentMode="arm", agentControllerType="mid-level"
+        )
 
     def find_all_query_objects(self):
         IMAGE_DIR = 'datasets/apnd-dataset/query_images/'
@@ -235,11 +239,9 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         assert init_object["scene_name"] == goal_object["scene_name"] == scene_name
         assert init_object['object_id'] != goal_object['object_id']
 
+        self.reset_scene(scene_name)
 
 
-        self.env.reset(
-            scene_name=scene_name, agentMode="arm", agentControllerType="mid-level"
-        )
 
         event1, event2, event3 = initialize_arm(self.env.controller)
 
@@ -410,6 +412,14 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             data_point = task
 
         return data_point
+
+
+class DiverseBringObjectTaskSamplerWRandomization(DiverseBringObjectTaskSampler):
+    def reset_scene(self, scene_name):
+        self.env.reset( scene_name=scene_name, agentMode="arm", agentControllerType="mid-level" )
+        self.env.step(dict(action="RandomizeMaterials"))
+        self.env.step(dict(action="RandomizeLighting"))
+
 
 # class WDoneDiverseBringObjectTaskSampler(DiverseBringObjectTaskSampler):
 #     # _TASK_TYPE = WPickUpBringObjectTask

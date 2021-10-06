@@ -6,7 +6,7 @@ list_of_servers = ['kiana-workstation', 'vision-server12', 'aws15', 'aws16','aws
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Sync')
-    parser.add_argument('--servers', default=None)
+    parser.add_argument('--servers', default=None, nargs='+')
     parser.add_argument('--sync_weights', default=False, action='store_true')
     parser.add_argument('--sync_specific_weight', default=None)
     parser.add_argument('--sync_back', default=False, action='store_true')
@@ -16,7 +16,7 @@ def parse_args():
     if args.servers is None:
         args.servers = list_of_servers
     else:
-        args.servers = [args.servers]
+        args.servers = args.servers
     return args
 
 def main(args):

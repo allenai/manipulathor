@@ -26,46 +26,48 @@ class ConditionalDetectionModel(nn.Module):
         self.feature_extractor = FeatureLearnerModule()
         self.target_category_feature_extractor = FeatureLearnerModule()
 
-        self.eval()
+        # self.eval()
 
 
 
     def forward(self, input):
-        self.eval()
-        with torch.no_grad():
-            assert 'rgb' in input and 'target_cropped_object' in input
-            images = input['rgb']
-            _ = self.target_category_feature_extractor(input['target_cropped_object'])
-            target_category_features = self.target_category_feature_extractor.intermediate_features[-1]
+
+        # self.eval()
+        # with torch.no_grad():
+
+        assert 'rgb' in input and 'target_cropped_object' in input
+        images = input['rgb']
+        _ = self.target_category_feature_extractor(input['target_cropped_object'])
+        target_category_features = self.target_category_feature_extractor.intermediate_features[-1]
 
 
 
-            features = self.feature_extractor(images)
-            intermediate_features = self.feature_extractor.intermediate_features
-            image_features = intermediate_features[-1]
+        features = self.feature_extractor(images)
+        intermediate_features = self.feature_extractor.intermediate_features
+        image_features = intermediate_features[-1]
 
-            full_feature = torch.cat([target_category_features, image_features], dim=1)
+        full_feature = torch.cat([target_category_features, image_features], dim=1)
 
-            embedded_image_category = self.pointwise_conv(full_feature) #TODO this is 64x7x7 is this a good architecture choice?
-
-
-            c1, c2, c3, c4, _ = intermediate_features
-            d5 = self.depth_up1(embedded_image_category)
-            d5_ = _upsample_add(d5, c4)
-            d4 = self.depth_up2(d5_)
-            d4_ = _upsample_add(d4, c3)
-            d3 = self.depth_up3(d4_)
-            d3_ = _upsample_add(d3, c2)
-            d2 = self.depth_up4(d3_)
-            d2_ = _upsample_add(d2, c1)
-            object_mask = self.depth_up5(d2_)
+        embedded_image_category = self.pointwise_conv(full_feature) #TODO this is 64x7x7 is this a good architecture choice?
 
 
-            assert object_mask.shape[1] == 2
+        c1, c2, c3, c4, _ = intermediate_features
+        d5 = self.depth_up1(embedded_image_category)
+        d5_ = _upsample_add(d5, c4)
+        d4 = self.depth_up2(d5_)
+        d4_ = _upsample_add(d4, c3)
+        d3 = self.depth_up3(d4_)
+        d3_ = _upsample_add(d3, c2)
+        d2 = self.depth_up4(d3_)
+        d2_ = _upsample_add(d2, c1)
+        object_mask = self.depth_up5(d2_)
 
-            output = {
-                'object_mask': object_mask
-            }
+
+        assert object_mask.shape[1] == 2
+
+        output = {
+            'object_mask': object_mask
+        }
 
         return output
 

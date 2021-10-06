@@ -19,7 +19,9 @@ ARM_MIN_HEIGHT = 0.450998873
 ARM_MAX_HEIGHT = 1.8009994
 MOVE_ARM_CONSTANT = 0.05
 MOVE_ARM_HEIGHT_CONSTANT = MOVE_ARM_CONSTANT
-ARM_LENGTH = 1. #TODO is this true?
+ARM_LENGTH = 1.
+# According to the following it is 0.94 to be precise. But close enough
+# controller.reset('FloorPlan2');controller.step('RotateRight');controller.step('MoveArmBase', y=1);controller.step('MoveArm', position=dict(x=0,y=0,z=1));controller.step('Pass');controller.last_event.metadata['arm']['joints'][-1]
 
 ADITIONAL_ARM_ARGS = {
     "disableRendering": True,
