@@ -133,6 +133,8 @@ VALID_OBJECT_LIST = [
 ]
 
 import json
-
-with open("datasets/apnd-dataset/starting_pose.json") as f:
-    ARM_START_POSITIONS = json.load(f)
+try:
+    with open("datasets/apnd-dataset/starting_pose.json") as f:
+        ARM_START_POSITIONS = json.load(f)
+except Exception:
+    print('Couldnt find initial poses')

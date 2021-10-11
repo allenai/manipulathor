@@ -110,8 +110,42 @@ class NoisyObjectMask(Sensor):
             fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
         fake_mask = (np.expand_dims(fake_mask.astype(np.float),axis=-1))
         fake_mask = add_mask_noise(result, fake_mask, noise=self.noise)
-        resized_mask = cv2.resize(fake_mask, (self.height, self.width)).reshape(self.width, self.height, 1) #TODO my gut says this is gonna be slow
+        current_shape = fake_mask.shape
+        if (current_shape[0], current_shape[1]) == (self.width, self.height):
+            resized_mask = fake_mask
+        else:
+            resized_mask = cv2.resize(fake_mask, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
         return resized_mask
+
+
+class NoisyObjectRegion(NoisyObjectMask):
+    def __init__(self, type: str,noise, region_size,height, width,  uuid: str = "object_mask", distance_thr: float = -1, **kwargs: Any):
+        super().__init__(**prepare_locals_for_super(locals()))
+        self.region_size = region_size
+        assert self.region_size == 14, 'the following need to be changed'
+        # self.avgpool = torch.nn.AvgPool2d(16, stride=16)
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+
+        mask = super(type(self), self).get_observation(env, task, *args, **kwargs)
+
+
+        region = cv2.resize(mask, (self.region_size, self.region_size))
+        region = (region > 0.1).astype(float).reshape(self.region_size, self.region_size, 1)
+        assert self.region_size == 14, 'the folliowing number wont work'
+        number_of_repeat = 16
+        region = region.repeat(number_of_repeat, axis=0).repeat(number_of_repeat, axis=1)
+
+        #
+        # with torch.no_grad():  this takes  forever
+        #     region = torch.tensor(mask).permute(2, 0, 1)
+        #     region = self.avgpool(region)
+        #     region = (region > 0.1).float()
+        #     region = torch.nn.functional.interpolate(region.unsqueeze(0), (self.width, self.height)).squeeze(0).permute(1,2,0)
+
+        return region
 
 
 def add_mask_noise(result, fake_mask, noise):

@@ -21,13 +21,14 @@ from allenact.base_abstractions.misc import ActorCriticOutput
 from allenact.embodiedai.models.basic_models import RNNStateEncoder
 from allenact.utils.model_utils import make_cnn, compute_cnn_output
 from gym.spaces.dict import Dict as SpaceDict
+from torch import nn
 
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.model_utils import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization
 
 
-class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
+class MemoryWGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -58,18 +59,25 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         """
         super().__init__(action_space=action_space, observation_space=observation_space)
         self.visualize = visualize
+        self.MEMORY_SIZE = 5
 
         self._hidden_size = hidden_size
         self.object_type_embedding_size = obj_state_embedding_size
 
         # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32, 16], 'kernel_sizes': [(7,7), (4, 4), (3, 3), (3, 3)], 'strides': [(4, 4), (2, 2), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1), (1, 1)], 'output_height': 10, 'output_width': 10, 'output_channels': 16, 'flatten': False, 'output_relu': False} #TODO I have removed relu
         self.full_visual_encoder = make_cnn(**network_args)
+
+        network_args = {'input_channels': self.MEMORY_SIZE * 16, 'layer_channels': [80, 32, 16], 'kernel_sizes': [(1, 1), (1, 1), (1, 1)], 'strides': [(1, 1), (1, 1), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 10, 'output_width': 10, 'output_channels': 16, 'flatten': False, 'output_relu': False}
+        self.combine_memory = make_cnn(**network_args)
+
+        network_args = {'input_channels': 2 * 16, 'layer_channels': [32, 16], 'kernel_sizes': [(1, 1), (1, 1)], 'strides': [(1, 1), (1, 1),], 'paddings': [(0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1)], 'output_height': 10, 'output_width': 10, 'output_channels': 16, 'flatten': False, 'output_relu': False}
+        self.combine_current_with_memory = make_cnn(**network_args)
 
         # self.detection_model = ConditionalDetectionModel()
 
         self.state_encoder = RNNStateEncoder(
-            512,
+            16 * 10 * 10,
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -84,6 +92,7 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
 
         self.starting_time = datetime.now().strftime("{}_%m_%d_%Y_%H_%M_%S_%f".format(self.__class__.__name__))
 
+        self.action_space = action_space
 
 
     @property
@@ -105,7 +114,24 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
                     ("hidden", self.recurrent_hidden_state_size),
                 ),
                 torch.float32,
-            )
+            ),
+            prev_memory=(
+                (
+                    ("sampler", None),
+                    ("channels", self.MEMORY_SIZE * 16),
+                    ("height", 10),
+                    ("width", 10),
+                ),
+                torch.float32,
+            ),
+            prev_action=( #TODO add this later
+                (
+                    ("sampler", None),
+                    ("channels", self.MEMORY_SIZE),
+                    ("hidden", self.action_space.n),
+                ),
+                torch.float32,
+            ),
         )
 
     def forward(  # type:ignore
@@ -149,19 +175,58 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         gt_mask = source_object_mask
         gt_mask[after_pickup] = destination_object_mask[after_pickup]
         visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
+        seq_len, b_size, w, h, _ = visual_observation.shape
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
+        previous_steps_memory = memory.tensor("prev_memory").unsqueeze(0)
+
+        # if b_size > 1:
+        #     previous_steps_memory = previous_steps_memory.unsqueeze(0) #num_samplers is stacked on first element for some reason #TODO WTF
+        if seq_len == 1:
+            converted_previous_steps_memory = previous_steps_memory.permute(0, 1, 3, 4, 2) #It has to be channel last
+            previous_steps_memory_encoding = compute_cnn_output(self.combine_memory, converted_previous_steps_memory)
+
+            memory_and_visual_observation_encoding = compute_cnn_output(self.combine_current_with_memory, torch.cat([visual_observation_encoding, previous_steps_memory_encoding], dim=2).permute(0, 1, 3, 4, 2))
+
+            flattened_memory_and_visual_observation_encoding = (memory_and_visual_observation_encoding).view(1, b_size, -1).contiguous()
+            x_out, current_rnn = self.state_encoder(
+                flattened_memory_and_visual_observation_encoding, memory.tensor("rnn"), masks
+            )
+            new_memory = torch.cat([previous_steps_memory[:, :, 16:], visual_observation_encoding], dim=2)
+        else:
+            # We have to remake the memory, therefore
+            #TODO this is gonna be very slow? what is even the point of doing this if we are gonna do this
+            current_rnn = memory.tensor("rnn")
+            all_x_outs = []
+            for i in range(seq_len):
+                converted_memory = previous_steps_memory.permute(0, 1, 3, 4, 2)
+                current_visual_obs = visual_observation_encoding[i:i+1]
+                previous_steps_memory_encoding = compute_cnn_output(self.combine_memory, converted_memory)
+                memory_and_visual_observation_encoding = compute_cnn_output(self.combine_current_with_memory, torch.cat([current_visual_obs, previous_steps_memory_encoding], dim=2).permute(0, 1, 3, 4, 2))
+                flattened_memory_and_visual_observation_encoding = (memory_and_visual_observation_encoding).view(1, b_size, -1).contiguous()
+                current_x_out, current_rnn = self.state_encoder(
+                    flattened_memory_and_visual_observation_encoding, current_rnn, masks[i:i+1]
+                )
+                all_x_outs.append(current_x_out)
+                previous_steps_memory = torch.cat([previous_steps_memory[:, :, 16:], current_visual_obs], dim=2)
+            new_memory = previous_steps_memory
+            x_out = torch.cat(all_x_outs, dim=0)
 
 
-        x_out, rnn_hidden_states = self.state_encoder(
-            visual_observation_encoding, memory.tensor("rnn"), masks
-        )
+        # update memory
+        memory = memory.set_tensor("rnn", current_rnn)
+        memory = memory.set_tensor("prev_memory", new_memory.squeeze(0))
+
+
+
 
 
         # I think we need two model one for pick up and one for drop off
 
         actor_out_pickup = self.actor_pickup(x_out)
         critic_out_pickup = self.critic_pickup(x_out)
+
+
 
 
         actor_out_final = actor_out_pickup
@@ -173,7 +238,8 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
             distributions=actor_out, values=critic_out_final, extras={}
         )
 
-        memory = memory.set_tensor("rnn", rnn_hidden_states)
+
+
 
         # TODO really bad design
         if self.visualize:

@@ -12,5 +12,5 @@ class BigBigExploreRGBDWithPickupMoreExploreExp(
 
     def __init__(self):
         super().__init__()
-        self.REWARD_CONFIG['exploration_reward'] = 0.5 #TODO is this a good value?
+        self.REWARD_CONFIG['exploration_reward'] = 0.5 # is this a good value?
 

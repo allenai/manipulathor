@@ -84,7 +84,7 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
         self.train()
         # self.detection_model.eval()
 
-        self.metrics = {'mask_loss':[], 'per_category':{}, 'confusion_matrix':{}, 'object_appeared':{}, 'average_pixel_appearance': {}} #TODO can it be any worse?
+
 
         self.object_detected_per_episode = {}
         self.all_episode_names = set()
@@ -128,10 +128,9 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
                 rl_model_state_dict[key].copy_(param)
 
     def get_detection_masks(self, query_images, images):
-        # self.detection_model.eval()
-        # with torch.no_grad():
-        #TODO remove
-        if True:
+        self.detection_model.eval()
+        with torch.no_grad():
+
             images = images.permute(0,1,4,2,3) #Turn wxhxc to cxwxh
 
             batch, seqlen, c, w, h = images.shape
@@ -239,7 +238,7 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
 
         actor_critic_output.extras['predicted_mask'] = predicted_masks.detach()
 
-        #TODO we might have to only do this in test
+        # TODO we might have to only do this in test
         if self.visualize:
             self.calc_losses(observations, actor_critic_output)
 
@@ -297,6 +296,10 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
             object_appeared = 0
         else:
             object_appeared = 1
+        try:
+            self.metrics
+        except Exception:
+            self.metrics = {'mask_loss':[], 'per_category':{}, 'confusion_matrix':{}, 'object_appeared':{}, 'average_pixel_appearance': {}} # can it be any worse?
         self.metrics['object_appeared'].setdefault(object_name, [])
         self.metrics['object_appeared'][object_name].append(object_appeared)
         self.metrics['average_pixel_appearance'].setdefault(object_name, [])

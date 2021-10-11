@@ -49,7 +49,7 @@ class ExploreWiseRewardTaskObjNav(BringObjectTask):
         super().__init__(**kwargs)
         all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions(self.env.controller)]
         self.all_reachable_positions = torch.Tensor(all_locations)
-        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1)) #TODO do something about rotation here
+        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1)) # do something about rotation here
         self.source_observed_reward = False
         self.goal_observed_reward = False
 

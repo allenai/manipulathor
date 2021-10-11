@@ -28,7 +28,7 @@ class NoPickUpRGBDMaskOnlyClose(
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
     NOISE_LEVEL = 0
-    distance_thr = 1.5 #TODO is this a good number?
+    distance_thr = 1.5 # is this a good number?
     SENSORS = [
         RGBSensorThor(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,

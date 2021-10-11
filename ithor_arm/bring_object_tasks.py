@@ -530,7 +530,7 @@ class NoPickUPExploreBringObjectTask(BringObjectTask):
         super().__init__(**kwargs)
         all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions(self.env.controller)]
         self.all_reachable_positions = torch.Tensor(all_locations)
-        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1)) #TODO do something about rotation here
+        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
     def judge(self) -> float:
         """Compute the reward after having taken a step."""
         reward = self.reward_configs["step_penalty"]
@@ -593,7 +593,7 @@ class WPickUPExploreBringObjectTask(WPickUpBringObjectTask):
         super().__init__(**kwargs)
         all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions(self.env.controller)]
         self.all_reachable_positions = torch.Tensor(all_locations)
-        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1)) #TODO do something about rotation here
+        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
     def judge(self) -> float:
         """Compute the reward after having taken a step."""
         reward = self.reward_configs["step_penalty"]
@@ -655,7 +655,7 @@ class ExploreWiseRewardTask(BringObjectTask):
         super().__init__(**kwargs)
         all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions(self.env.controller)]
         self.all_reachable_positions = torch.Tensor(all_locations)
-        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1)) #TODO do something about rotation here
+        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
         self.source_observed_reward = False
         self.goal_observed_reward = False
     def metrics(self) -> Dict[str, Any]:
@@ -718,7 +718,7 @@ class ExploreWiseRewardTask(BringObjectTask):
 
 
         current_obj_to_arm_distance = self.arm_distance_from_obj()
-        if self.last_arm_to_obj_distance is None or self.last_arm_to_obj_distance > ARM_LENGTH * 2: #TODO is this good?
+        if self.last_arm_to_obj_distance is None or self.last_arm_to_obj_distance > ARM_LENGTH * 2: # is this good?
             delta_arm_to_obj_distance_reward = 0
         else:
             delta_arm_to_obj_distance_reward = (

@@ -21,7 +21,7 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
     """The base config for all iTHOR PointNav experiments."""
 
     TASK_SAMPLER = TaskSampler
-    TASK_TYPE = Task #TODO need to define this for all of them
+    TASK_TYPE = Task
     VISUALIZE = False
     if platform.system() == "Darwin":
         VISUALIZE = True

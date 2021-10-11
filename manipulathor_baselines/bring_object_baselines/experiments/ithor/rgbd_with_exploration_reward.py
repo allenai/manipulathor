@@ -20,4 +20,4 @@ class RGBDWithPickupMoreExploreExp(
 
     def __init__(self):
         super().__init__()
-        self.REWARD_CONFIG['exploration_reward'] = 0.05 #TODO is this a good value?
+        self.REWARD_CONFIG['exploration_reward'] = 0.05 # is this a good value?

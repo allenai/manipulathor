@@ -4,9 +4,9 @@ import gym
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn
 
-from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor
+from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectRegion, NoGripperRGBSensorThor
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
-from ithor_arm.bring_object_tasks import WPickUPExploreBringObjectTask
+from ithor_arm.bring_object_tasks import WPickUPExploreBringObjectTask, ExploreWiseRewardTask
 from ithor_arm.ithor_arm_constants import ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
 from ithor_arm.ithor_arm_sensors import (
     InitialAgentArmToObjectSensor,
@@ -21,7 +21,8 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 
 
-class WithPickUpExploreRGBDMaskOnlyClose(
+
+class ComplexRewardNoPU(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -30,38 +31,43 @@ class WithPickUpExploreRGBDMaskOnlyClose(
     input."""
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
+    screen_size = 224
+    region_size = 14
     SENSORS = [
         RGBSensorThor(
-            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            height=screen_size,
+            width=screen_size,
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
         DepthSensorThor(
-            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            height=screen_size,
+            width=screen_size,
             use_normalization=True,
             uuid="depth_lowres",
         ),
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
-        NoisyObjectMask(noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
-        NoisyObjectMask(noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
+        NoisyObjectRegion(region_size=region_size,height=screen_size, width=screen_size,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
+        NoisyObjectRegion(region_size=region_size,height=screen_size, width=screen_size,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
     ]
 
     MAX_STEPS = 200
 
     TASK_SAMPLER = DiverseBringObjectTaskSampler
-    TASK_TYPE = WPickUPExploreBringObjectTask
+    TASK_TYPE = ExploreWiseRewardTask
+
     NUM_PROCESSES = 40
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
 
+
     def __init__(self):
         super().__init__()
-        self.REWARD_CONFIG['exploration_reward'] = 0.05 # is this a good value?
+        self.REWARD_CONFIG['exploration_reward'] = 0.1
+        self.REWARD_CONFIG['object_found'] = 1
 
 
 

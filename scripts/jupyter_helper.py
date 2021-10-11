@@ -7,8 +7,7 @@ import ai2thor.fifo_server
 
 
 ### CONSTANTS
-
-
+from scripts.utils.ithor_arm_constants import MOVE_THR
 
 ADITIONAL_ARM_ARGS = {
     'disableRendering': True,
@@ -132,7 +131,7 @@ def get_reachable_positions(controller):
         print('Scene name', controller.last_event.metadata['sceneName'])
         pdb.set_trace()
     return reachable_positions
-def execute_command(controller, command,action_dict_addition):
+def execute_command(controller, command,action_dict_addition=ADITIONAL_ARM_ARGS):
 
     base_position = get_current_arm_state(controller)
     change_height = ARM_MOVE_CONSTANT
@@ -266,3 +265,40 @@ def find_arm_distance_to_obj(controller, object_type):
     hand_location = controller.last_event.metadata['arm']['joints'][-1]['position']
     distance = sum([(hand_location[k] - object_location[k]) ** 2 for k in hand_location])**0.5
     return distance
+
+def close_enough(current_obj_pose, init_obj_pose, threshold):
+    position_close = [
+        abs(current_obj_pose["position"][k] - init_obj_pose["position"][k])
+        <= threshold
+        for k in ["x", "y", "z"]
+    ]
+    position_is_close = sum(position_close) == 3
+    rotation_close = [
+        abs(current_obj_pose["rotation"][k] - init_obj_pose["rotation"][k])
+        <= threshold
+        for k in ["x", "y", "z"]
+    ]
+    rotation_is_close = sum(rotation_close) == 3
+    return position_is_close and rotation_is_close
+
+def get_objects_moved(controller, initial_object_locations):
+    current_object_locations = get_current_object_locations(controller)
+    moved_objects = []
+    for object_id in current_object_locations.keys():
+        if not close_enough(
+                current_object_locations[object_id],
+                initial_object_locations[object_id],
+                threshold=MOVE_THR,
+        ):
+            moved_objects.append(object_id)
+
+    return moved_objects
+
+def get_current_object_locations(controller):
+    obj_loc_dict = {}
+    metadata = controller.last_event.metadata["objects"]
+    for o in metadata:
+        obj_loc_dict[o["objectId"]] = dict(
+            position=o["position"], rotation=o["rotation"]
+        )
+    return copy.deepcopy(obj_loc_dict)

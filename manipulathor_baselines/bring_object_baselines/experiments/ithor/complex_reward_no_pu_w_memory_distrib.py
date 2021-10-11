@@ -1,7 +1,7 @@
 import platform
-from typing import Optional, Sequence
 
 import gym
+import torch
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn
 
@@ -19,38 +19,24 @@ from ithor_arm.ithor_arm_viz import MaskImageVisualizer
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
-from manipulathor_baselines.bring_object_baselines.experiments.ithor.complex_reward_no_pu import ComplexRewardNoPU
+from manipulathor_baselines.bring_object_baselines.experiments.ithor.complex_reward_no_pu_w_memory import ComplexRewardNoPUWMemory
+from manipulathor_baselines.bring_object_baselines.models.gt_mask_with_memory_model import MemoryWGtMaskRGBDModel
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 
 
 
-class ComplexRewardNoPUDistrib(
-    ComplexRewardNoPU
+class ComplexRewardNoPUWMemory(
+    ComplexRewardNoPUWMemory
 ):
-    # def __init__(
-    #         self,
-    #         distributed_nodes: int = 1,
-    #         num_train_processes: Optional[int] = None,
-    #         train_gpu_ids: Optional[Sequence[int]] = None,
-    #         val_gpu_ids: Optional[Sequence[int]] = None,
-    #         test_gpu_ids: Optional[Sequence[int]] = None,
-    # ):
-    #     super().__init__(num_train_processes, train_gpu_ids, val_gpu_ids, test_gpu_ids)
-    #     self.distributed_nodes = distributed_nodes
+    NUM_PROCESSES = 30
     def __init__(
             self,
-            distributed_nodes: int = 1, #TODO set this somehow
-            # num_train_processes: Optional[int] = None,
-            # train_gpu_ids: Optional[Sequence[int]] = None,
-            # val_gpu_ids: Optional[Sequence[int]] = None,
-            # test_gpu_ids: Optional[Sequence[int]] = None,
+            distributed_nodes: int = 1,
     ):
         super().__init__()
         self.distributed_nodes = distributed_nodes
-        # self.train_gpu_ids = train_gpu_ids
-        # self.num_train_processes = num_train_processes
-        # self.val_gpu_ids = val_gpu_ids
-        # self.test_gpu_ids = test_gpu_ids
+        self.train_gpu_ids = tuple(range(torch.cuda.device_count())) #TODO should I do this for everyone?, should i add val
+
 
     def machine_params(self, mode="train", **kwargs):
         params = super().machine_params(mode, **kwargs)

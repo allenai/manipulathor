@@ -284,22 +284,21 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         if not event.metadata['lastActionSuccess']:
             print('ERROR: Teleport failed')
 
-            print(this_controller.last_event.metadata['sceneName'])
-            print(dict(
-                action="TeleportFull",
-                standing=True,
-                x=agent_state["position"]["x"],
-                y=agent_state["position"]["y"],
-                z=agent_state["position"]["z"],
-                rotation=dict(
-                    x=agent_state["rotation"]["x"],
-                    y=agent_state["rotation"]["y"],
-                    z=agent_state["rotation"]["z"],
-                ),
-                horizon=agent_state["cameraHorizon"],
-            ))
-            print(this_controller.last_event)
-            # ForkedPdb().set_trace() #TODO
+            # print(this_controller.last_event.metadata['sceneName'])
+            # print(dict(
+            #     action="TeleportFull",
+            #     standing=True,
+            #     x=agent_state["position"]["x"],
+            #     y=agent_state["position"]["y"],
+            #     z=agent_state["position"]["z"],
+            #     rotation=dict(
+            #         x=agent_state["rotation"]["x"],
+            #         y=agent_state["rotation"]["y"],
+            #         z=agent_state["rotation"]["z"],
+            #     ),
+            #     horizon=agent_state["cameraHorizon"],
+            # ))
+            # print(this_controller.last_event)
 
 
         should_visualize_goal_start = [

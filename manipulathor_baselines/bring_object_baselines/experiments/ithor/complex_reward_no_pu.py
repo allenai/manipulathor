@@ -30,7 +30,7 @@ class ComplexRewardNoPU(
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
     NOISE_LEVEL = 0
-    distance_thr = 1.5 #TODO is this a good number?
+    distance_thr = 1.5 # is this a good number?
     SENSORS = [
         RGBSensorThor(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
@@ -57,8 +57,6 @@ class ComplexRewardNoPU(
     TASK_TYPE = ExploreWiseRewardTask
 
     NUM_PROCESSES = 40
-    #TODO change
-    NUM_PROCESSES = 20
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
@@ -66,8 +64,8 @@ class ComplexRewardNoPU(
 
     def __init__(self):
         super().__init__()
-        self.REWARD_CONFIG['exploration_reward'] = 0.1 #TODO is this too big?
-        self.REWARD_CONFIG['object_found'] = 1 #TODO is this too big?
+        self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
+        self.REWARD_CONFIG['object_found'] = 1 # is this too big?
 
 
 

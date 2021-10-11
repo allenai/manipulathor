@@ -196,7 +196,7 @@ def execute_command(controller, command,action_dict_addition):
 
         event = controller.step(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)
         action_details=dict(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)
-        #TODO this does not work
+        # TODO this does not work
         # event = controller.step(action='MoveArm', coordinateSpace="wrist", position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)
         # action_details=dict(action='MoveArm', coordinateSpace="wrist", position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)
         success = event.metadata['lastActionSuccess']
