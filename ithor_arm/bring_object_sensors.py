@@ -1,4 +1,5 @@
 """Utility classes and functions for sensory inputs used by the models."""
+import datetime
 import glob
 import os
 import random
@@ -28,6 +29,26 @@ from manipulathor_baselines.bring_object_baselines.models.detection_model import
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.thor_category_names import thor_possible_objects
 import torchvision.transforms as transforms
+
+from utils.from_phone_to_sim.more_optimized import get_point_cloud
+from utils.from_phone_to_sim.thor_frames_to_pointcloud import frames_to_world_points, save_pointcloud_to_file, world_points_to_pointcloud
+
+class RelativeArmDistanceToGoal(Sensor):
+    def __init__(self, type: str, uuid: str = "relative_arm_dist", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        uuid = '{}_{}'.format(uuid, type)
+        super().__init__(**prepare_locals_for_super(locals()))
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        object_picked_up = something
+        if not object_picked_up:
+            info_to_search = 'source_object_id'
+        else:
+            info_to_search = 'goal_object_id'
 
 class NoGripperRGBSensorThor(RGBSensorThor):
     def frame_from_env(
@@ -61,6 +82,47 @@ class CategorySampleSensor(Sensor):
         image = task.task_info[info_to_search]
         return image
 
+class PointCloudMemory(Sensor):
+    def __init__(self,memory_size,  uuid: str = "point_cloud", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.memory_size = memory_size
+        super().__init__(**prepare_locals_for_super(locals()))
+        print('resolve todo')
+        ForkedPdb().set_trace()
+
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        assert self.memory_size == env.MEMORY_SIZE
+
+        if len(env.memory_frames) == 0:
+            return 10 #LATER_TODO
+
+        frames = [k['rgb'] for k in env.memory_frames]
+        depth_frames = [k['depth'] for k in env.memory_frames]
+        metadatas = [k['event'] for k in env.memory_frames]
+
+        #LATER_TODO
+        if False:
+            #option 2
+            pc = get_point_cloud(frames, depth_frames, metadatas)
+        else:
+            #option1
+            xyz, normals, rgb = frames_to_world_points(metadatas, frames, depth_frames)
+            pc = world_points_to_pointcloud(xyz, normals, rgb, voxel_size=0.02)
+            dir_to_save = 'experiment_output/visualization_pointcloud/'
+            os.makedirs(dir_to_save, exist_ok=True)
+            timesmap = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S_%f.ply")
+            # if random.random() < 1/5.:
+            #     save_pointcloud_to_file(pc, os.path.join(dir_to_save, timesmap))
+            #     print('saved pointcloud', os.path.join(dir_to_save, timesmap))
+            # #LATER_TODO we probably need to convert this back to agent's coordinate frame
+            # ForkedPdb().set_trace()
+        return 10
 
 class NoisyObjectMask(Sensor):
     def __init__(self, type: str,noise, height, width,  uuid: str = "object_mask", distance_thr: float = -1, **kwargs: Any):

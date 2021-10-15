@@ -7,7 +7,9 @@ import ai2thor.fifo_server
 
 
 ### CONSTANTS
-from scripts.utils.ithor_arm_constants import MOVE_THR
+# from scripts.utils.ithor_arm_constants import MOVE_THR
+# from ithor_arm.ithor_arm_constants import MOVE_THR
+MOVE_THR = 0.01
 
 ADITIONAL_ARM_ARGS = {
     'disableRendering': True,
@@ -220,19 +222,20 @@ def get_current_arm_state(controller):
     #     print_error([x['position']['y'] for x in joints])
     return xyz_dict
 
-def two_list_equal(l1, l2):
+def two_list_equal(l1, l2, threshold, ignore_keys, verbose):
     dict1 = {i: v for (i,v) in enumerate(l1)}
     dict2 = {i: v for (i,v) in enumerate(l2)}
-    return two_dict_equal(dict1, dict2)
+    return two_dict_equal(dict1, dict2, threshold, ignore_keys, verbose)
 
 
 def get_current_full_state(controller):
     return {'agent_position':controller.last_event.metadata['agent']['position'], 'agent_rotation':controller.last_event.metadata['agent']['rotation'], 'arm_state': controller.last_event.metadata['arm']['joints'], 'held_object': controller.last_event.metadata['arm']['HeldObjects']}
 
 
-def two_dict_equal(dict1, dict2, threshold=0.001, ignore_keys=[]):
+def two_dict_equal(dict1, dict2, threshold=0.001, ignore_keys=[], verbose=False):
     if len(dict1) != len(dict2):
-        print('different len', dict1, dict2)
+        if verbose:
+            print('different len', dict1, dict2)
         return False
     # assert len(dict1) == len(dict2), print('different len', dict1, dict2)
     equal = True
@@ -242,13 +245,14 @@ def two_dict_equal(dict1, dict2, threshold=0.001, ignore_keys=[]):
         val1 = dict1[k]
         val2 = dict2[k]
         if not (type(val1) == type(val2) or (type(val1) in [int, float] and type(val2) in [int, float])):
-            print('different type', dict1, dict2)
+            if verbose:
+                print('different type', dict1, dict2)
             return False
         # assert type(val1) == type(val2) or (type(val1) in [int, float] and type(val2) in [int, float]), ()
         if type(val1) == dict:
-            equal = two_dict_equal(val1, val2)
+            equal = two_dict_equal(val1, val2, threshold = threshold, verbose=verbose, ignore_keys=ignore_keys)
         elif type(val1) == list:
-            equal = two_list_equal(val1, val2)
+            equal = two_list_equal(val1, val2 , threshold, ignore_keys, verbose)
         # elif val1 != val1: # Either nan or -inf
         #     equal = val2 != val2
         elif type(val1) == float:
@@ -256,7 +260,8 @@ def two_dict_equal(dict1, dict2, threshold=0.001, ignore_keys=[]):
         else:
             equal = (val1 == val2)
         if not equal:
-            print('not equal', 'key', k, 'values', val1, val2)
+            if verbose:
+                print('not equal', 'key', k, 'values', val1, val2)
             return equal
     return equal
 
@@ -273,7 +278,7 @@ def close_enough(current_obj_pose, init_obj_pose, threshold):
         for k in ["x", "y", "z"]
     ]
     position_is_close = sum(position_close) == 3
-    rotation_close = [
+    rotation_close = [ #TODO we need to do something about this. Per discussion with Tianwei
         abs(current_obj_pose["rotation"][k] - init_obj_pose["rotation"][k])
         <= threshold
         for k in ["x", "y", "z"]
@@ -285,6 +290,8 @@ def get_objects_moved(controller, initial_object_locations):
     current_object_locations = get_current_object_locations(controller)
     moved_objects = []
     for object_id in current_object_locations.keys():
+        if object_id not in initial_object_locations:
+            print('This is messed up', object_id, 'not exists')
         if not close_enough(
                 current_object_locations[object_id],
                 initial_object_locations[object_id],

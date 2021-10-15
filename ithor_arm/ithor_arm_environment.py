@@ -20,7 +20,7 @@ from ithor_arm.ithor_arm_constants import (
     MOVE_ARM_CONSTANT,
     MANIPULATHOR_COMMIT_ID,
     reset_environment_and_additional_commands,
-    MOVE_THR, PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M,
+    MOVE_THR, PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, SET_OF_ALL_AGENT_ACTIONS,
 )
 from manipulathor_utils.debugger_util import ForkedPdb
 
@@ -38,21 +38,21 @@ class ManipulaTHOREnvironment(IThorEnvironment):
     """
 
     def __init__(
-        self,
-        x_display: Optional[str] = None,
-        docker_enabled: bool = False,
-        local_thor_build: Optional[str] = None,
-        visibility_distance: float = VISIBILITY_DISTANCE,
-        fov: float = FOV,
-        player_screen_width: int = 224,
-        player_screen_height: int = 224,
-        quality: str = "Very Low",
-        restrict_to_initially_reachable_points: bool = False,
-        make_agents_visible: bool = True,
-        object_open_speed: float = 1.0,
-        simplify_physics: bool = False,
-        verbose: bool = False,
-        env_args=None,
+            self,
+            x_display: Optional[str] = None,
+            docker_enabled: bool = False,
+            local_thor_build: Optional[str] = None,
+            visibility_distance: float = VISIBILITY_DISTANCE,
+            fov: float = FOV,
+            player_screen_width: int = 224,
+            player_screen_height: int = 224,
+            quality: str = "Very Low",
+            restrict_to_initially_reachable_points: bool = False,
+            make_agents_visible: bool = True,
+            object_open_speed: float = 1.0,
+            simplify_physics: bool = False,
+            verbose: bool = False,
+            env_args=None,
     ) -> None:
         """Initializer.
 
@@ -116,10 +116,14 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         # noinspection PyTypeHints
         self.controller.docker_enabled = docker_enabled  # type: ignore
 
+        self.MEMORY_SIZE = 5
+        #TODO remove this if we end up not using it
+        self.memory_frames = []
+
     def check_controller_version(self):
         if MANIPULATHOR_COMMIT_ID is not None:
             assert (
-                MANIPULATHOR_COMMIT_ID in self.controller._build.url
+                    MANIPULATHOR_COMMIT_ID in self.controller._build.url
             ), "Build number is not right, {} vs {}, use  pip3 install -e git+https://github.com/allenai/ai2thor.git@{}#egg=ai2thor".format(
                 self.controller._build.url,
                 MANIPULATHOR_COMMIT_ID,
@@ -132,10 +136,10 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         return controller
 
     def start(
-        self,
-        scene_name: Optional[str],
-        move_mag: float = 0.25,
-        **kwargs,
+            self,
+            scene_name: Optional[str],
+            move_mag: float = 0.25,
+            **kwargs,
     ) -> None:
         """Starts the ai2thor controller if it was previously stopped.
 
@@ -155,8 +159,8 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         self.controller = self.create_controller()
 
         if (
-            self._start_player_screen_height,
-            self._start_player_screen_width,
+                self._start_player_screen_height,
+                self._start_player_screen_width,
         ) != self.current_frame.shape[:2]:
             self.controller.step(
                 {
@@ -170,13 +174,14 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         self.reset(scene_name=scene_name, move_mag=move_mag, **kwargs)
 
     def reset(
-        self,
-        scene_name: Optional[str],
-        move_mag: float = 0.25,
-        **kwargs,
+            self,
+            scene_name: Optional[str],
+            move_mag: float = 0.25,
+            **kwargs,
     ):
         self._move_mag = move_mag
         self._grid_size = self._move_mag
+        self.memory_frames = []
 
         if scene_name is None:
             scene_name = self.controller.last_event.metadata["sceneName"]
@@ -212,7 +217,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         self.list_of_actions_so_far = []
 
     def randomize_agent_location(
-        self, seed: int = None, partial_position: Optional[Dict[str, float]] = None
+            self, seed: int = None, partial_position: Optional[Dict[str, float]] = None
     ) -> Dict:
         raise Exception("not used")
 
@@ -310,16 +315,29 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         moved_objects = []
         for object_id in current_object_locations.keys():
             if not self.close_enough(
-                current_object_locations[object_id],
-                initial_object_locations[object_id],
-                threshold=MOVE_THR,
+                    current_object_locations[object_id],
+                    initial_object_locations[object_id],
+                    threshold=MOVE_THR,
             ):
                 moved_objects.append(object_id)
 
         return moved_objects
-
+    def update_memory(self):
+        rgb = self.controller.last_event.frame.copy()
+        depth = self.controller.last_event.depth_frame.copy()
+        event = copy.deepcopy(self.controller.last_event.metadata)
+        # depth = depth[...,np.newaxis]
+        current_frame = {
+            'rgb': rgb,
+            'depth': depth,
+            'event':event,
+        }
+        if len(self.memory_frames) == 0:
+            self.memory_frames = [current_frame for _ in range(self.MEMORY_SIZE)]
+        else:
+            self.memory_frames = self.memory_frames[1:] + [current_frame]
     def step(
-        self, action_dict: Dict[str, Union[str, int, float]]
+            self, action_dict: Dict[str, Union[str, int, float]]
     ) -> ai2thor.server.Event:
         """Take a step in the ai2thor environment."""
         action = typing.cast(str, action_dict["action"])
@@ -345,8 +363,8 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                             "heldObjects"
                         ]
                         if (
-                            len(object_inventory) > 0
-                            and object_id not in object_inventory
+                                len(object_inventory) > 0
+                                and object_id not in object_inventory
                         ):
                             print('Picked up the wrong object')
                             event = self.step(dict(action="ReleaseObject"))
@@ -403,8 +421,13 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                     k: v for (k, v) in base_position.items() if k in ["x", "y", "z"]
                 }
 
+
+
         sr = self.controller.step(action_dict)
         self.list_of_actions_so_far.append(action_dict)
+
+        if action in SET_OF_ALL_AGENT_ACTIONS:
+            self.update_memory()
 
         if self._verbose:
             print(self.controller.last_event)
