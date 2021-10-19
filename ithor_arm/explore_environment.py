@@ -115,12 +115,15 @@ class ExploreEnvironment(IThorEnvironment):
         # noinspection PyTypeHints
         self.controller.docker_enabled = docker_enabled  # type: ignore
 
-
-
-
     def create_controller(self):
-        #TODO @samir add your environment initialization here
-        controller = Controller(some_env_args)
+        # NOTE @samir add your environment initialization here
+        controller = Controller(
+            commit_id="6f13532966080a051127167c6eb2117e47d96f3a",
+            height=224,
+            width=224,
+            renderInstanceSegmentation=False,
+            renderDepthImage=False,
+            quality="Very Low")
 
         return controller
 
@@ -182,8 +185,15 @@ class ExploreEnvironment(IThorEnvironment):
             self.controller.reset(scene_name)
         except Exception as e:
             print("RESETTING THE SCENE,", scene_name, 'because of', str(e))
+            # NOTE @samir
             self.controller = ai2thor.controller.Controller(
-                SAME AS ABOVE
+                controller = Controller(
+                commit_id="6f13532966080a051127167c6eb2117e47d96f3a",
+                height=224,
+                width=224,
+                renderInstanceSegmentation=False,
+                renderDepthImage=True,
+                quality="Very Low")
             )
             self.controller.reset(scene_name)
 
@@ -210,14 +220,12 @@ class ExploreEnvironment(IThorEnvironment):
     ) -> Dict:
         raise Exception("not used")
 
-
     def get_object_by_id(self, object_id: str) -> Optional[Dict[str, Any]]:
         for o in self.last_event.metadata["objects"]:
             if o["objectId"] == object_id:
                 o["position"] = self.correct_nan_inf(o["position"], "obj id")
                 return o
         return None
-
 
     def get_current_object_locations(self):
         obj_loc_dict = {}
@@ -227,7 +235,6 @@ class ExploreEnvironment(IThorEnvironment):
                 position=o["position"], rotation=o["rotation"]
             )
         return copy.deepcopy(obj_loc_dict)
-
 
     def step(
             self, action_dict: Dict[str, Union[str, int, float]]
@@ -243,18 +250,20 @@ class ExploreEnvironment(IThorEnvironment):
         if self.simplify_physics:
             action_dict["simplifyOPhysics"] = True
         if action == MOVE_AHEAD:
-            #TODO @samir add action you want
+            # NOTE @samir add action you want
             action_dict['action'] = 'MoveAhead'
             pass
-        if action == MOVE_BACK:
-            #TODO @samir add action you want
+        if action == ROTATE_RIGHT:
+            # NOTE @samir add action you want
+            action_dict['action'] = 'RotateRight'
             pass
-        #TODO @samir and the rest
-
+        if action == ROTATE_LEFT:
+            # NOTE @samir add action you want
+            action_dict['action'] = 'RotateLeft'
+            pass
 
         sr = self.controller.step(action_dict)
         self.list_of_actions_so_far.append(action_dict)
-
 
         if self.restrict_to_initially_reachable_points:
             self._snap_agent_to_initially_reachable()

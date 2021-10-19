@@ -1,0 +1,16 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "kiana",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/samirg/.local/bin/allenact",
+            "args": ["manipulathor_baselines/only_exploration/experiments/ithor/complex_reward_no_pu.py", "-s", "1"],
+            "console": "integratedTerminal"
+        }
+    ]
+}

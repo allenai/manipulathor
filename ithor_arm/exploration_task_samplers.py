@@ -143,9 +143,9 @@ class ExploreTaskSampler(TaskSampler):
         self.env.reset(
             scene_name=scene_name#, agentMode="arm", agentControllerType="mid-level"
         )
-        #TODO @samir you can use or not use the following up to you
-        # self.env.step(dict(action="RandomizeMaterials"))
-        # self.env.step(dict(action="RandomizeLighting"))
+        #NOTE @samir you can use or not use the following up to you
+        self.env.step(dict(action="RandomizeMaterials"))
+        self.env.step(dict(action="RandomizeLighting"))
 
 
 
@@ -162,7 +162,7 @@ class ExploreTaskSampler(TaskSampler):
         if self.sampler_mode != "train" and self.length <= 0:
             return None
 
-        scene_name = random.coice(self.scenes)
+        scene_name = random.choice(self.scenes)
         self.reset_scene(scene_name)
         possible_agent_locations_in_scene = get_reachable_positions(self.env.controller)
         agent_state = random.choice(possible_agent_locations_in_scene)
@@ -179,10 +179,10 @@ class ExploreTaskSampler(TaskSampler):
                 z=agent_state["z"],
                 rotation=dict(
                     x=0,
-                    y=random.choice([i for i in range(0, 360, 30)]), #TODO @samir
+                    y=random.choice([0, 90, 180, 270]), #NOTE @samir
                     z=0,
                 ),
-                horizon=20,
+                horizon=random.choice([-30, 0, 30]),
             )
         )
 
