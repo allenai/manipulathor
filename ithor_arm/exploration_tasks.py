@@ -9,7 +9,7 @@ from allenact.base_abstractions.misc import RLStepResult
 from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import Task
 
-from ithor_arm.bring_object_tasks import BringObjectTask
+from ithor_arm.bring_object_tasks import AbstractBringObjectTask, BringObjectTask
 from ithor_arm.ithor_arm_constants import (
     MOVE_ARM_CONSTANT,
     MOVE_ARM_HEIGHT_P,
@@ -38,7 +38,7 @@ class ExploreTask(BringObjectTask):
         MOVE_AHEAD,
         ROTATE_RIGHT,
         ROTATE_LEFT,
-        #TODO add look up and look down here and also add it to the environment
+        #TODO @samir add look up and look down here and also add it to the environment
     )
     def obj_distance_from_goal(self):
         return 0
@@ -80,7 +80,7 @@ class ExploreTask(BringObjectTask):
         return float(reward)
 
     def metrics(self) -> Dict[str, Any]:
-        result = {}
+        result = super(AbstractBringObjectTask, self).metrics()
         if self.is_done():
             result['percent_room_visited'] = self.has_visited.mean()
             result["success"] = self._success
