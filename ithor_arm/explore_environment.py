@@ -192,7 +192,7 @@ class ExploreEnvironment(IThorEnvironment):
                 height=224,
                 width=224,
                 renderInstanceSegmentation=False,
-                renderDepthImage=True,
+                renderDepthImage=False,
                 quality="Very Low")
             )
             self.controller.reset(scene_name)
