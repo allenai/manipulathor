@@ -8,7 +8,7 @@ from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn, optim
 from torch.optim.lr_scheduler import LambdaLR
 
-from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor
+from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor, RelativeArmDistanceToGoal, PreviousActionTaken
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
 from ithor_arm.bring_object_tasks import WPickUPExploreBringObjectTask, ExploreWiseRewardTask
 from ithor_arm.ithor_arm_constants import ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
@@ -59,15 +59,15 @@ class ComplexRewardNoPUBinaryDistance(
         NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
         NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
         RelativeArmDistanceToGoal(),
-        GoalObjectVisible(),
-        PreviousActionTaken(actions=TASK_TYPE.action_space),
+        PreviousActionTaken(),
+        # # GoalObjectVisible(),
     ]
 
     MAX_STEPS = 200
 
 
 
-    NUM_PROCESSES = 40
+    NUM_PROCESSES = 30 #TODO replace with 40
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
@@ -110,7 +110,7 @@ class ComplexRewardNoPUBinaryDistance(
             num_mini_batch=num_mini_batch,
             update_repeats=update_repeats,
             max_grad_norm=max_grad_norm,
-            num_steps=num_steps if platform.system() != "Darwin" else 5,
+            num_steps=num_steps,#TODO if platform.system() != "Darwin" else 5,
             named_losses={"ppo_loss": PPO(**PPOConfig), "binary_arm_dist": BinaryArmDistanceLoss()},
             gamma=gamma,
             use_gae=use_gae,

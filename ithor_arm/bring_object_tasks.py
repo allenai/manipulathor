@@ -94,6 +94,7 @@ class AbstractBringObjectTask(Task[ManipulaTHOREnvironment]):
         self.got_reward_for_pickup = False
         self.reward_configs = kwargs["reward_configs"]
         self.initial_object_metadata = self.env.get_current_object_locations()
+        self._last_action_str = None
 
     @property
     def action_space(self):

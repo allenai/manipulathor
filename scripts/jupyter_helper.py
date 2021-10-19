@@ -9,7 +9,8 @@ import ai2thor.fifo_server
 ### CONSTANTS
 # from scripts.utils.ithor_arm_constants import MOVE_THR
 # from ithor_arm.ithor_arm_constants import MOVE_THR
-MOVE_THR = 0.01
+
+OBJECT_MOVEMENT_THR = 0.01
 
 ADITIONAL_ARM_ARGS = {
     'disableRendering': True,
@@ -23,13 +24,13 @@ SCENE_INDICES = [i + 1 for i in range(30)] +[i + 1 for i in range(200,230)] +[i 
 SCENE_NAMES = ['FloorPlan{}_physics'.format(i) for i in SCENE_INDICES]
 
 
-ENV_ARGS = dict(gridSize=0.25,
-                width=224, height=224, agentMode='arm', fieldOfView=100,
-                agentControllerType='mid-level',
-                server_class=ai2thor.fifo_server.FifoServer,
-                useMassThreshold = True, massThreshold = 10,
-                autoSimulation=False, autoSyncTransforms=True,
-                )
+# ENV_ARGS = dict(gridSize=0.25,
+#                 width=224, height=224, agentMode='arm', fieldOfView=100,
+#                 agentControllerType='mid-level',
+#                 server_class=ai2thor.fifo_server.FifoServer,
+#                 useMassThreshold = True, massThreshold = 10,
+#                 autoSimulation=False, autoSyncTransforms=True,
+#                 )
 
 #Functions
 
@@ -278,25 +279,32 @@ def close_enough(current_obj_pose, init_obj_pose, threshold):
         for k in ["x", "y", "z"]
     ]
     position_is_close = sum(position_close) == 3
-    rotation_close = [ #TODO we need to do something about this. Per discussion with Tianwei
-        abs(current_obj_pose["rotation"][k] - init_obj_pose["rotation"][k])
-        <= threshold
-        for k in ["x", "y", "z"]
-    ]
-    rotation_is_close = sum(rotation_close) == 3
-    return position_is_close and rotation_is_close
+    return position_is_close
 
-def get_objects_moved(controller, initial_object_locations):
+def get_objects_moved(controller, initial_object_locations, only_visible=False, only_active_moving=False):
     current_object_locations = get_current_object_locations(controller)
     moved_objects = []
+    held_objects = controller.last_event.metadata['arm']['heldObjects']
+
+    # moving_objects = [k['objectId'] for k in controller.last_event.metadata['objects'] if k['isMoving'] and k['objectId'] not in held_objects and (k['visible'] or initial_object_locations[k['objectId']]['visible'])]
+    # return moving_objects
+
     for object_id in current_object_locations.keys():
         if object_id not in initial_object_locations:
             print('This is messed up', object_id, 'not exists')
+            continue
+
         if not close_enough(
                 current_object_locations[object_id],
                 initial_object_locations[object_id],
-                threshold=MOVE_THR,
+                threshold=OBJECT_MOVEMENT_THR,
         ):
+            if not current_object_locations[object_id]['visible'] and not initial_object_locations[object_id]['visible'] and only_visible:
+                continue
+            if object_id in held_objects:
+                continue
+            if only_active_moving and not controller.last_event.get_object(object_id)['isMoving']:
+                continue
             moved_objects.append(object_id)
 
     return moved_objects
@@ -306,6 +314,6 @@ def get_current_object_locations(controller):
     metadata = controller.last_event.metadata["objects"]
     for o in metadata:
         obj_loc_dict[o["objectId"]] = dict(
-            position=o["position"], rotation=o["rotation"]
+            position=o["position"], rotation=o["rotation"], visible=o['visible']
         )
     return copy.deepcopy(obj_loc_dict)

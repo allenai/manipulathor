@@ -26,22 +26,36 @@ def make_dict_from_object(object_list):
     return result
 
 for scene in scenes:
-    print(scene)
+    # print(scene)
     controller.reset(scene)
     last_moved = -1
     total = 400
+    # total = 2 #TODO remove
     for i in range(total):
         if last_moved < 0:
             initial_object = make_dict_from_object(controller.last_event.metadata['objects'])
         controller.step('AdvancePhysicsStep')
-        final_object = make_dict_from_object(controller.last_event.metadata['objects'])
-
-        equal = two_dict_equal(final_object, initial_object, threshold=0.02, ignore_keys=[], verbose=False)
-        if equal:
-            last_moved += 1
+        # controller.step('AdvancePhysicsStep', simSeconds=200)
+        if False:
+            last_moved = 1
         else:
-            last_moved = -1
+            final_object = make_dict_from_object(controller.last_event.metadata['objects'])
+            equal = two_dict_equal(final_object, initial_object, threshold=0.02, ignore_keys=[], verbose=False)
+            if equal:
+                last_moved += 1
+            else:
+                last_moved = -1
+
+    final_object = make_dict_from_object(controller.last_event.metadata['objects'])
+    equal = two_dict_equal(final_object, initial_object, threshold=0.02, ignore_keys=[], verbose=False)
+    # if not equal:
+    #     print(scene)
+    #     for obj in initial_object:
+    #         if not two_dict_equal(initial_object[obj], final_object[obj], threshold=0.02, verbose=False):
+    #             print(obj)
+    # continue #TODO remove
     equal = two_dict_equal(final_object, initial_object, threshold=0.02, ignore_keys=[], verbose=True)
+    print(scene)
     print(total - last_moved)
     if last_moved < 200:
         print('Oh NOOOO', last_moved)

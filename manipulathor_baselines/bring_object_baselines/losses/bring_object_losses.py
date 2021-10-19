@@ -105,28 +105,38 @@ class BinaryArmDistanceLoss(AbstractActorCriticLoss):
 
 
         observations = cast(Dict[str, torch.Tensor], batch["observations"])
-        extra_model_outputs = actor_critic_output.extras
-        ForkedPdb().set_trace()
-
+        #TODO double check this
         binary_arm_distance = actor_critic_output.extras['binary_arm_distance']
-        observations['current_arm_distance']
-        observations['previous_arm_distance']
-        observations['action that was taken']
+        prev_arm_distance = observations['relative_arm_dist'][:-1]
+        current_arm_distance = observations['relative_arm_dist'][1:]
+        arm_distance = (current_arm_distance - prev_arm_distance)
+        gt_binary_arm_distance = arm_distance > 0
+
+        gt_binary_arm_distance = gt_binary_arm_distance.float()
 
 
-        assert gt_relative_agent_arm_to_obj.shape == pred_agent_arm_to_obj.shape
-        assert gt_relative_obj_to_goal.shape == pred_obj_to_goal.shape
-        ForkedPdb().set_trace()
-        loss_function = torch.nn.SmoothL1Loss() #LATER_TODO is this a good choice?
-        arm_to_obj_loss = loss_function(gt_relative_agent_arm_to_obj, pred_agent_arm_to_obj)
-        obj_to_goal_loss = loss_function(gt_relative_obj_to_goal, pred_obj_to_goal)
-        total_loss = arm_to_obj_loss + obj_to_goal_loss
+
+        mask_over_actions = observations['previous_action_taken']
+        criterion = torch.nn.BCEWithLogitsLoss()
+
+        mask_over_actions = mask_over_actions[1:]
+        binary_arm_distance = binary_arm_distance[1:]
+
+        num_steps, workers, num_actions = mask_over_actions.shape
+
+        gt_binary_arm_distance = gt_binary_arm_distance.view(num_steps * workers) #TODO seriously?
+        mask_over_actions = mask_over_actions.view(num_steps * workers, num_actions)
+        binary_arm_distance = binary_arm_distance.view(num_steps * workers, num_actions)
+
+        masked_arm_dis = binary_arm_distance[mask_over_actions]
 
 
+        #TODO weights?
+        total_loss = criterion(masked_arm_dis, gt_binary_arm_distance)
 
         return (
             total_loss,
-            {"pred_box_bce": total_loss.item(),}
+            {"binary_arm_dist": total_loss.item(),}
         )
 
 

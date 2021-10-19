@@ -131,7 +131,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
             )
 
     def create_controller(self):
-        controller = Controller(**self.env_args, commit_id=MANIPULATHOR_COMMIT_ID)
+        controller = Controller(**self.env_args)
 
         return controller
 
@@ -194,7 +194,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         except Exception as e:
             print("RESETTING THE SCENE,", scene_name, 'because of', str(e))
             self.controller = ai2thor.controller.Controller(
-                **self.env_args, commit_id=MANIPULATHOR_COMMIT_ID
+                **self.env_args
             )
             reset_environment_and_additional_commands(self.controller, scene_name)
 

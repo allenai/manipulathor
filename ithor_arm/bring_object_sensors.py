@@ -34,21 +34,38 @@ from utils.from_phone_to_sim.more_optimized import get_point_cloud
 from utils.from_phone_to_sim.thor_frames_to_pointcloud import frames_to_world_points, save_pointcloud_to_file, world_points_to_pointcloud
 
 class RelativeArmDistanceToGoal(Sensor):
-    def __init__(self, type: str, uuid: str = "relative_arm_dist", **kwargs: Any):
+    def __init__(self, uuid: str = "relative_arm_dist", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
-        self.type = type
-        uuid = '{}_{}'.format(uuid, type)
         super().__init__(**prepare_locals_for_super(locals()))
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        object_picked_up = something
-        if not object_picked_up:
-            info_to_search = 'source_object_id'
+        is_object_picked_up = task.object_picked_up
+        if not is_object_picked_up: #TODO is this the updated one or one step before?
+            distance = task.arm_distance_from_obj()
         else:
-            info_to_search = 'goal_object_id'
+            distance = task.obj_distance_from_goal()
+        return distance
+
+
+class PreviousActionTaken(Sensor):
+    def __init__(self,  uuid: str = "previous_action_taken", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        super().__init__(**prepare_locals_for_super(locals()))
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        last_action = task._last_action_str
+        action_list = task._actions
+        result = torch.zeros(len(action_list))
+        if last_action != None:
+            result[action_list.index(last_action)] = 1
+        return result.bool()
+
 
 class NoGripperRGBSensorThor(RGBSensorThor):
     def frame_from_env(
