@@ -80,7 +80,36 @@ class ExploreTask(BringObjectTask):
         return float(reward)
 
     def metrics(self) -> Dict[str, Any]:
-        result = super(type(self), self).metrics()
+        result = {}
         if self.is_done():
             result['percent_room_visited'] = self.has_visited.mean()
+            result["success"] = self._success
+            self.finish_visualizer_metrics(result)
+            self.finish_visualizer(self._success)
+            self.action_sequence_and_success = []
         return result
+    def _step(self, action: int) -> RLStepResult:
+
+        action_str = self.class_action_names()[action]
+
+        self._last_action_str = action_str
+        action_dict = {"action": action_str}
+
+        self.env.step(action_dict)
+        self.last_action_success = self.env.last_action_success
+
+        last_action_name = self._last_action_str
+        last_action_success = float(self.last_action_success)
+        self.action_sequence_and_success.append((last_action_name, last_action_success))
+        self.visualize(last_action_name)
+
+
+        step_result = RLStepResult(
+            observation=self.get_observations(),
+            reward=self.judge(),
+            done=self.is_done(),
+            info={"last_action_success": self.last_action_success},
+        )
+        return step_result
+
+

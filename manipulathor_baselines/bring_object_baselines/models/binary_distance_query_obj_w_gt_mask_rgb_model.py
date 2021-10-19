@@ -159,6 +159,7 @@ class BringObjectBinaryDistanceGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
 
         gt_mask = source_object_mask
         gt_mask[after_pickup] = destination_object_mask[after_pickup]
+        #TODO remove depth from here
         visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)

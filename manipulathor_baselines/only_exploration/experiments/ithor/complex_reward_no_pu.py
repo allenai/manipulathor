@@ -40,12 +40,12 @@ class ComplexRewardNoPU(
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
-        DepthSensorThor(
-            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            use_normalization=True,
-            uuid="depth_lowres",
-        ),
+        # DepthSensorThor(
+        #     height=BringObjectiThorBaseConfig.SCREEN_SIZE,
+        #     width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+        #     use_normalization=True,
+        #     uuid="depth_lowres",
+        # ),
     ]
 
     MAX_STEPS = 200
@@ -56,6 +56,8 @@ class ComplexRewardNoPU(
     NUM_PROCESSES = 40
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
+
+    VISUALIZE = False
 
 
 
