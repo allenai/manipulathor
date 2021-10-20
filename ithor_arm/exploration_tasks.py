@@ -23,6 +23,8 @@ from ithor_arm.ithor_arm_constants import (
     MOVE_AHEAD,
     ROTATE_RIGHT,
     ROTATE_LEFT,
+    LOOK_UP,
+    LOOK_DOWN,
     PICKUP,
     DONE, ARM_LENGTH, MOVE_BACK,
 )
@@ -38,7 +40,9 @@ class ExploreTask(BringObjectTask):
         MOVE_AHEAD,
         ROTATE_RIGHT,
         ROTATE_LEFT,
-        #TODO @samir add look up and look down here and also add it to the environment
+        LOOK_UP,
+        LOOK_DOWN
+        #NOTE @samir add look up and look down here and also add it to the environment
     )
     def obj_distance_from_goal(self):
         return 0

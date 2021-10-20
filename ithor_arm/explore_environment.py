@@ -16,9 +16,12 @@ from ithor_arm.ithor_arm_constants import (
     ADITIONAL_ARM_ARGS,
     ARM_MIN_HEIGHT,
     ARM_MAX_HEIGHT,
+    LOOK_DOWN,
+    LOOK_UP,
     MOVE_ARM_HEIGHT_CONSTANT,
     MOVE_ARM_CONSTANT,
     MANIPULATHOR_COMMIT_ID,
+    MOVE_BACK,
     reset_environment_and_additional_commands,
     MOVE_THR, PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, SET_OF_ALL_AGENT_ACTIONS,
 )
@@ -253,6 +256,10 @@ class ExploreEnvironment(IThorEnvironment):
             # NOTE @samir add action you want
             action_dict['action'] = 'MoveAhead'
             pass
+        if action == MOVE_BACK:
+            # NOTE @samir add action you want
+            action_dict['action'] = 'MoveBack'
+            pass
         if action == ROTATE_RIGHT:
             # NOTE @samir add action you want
             action_dict['action'] = 'RotateRight'
@@ -260,6 +267,12 @@ class ExploreEnvironment(IThorEnvironment):
         if action == ROTATE_LEFT:
             # NOTE @samir add action you want
             action_dict['action'] = 'RotateLeft'
+            pass
+        if action == LOOK_UP:
+            action_dict['action'] = 'LookUp'
+            pass
+        if action == LOOK_DOWN:
+            action_dict['action'] = 'LookDown'
             pass
 
         sr = self.controller.step(action_dict)
