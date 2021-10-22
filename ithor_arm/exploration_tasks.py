@@ -21,6 +21,8 @@ from ithor_arm.ithor_arm_constants import (
     MOVE_ARM_Z_P,
     MOVE_ARM_Z_M,
     MOVE_AHEAD,
+    MOVE_LEFT,
+    MOVE_RIGHT,
     ROTATE_RIGHT,
     ROTATE_LEFT,
     LOOK_UP,
@@ -38,6 +40,8 @@ class ExploreTask(BringObjectTask):
     _actions = (
         MOVE_BACK,
         MOVE_AHEAD,
+        MOVE_LEFT,
+        MOVE_RIGHT,
         ROTATE_RIGHT,
         ROTATE_LEFT,
         LOOK_UP,
@@ -60,6 +64,7 @@ class ExploreTask(BringObjectTask):
         """Compute the reward after having taken a step."""
         reward = self.reward_configs["step_penalty"]
 
+        # TODO @samir add reward for objects
         current_agent_location = self.env.get_agent_location()
         current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
         all_distances = self.all_reachable_positions - current_agent_location
@@ -88,6 +93,7 @@ class ExploreTask(BringObjectTask):
         if self.is_done():
             result['percent_room_visited'] = self.has_visited.mean()
             result["success"] = self._success
+            # TODO @samir add metric for obect, logged in tb automatically
             self.finish_visualizer_metrics(result)
             self.finish_visualizer(self._success)
             self.action_sequence_and_success = []

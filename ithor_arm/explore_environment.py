@@ -22,6 +22,8 @@ from ithor_arm.ithor_arm_constants import (
     MOVE_ARM_CONSTANT,
     MANIPULATHOR_COMMIT_ID,
     MOVE_BACK,
+    MOVE_LEFT,
+    MOVE_RIGHT,
     reset_environment_and_additional_commands,
     MOVE_THR, PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, SET_OF_ALL_AGENT_ACTIONS,
 )
@@ -259,6 +261,14 @@ class ExploreEnvironment(IThorEnvironment):
         if action == MOVE_BACK:
             # NOTE @samir add action you want
             action_dict['action'] = 'MoveBack'
+            pass
+        if action == MOVE_LEFT:
+            # NOTE @samir add action you want
+            action_dict['action'] = 'MoveLeft'
+            pass
+        if action == MOVE_RIGHT:
+            # NOTE @samir add action you want
+            action_dict['action'] = 'MoveRight'
             pass
         if action == ROTATE_RIGHT:
             # NOTE @samir add action you want

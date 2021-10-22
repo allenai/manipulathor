@@ -224,6 +224,3 @@ class ExploreTaskSampler(TaskSampler):
         else:
 
             return min(self.max_tasks, 1000)
-
-
-

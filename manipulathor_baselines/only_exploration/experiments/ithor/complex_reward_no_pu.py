@@ -53,7 +53,7 @@ class ComplexRewardNoPU(
     TASK_SAMPLER = ExploreTaskSampler
     TASK_TYPE = ExploreTask
 
-    NUM_PROCESSES = 25
+    NUM_PROCESSES = 40
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
