@@ -23,7 +23,7 @@ from ithor_arm.ithor_arm_constants import (
     ROTATE_RIGHT,
     ROTATE_LEFT,
     PICKUP,
-    DONE, ARM_LENGTH,
+    DONE, ARM_LENGTH, ARM_ACTIONS_ORDERED, ARM_SHORTENED_ACTIONS_ORDERED,
 )
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
@@ -281,12 +281,15 @@ class BringObjectTask(AbstractBringObjectTask):
         self.manual = False
         if self.manual:
             action_str = 'something'
-            # actions = ('MoveArmHeightP', 'MoveArmHeightM', 'MoveArmXP', 'MoveArmXM', 'MoveArmYP', 'MoveArmYM', 'MoveArmZP', 'MoveArmZM', 'MoveAheadContinuous', 'RotateRightContinuous', 'RotateLeftContinuous')
-            actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l')
+            # actions = ()
+            # actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l')
+            # ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_X_P,MOVE_ARM_X_M,MOVE_ARM_Y_P,MOVE_ARM_Y_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_AHEAD,ROTATE_RIGHT,ROTATE_LEFT]
+            # ARM_SHORTENED_ACTIONS_ORDERED = ['u','j','s','a','3','4','w','z','m','r','l']
             action = 'm'
             self.env.controller.step('Pass')
+            print(self.task_info['source_object_id'], self.task_info['goal_object_id'], 'pickup', self.object_picked_up)
             ForkedPdb().set_trace()
-            action_str = actions[actions_short.index(action)]
+            action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
 
 
         self._last_action_str = action_str
@@ -412,16 +415,6 @@ class WPickUpBringObjectTask(BringObjectTask):
     def _step(self, action: int) -> RLStepResult:
 
         action_str = self.class_action_names()[action]
-
-        # self.manual = False
-        # if self.manual:
-        #     actions = ('MoveArmHeightP', 'MoveArmHeightM', 'MoveArmXP', 'MoveArmXM', 'MoveArmYP', 'MoveArmYM', 'MoveArmZP', 'MoveArmZM', 'MoveAheadContinuous', 'RotateRightContinuous', 'RotateLeftContinuous', PICKUP, DONE)
-        #     actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l', 'p', 'd')
-        #     action = 'm'
-        #     self.env.controller.step('Pass')
-        #     ForkedPdb().set_trace()
-        #     action_str = actions[actions_short.index(action)]
-
 
         self._last_action_str = action_str
         action_dict = {"action": action_str}
@@ -660,7 +653,7 @@ class ExploreWiseRewardTask(BringObjectTask):
         self.source_observed_reward = False
         self.goal_observed_reward = False
     def metrics(self) -> Dict[str, Any]:
-        result = super(type(self), self).metrics()
+        result = super(ExploreWiseRewardTask, self).metrics()
         if self.is_done():
             result['percent_room_visited'] = self.has_visited.mean()
         return result

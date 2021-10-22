@@ -7,7 +7,7 @@ from ithor_arm.ithor_arm_constants import ENV_ARGS
 from scripts.jupyter_helper import two_dict_equal
 
 # commit_id = '58bf22c0b9aa0d3abe5fd8c3b43479ecc8d2a228'
-commit_id = '2f8dd9f95e4016db60155a0cc18b834a6339c8e1'
+commit_id = '2f8dd9f95e4016db60155a0cc18b834a6339c8e1' #TODO change everywhere
 ENV_ARGS['commit_id'] = commit_id
 controller = ai2thor.controller.Controller(**ENV_ARGS)
 
@@ -30,7 +30,6 @@ for scene in scenes:
     controller.reset(scene)
     last_moved = -1
     total = 400
-    # total = 2 #TODO remove
     for i in range(total):
         if last_moved < 0:
             initial_object = make_dict_from_object(controller.last_event.metadata['objects'])
@@ -53,7 +52,7 @@ for scene in scenes:
     #     for obj in initial_object:
     #         if not two_dict_equal(initial_object[obj], final_object[obj], threshold=0.02, verbose=False):
     #             print(obj)
-    # continue #TODO remove
+    # continue TODO remove
     equal = two_dict_equal(final_object, initial_object, threshold=0.02, ignore_keys=[], verbose=True)
     print(scene)
     print(total - last_moved)

@@ -19,15 +19,15 @@ from ithor_arm.ithor_arm_viz import MaskImageVisualizer
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
-from manipulathor_baselines.bring_object_baselines.experiments.ithor.complex_reward_no_pu_binary_distance_head import ComplexRewardNoPUBinaryDistance
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.complex_reward_no_pu_w_memory import ComplexRewardNoPUWMemory
+from manipulathor_baselines.bring_object_baselines.experiments.ithor.complex_reward_no_pu_w_memory_noise import ComplexRewardNoPUWMemoryNoise
 from manipulathor_baselines.bring_object_baselines.models.gt_mask_with_memory_model import MemoryWGtMaskRGBDModel
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 
 
 
-class ComplexRewardNoPUBinaryDistanceDistrib(
-    ComplexRewardNoPUBinaryDistance
+class ComplexRewardNoPUWMemoryNoiseDistrib(
+    ComplexRewardNoPUWMemoryNoise
 ):
     NUM_PROCESSES = 30
     def __init__(
@@ -37,6 +37,7 @@ class ComplexRewardNoPUBinaryDistanceDistrib(
         super().__init__()
         self.distributed_nodes = distributed_nodes
         self.train_gpu_ids = tuple(range(torch.cuda.device_count())) #TODO should I do this for everyone?, should i add val
+
 
     def machine_params(self, mode="train", **kwargs):
         params = super().machine_params(mode, **kwargs)

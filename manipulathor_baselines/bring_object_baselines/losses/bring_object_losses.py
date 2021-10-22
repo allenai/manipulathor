@@ -1,5 +1,7 @@
 """Defining imitation losses for actor critic type models."""
-
+import platform
+import random
+import statistics
 from typing import Dict, cast
 
 import torch
@@ -75,6 +77,13 @@ class PredictBoxBCELsss(AbstractActorCriticLoss):
 class BinaryArmDistanceLoss(AbstractActorCriticLoss):
     """Expert imitation loss."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.criterion = torch.nn.CrossEntropyLoss()
+
+        #TODO this is literally a nightmare but oh well
+        self.average = {'closer':[], 'further':[]}
+
     def loss(  # type: ignore
             self,
             step_count: int,
@@ -104,35 +113,62 @@ class BinaryArmDistanceLoss(AbstractActorCriticLoss):
         """
 
 
+
+
         observations = cast(Dict[str, torch.Tensor], batch["observations"])
         #TODO double check this
+
+        is_object_visible = observations['is_goal_object_visible']
         binary_arm_distance = actor_critic_output.extras['binary_arm_distance']
         prev_arm_distance = observations['relative_arm_dist'][:-1]
         current_arm_distance = observations['relative_arm_dist'][1:]
         arm_distance = (current_arm_distance - prev_arm_distance)
-        gt_binary_arm_distance = arm_distance > 0
+        gt_binary_arm_distance = arm_distance < 0
+        gt_binary_arm_distance = gt_binary_arm_distance.long()
 
-        gt_binary_arm_distance = gt_binary_arm_distance.float()
-
-
-
-        mask_over_actions = observations['previous_action_taken']
-        criterion = torch.nn.BCEWithLogitsLoss()
-
+        mask_over_actions = observations['previous_action_taken'].clone()
         mask_over_actions = mask_over_actions[1:]
+
         binary_arm_distance = binary_arm_distance[1:]
 
-        num_steps, workers, num_actions = mask_over_actions.shape
-
-        gt_binary_arm_distance = gt_binary_arm_distance.view(num_steps * workers) #TODO seriously?
-        mask_over_actions = mask_over_actions.view(num_steps * workers, num_actions)
-        binary_arm_distance = binary_arm_distance.view(num_steps * workers, num_actions)
-
+        object_is_visible = is_object_visible[1:]
+        mask_over_actions[~object_is_visible] = 0
+        action_exist = mask_over_actions.sum(dim=-1) != 0
+        gt_binary_arm_distance = gt_binary_arm_distance[action_exist]
         masked_arm_dis = binary_arm_distance[mask_over_actions]
+
+        # num_steps, workers, num_actions = mask_over_actions.shape
+        # gt_binary_arm_distance = gt_binary_arm_distance.view(num_steps * workers) #
+        # mask_over_actions = mask_over_actions.view(num_steps * workers, num_actions)
+        # binary_arm_distance = binary_arm_distance.view(num_steps * workers, num_actions)
+        # masked_arm_dis = binary_arm_distance[mask_over_actions]
 
 
         #TODO weights?
-        total_loss = criterion(masked_arm_dis, gt_binary_arm_distance)
+        if not torch.any(action_exist):
+            total_loss = torch.tensor(0)
+        else:
+            total_loss = self.criterion(masked_arm_dis, gt_binary_arm_distance)
+
+
+        # print('arm_distance < 0')
+        # print(arm_distance < 0)
+        # print('gt_binary_arm_distance')
+        # print(gt_binary_arm_distance)
+        #
+
+        #TODO have you seen a real nightmare come true?
+        if random.random() < 0.01 or platform.system() == "Darwin": #TODO if this is too slow convert to tensor and set a limit on how many it can hold
+            with torch.no_grad():
+                if torch.any(action_exist):
+                    predicted_class = torch.argmax(masked_arm_dis, dim=-1)
+                    closer_distance = gt_binary_arm_distance == 1
+                    corrects = predicted_class == gt_binary_arm_distance
+                    self.average['closer'] += corrects[closer_distance].float().tolist()
+                    self.average['further'] += corrects[~ closer_distance].float().tolist()
+                    if random.random() < 0.5 or platform.system() == "Darwin":
+                        print('closer', statistics.mean(self.average['closer']), len(self.average['closer']))
+                        print('further', statistics.mean(self.average['further']), len(self.average['further']))
 
         return (
             total_loss,

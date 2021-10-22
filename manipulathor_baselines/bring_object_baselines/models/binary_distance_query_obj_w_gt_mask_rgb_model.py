@@ -74,8 +74,9 @@ class BringObjectBinaryDistanceGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
             nn.LeakyReLU(inplace=True),
             nn.Linear(64, 32),
             nn.LeakyReLU(inplace=True),
-            nn.Linear(32, action_space.n),
+            nn.Linear(32, action_space.n * 2),
         )
+
 
         # self.detection_model = ConditionalDetectionModel()
 
@@ -144,6 +145,7 @@ class BringObjectBinaryDistanceGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
 
         #we really need to switch to resnet now that visual features are actually important
 
+
         query_source_objects = observations['category_object_source']
         query_destination_objects = observations['category_object_destination']
 
@@ -184,8 +186,9 @@ class BringObjectBinaryDistanceGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
             distributions=actor_out, values=critic_out_final, extras={}
         )
 
-
         binary_arm_distance = self.distance_close_far(visual_observation_encoding)
+        seqlen, bsize, action_val = binary_arm_distance.shape
+        binary_arm_distance = binary_arm_distance.view(seqlen, bsize, self.action_space.n, 2)
         actor_critic_output.extras['binary_arm_distance'] = binary_arm_distance #LATER_TODO is this the right dimension?
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)

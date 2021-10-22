@@ -1,10 +1,11 @@
 import platform
 
 import gym
-from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
+from allenact_plugins.ithor_plugin.ithor_constants import FOV
+from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor, BinnedPointCloudMapTHORSensor, ReachableBoundsTHORSensor
 from torch import nn
 
-from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor
+from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor, PointCloudMemory
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
 from ithor_arm.bring_object_tasks import WPickUPExploreBringObjectTask, ExploreWiseRewardTask
 from ithor_arm.ithor_arm_constants import ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
@@ -23,15 +24,22 @@ from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rg
 
 
 
-class ComplexRewardNoPUWMemory(
+class ComplexRewardNoPUWPointCloudMemory(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
 ):
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
-    NOISE_LEVEL = 0 # need to put this back 0.2
+    NOISE_LEVEL = 0 #TODO need to put this back 0.2
     distance_thr = 1.5 # is this a good number?
+    map_range_sensor = ReachableBoundsTHORSensor(margin=1.0)
+    map_info = dict(
+        map_range_sensor=map_range_sensor,
+        vision_range_in_cm=40 * 5,
+        map_size_in_cm=1050,
+        resolution_in_cm=5,
+    )
     SENSORS = [
         RGBSensorThor(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
@@ -50,14 +58,15 @@ class ComplexRewardNoPUWMemory(
         CategorySampleSensor(type='destination'),
         NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
         NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
+        BinnedPointCloudMapTHORSensor(fov=FOV, ego_only=False, **map_info,),
     ]
 
     MAX_STEPS = 200
+    NUM_PROCESSES = 2
 
     TASK_SAMPLER = DiverseBringObjectTaskSampler
     TASK_TYPE = ExploreWiseRewardTask
 
-    NUM_PROCESSES = 40
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
@@ -67,8 +76,6 @@ class ComplexRewardNoPUWMemory(
         super().__init__()
         self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
         self.REWARD_CONFIG['object_found'] = 1 # is this too big?
-
-        self.ENV_ARGS['visibilityDistance'] = self.distance_thr #TODO do it everywhere if that's the plan
 
 
 

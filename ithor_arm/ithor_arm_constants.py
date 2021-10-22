@@ -13,7 +13,8 @@ from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 
 # for exp room luca toggle grasper visibility and potentially a boost in FPS
 # MANIPULATHOR_COMMIT_ID = "58bf22c0b9aa0d3abe5fd8c3b43479ecc8d2a228"
-MANIPULATHOR_COMMIT_ID = '214bc8036f323f4d8418e0a76c4251c401793bd5'
+# MANIPULATHOR_COMMIT_ID = '214bc8036f323f4d8418e0a76c4251c401793bd5'
+MANIPULATHOR_COMMIT_ID = '2f8dd9f95e4016db60155a0cc18b834a6339c8e1' #TODO
 
 MOVE_THR = 0.01
 ARM_MIN_HEIGHT = 0.450998873
@@ -67,6 +68,9 @@ ENV_ARGS = dict(
     renderInstanceSegmentation=True,
     commit_id=MANIPULATHOR_COMMIT_ID,
 )
+
+ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_X_P,MOVE_ARM_X_M,MOVE_ARM_Y_P,MOVE_ARM_Y_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_AHEAD,ROTATE_RIGHT,ROTATE_LEFT]
+ARM_SHORTENED_ACTIONS_ORDERED = ['u','j','s','a','3','4','w','z','m','r','l']
 
 TRAIN_OBJECTS = ["Apple", "Bread", "Tomato", "Lettuce", "Pot", "Mug"]
 TEST_OBJECTS = ["Potato", "Pan", "Egg", "Spatula", "Cup", 'SoapBottle'] # we have to remove soap bottle from categories, "SoapBottle"

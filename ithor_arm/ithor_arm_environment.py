@@ -372,22 +372,22 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                 'action': 'Pass'
             } # we have to change the last action success if the pik up fails, we do that in the task now
 
-        elif not "MoveArm" in action:
-            if "Continuous" in action:
-                copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
+        elif action in [MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT]:
 
-                action_dict = {**action_dict, **copy_aditions}
-                if action in [MOVE_AHEAD]:
-                    action_dict["action"] = "MoveAgent"
-                    action_dict["ahead"] = 0.2
+            copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
 
-                elif action in [ROTATE_RIGHT]:
-                    action_dict["action"] = "RotateAgent"
-                    action_dict["degrees"] = 45
+            action_dict = {**action_dict, **copy_aditions}
+            if action in [MOVE_AHEAD]:
+                action_dict["action"] = "MoveAgent"
+                action_dict["ahead"] = 0.2
 
-                elif action in [ROTATE_LEFT]:
-                    action_dict["action"] = "RotateAgent"
-                    action_dict["degrees"] = -45
+            elif action in [ROTATE_RIGHT]:
+                action_dict["action"] = "RotateAgent"
+                action_dict["degrees"] = 45
+
+            elif action in [ROTATE_LEFT]:
+                action_dict["action"] = "RotateAgent"
+                action_dict["degrees"] = -45
 
         elif "MoveArm" in action:
             copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)

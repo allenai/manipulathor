@@ -12,36 +12,54 @@ import pdb
 #   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
 #   --seed 10 --machine_id 0 -c ~/exp_ComplexRewardNoPUWMemory__stage_00__steps_000045112992.pt'
 command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_w_binary_distance_distrib \
-  --distributed_ip_and_port 34.220.30.46:6060 \
+  --distributed_ip_and_port IP_ADR:6060 \
   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
   --seed 10 --machine_id 0 '
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_w_memory_noise_distrib \
+#   --distributed_ip_and_port IP_ADR:6060 \
+#   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
+#   --seed 10 --machine_id 0 '
+
 # command = 'scp ec2-34-220-30-46.us-west-2.compute.amazonaws.com:~/manipulathor/experiment_output/checkpoints/ComplexRewardNoPUWMemory/2021-10-08_23-12-59/exp_ComplexRewardNoPUWMemory__stage_00__steps_000045112992.pt ~/'
-list_of_servers = ['aws1', 'aws2', 'aws3', 'aws4', ]
+# list_of_servers = ['aws1', 'aws2', 'aws3', 'aws4', ]
+server_set1 = {
+    'servers':[f'aws{i}' for i in range(1,5)],
+    'ip_adr': '34.220.30.46',
+}
+server_set2 = {
+    'servers':[f'aws{i}' for i in range(5, 9)],
+    'ip_adr': '54.202.224.54',
+}
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Sync')
-    parser.add_argument('--servers', default=None, nargs='+')
+    parser.add_argument('--server_set', default=None, nargs='+')
     parser.add_argument('--command', default=command, type=str)
     parser.add_argument('--directly', action='store_true')
 
     args = parser.parse_args()
-    if args.servers is None:
-        args.servers = list_of_servers
-    else:
-        args.servers = args.servers
+    args.servers = []
+    if 'aws1' in args.server_set:
+        args.servers += server_set1['servers']
+        ip_adr = server_set1['ip_adr']
+    elif 'aws5' in args.server_set:
+        args.servers += server_set2['servers']
+        ip_adr = server_set2['ip_adr']
+    args.command = args.command.replace('IP_ADR', ip_adr)
     return args
 
 def main(args):
 
-    for server in args.servers:
+    for (i, server) in enumerate(args.servers):
         if args.directly:
             command = f'ssh {server} {args.command}'
             print('executing', command)
             os.system(command)
             print('done')
         else:
-            server_id = int(server.replace('aws', '')) - 1
-            command_to_run = args.command.replace('--machine_id 0', f'--machine_id {server_id}')
+            # server_id = int(server.replace('aws', '')) - 1
+            command_to_run = args.command.replace('--machine_id 0', f'--machine_id {i}')
             print('command to run', command_to_run)
             os.system(f'echo \"{command_to_run}\" > ~/command_to_run.sh')
             os.system(f'rsync ~/command_to_run.sh {server}:~/')

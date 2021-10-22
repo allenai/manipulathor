@@ -67,6 +67,22 @@ class PreviousActionTaken(Sensor):
         return result.bool()
 
 
+class IsGoalObjectVisible(Sensor):
+    def __init__(self,  uuid: str = "is_goal_object_visible", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        super().__init__(**prepare_locals_for_super(locals()))
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        if not task.object_picked_up:
+            result = task.source_observed_reward
+        else:
+            result = task.goal_observed_reward
+        return torch.tensor(result).bool()
+
+
 class NoGripperRGBSensorThor(RGBSensorThor):
     def frame_from_env(
             self, env: IThorEnvironment, task: Task[IThorEnvironment]
