@@ -1,4 +1,4 @@
-import open3d as o3d
+# import open3d as o3d
 import numpy as np
 
 from manipulathor_utils.debugger_util import ForkedPdb

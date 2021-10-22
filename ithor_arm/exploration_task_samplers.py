@@ -159,6 +159,7 @@ class ExploreTaskSampler(TaskSampler):
         if self.max_tasks is not None and self.max_tasks <= 0:
             return None
 
+        # ForkedPdb().set_trace()
         if self.sampler_mode != "train" and self.length <= 0:
             return None
 
@@ -222,5 +223,7 @@ class ExploreTaskSampler(TaskSampler):
         if self.sampler_mode == "train":
             return None
         else:
+            if self.max_tasks is None:
+                self.max_tasks = 100
 
             return min(self.max_tasks, 1000)

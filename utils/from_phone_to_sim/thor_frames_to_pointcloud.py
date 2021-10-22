@@ -1,4 +1,4 @@
-import open3d as o3d
+# import open3d as o3d
 import torch
 
 import utils.from_phone_to_sim.world_utils as wu

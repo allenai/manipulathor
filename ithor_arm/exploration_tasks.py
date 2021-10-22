@@ -60,19 +60,26 @@ class ExploreTask(BringObjectTask):
         all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions(self.env.controller)]
         self.all_reachable_positions = torch.Tensor(all_locations) #TODO @samir you can change this to cover more than just the lcoations and add observed objects as well
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
+        self.seen_objects = set()
     def judge(self) -> float:
         """Compute the reward after having taken a step."""
         reward = self.reward_configs["step_penalty"]
 
         # TODO @samir add reward for objects
-        current_agent_location = self.env.get_agent_location()
-        current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
-        all_distances = self.all_reachable_positions - current_agent_location
-        all_distances = (all_distances ** 2).sum(dim=-1)
-        location_index = torch.argmin(all_distances)
-        if self.has_visited[location_index] == 0:
-            reward += self.reward_configs["exploration_reward"]
-        self.has_visited[location_index] = 1
+        # current_agent_location = self.env.get_agent_location()
+        # current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
+        # all_distances = self.all_reachable_positions - current_agent_location
+        # all_distances = (all_distances ** 2).sum(dim=-1)
+        # location_index = torch.argmin(all_distances)
+        # if self.has_visited[location_index] == 0:
+        #     reward += self.reward_configs["exploration_reward"]
+        # self.has_visited[location_index] = 1
+
+        # TODO: mess with this
+        for o in self.env.visible_objects():
+            if o not in self.seen_objects:
+                reward += self.reward_configs["object_reward"]
+            self.seen_objects.add(o)
 
 
         if not self.last_action_success:
