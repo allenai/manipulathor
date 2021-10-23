@@ -187,7 +187,8 @@ class ExploreEnvironment(IThorEnvironment):
         # to solve the crash issue
         # why do we still have this crashing problem?
         try:
-            self.controller.reset(scene_name)
+            reset_environment_and_additional_commands(self.controller, scene_name)
+            # self.controller.reset(scene_name)
         except Exception as e:
             print("RESETTING THE SCENE,", scene_name, 'because of', str(e))
             # NOTE @samir
@@ -200,7 +201,8 @@ class ExploreEnvironment(IThorEnvironment):
                 renderDepthImage=False,
                 quality="Very Low")
             )
-            self.controller.reset(scene_name)
+            # self.controller.reset(scene_name)
+            reset_environment_and_additional_commands(self.controller, scene_name)
 
         if self.object_open_speed != 1.0:
             self.controller.step(

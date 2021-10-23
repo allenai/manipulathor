@@ -66,20 +66,20 @@ class ExploreTask(BringObjectTask):
         reward = self.reward_configs["step_penalty"]
 
         # TODO @samir add reward for objects
-        # current_agent_location = self.env.get_agent_location()
-        # current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
-        # all_distances = self.all_reachable_positions - current_agent_location
-        # all_distances = (all_distances ** 2).sum(dim=-1)
-        # location_index = torch.argmin(all_distances)
-        # if self.has_visited[location_index] == 0:
-        #     reward += self.reward_configs["exploration_reward"]
-        # self.has_visited[location_index] = 1
+        current_agent_location = self.env.get_agent_location()
+        current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
+        all_distances = self.all_reachable_positions - current_agent_location
+        all_distances = (all_distances ** 2).sum(dim=-1)
+        location_index = torch.argmin(all_distances)
+        if self.has_visited[location_index] == 0:
+            reward += self.reward_configs["exploration_reward"]
+        self.has_visited[location_index] = 1
 
         # TODO: mess with this
         for o in self.env.visible_objects():
-            if o not in self.seen_objects:
+            if o['name'] not in self.seen_objects:
                 reward += self.reward_configs["object_reward"]
-            self.seen_objects.add(o)
+            self.seen_objects.add(o['name'])
 
 
         if not self.last_action_success:
@@ -98,6 +98,7 @@ class ExploreTask(BringObjectTask):
     def metrics(self) -> Dict[str, Any]:
         result = super(AbstractBringObjectTask, self).metrics()
         if self.is_done():
+            result['percent_room_visited'] = self.has_visited.mean()
             result['percent_room_visited'] = self.has_visited.mean()
             result["success"] = self._success
             # TODO @samir add metric for obect, logged in tb automatically
