@@ -1,6 +1,6 @@
 """Task Definions for the task of ArmPointNav"""
 
-from typing import Dict, Tuple, List, Any, Optional
+from typing import Dict, Tuple, List, Any, Optional, Union
 
 import gym
 import numpy as np
@@ -8,6 +8,10 @@ import torch
 from allenact.base_abstractions.misc import RLStepResult
 from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import Task
+from allenact_plugins.ithor_plugin.ithor_util import (
+    round_to_factor,
+    include_object_data,
+)
 
 from ithor_arm.bring_object_tasks import AbstractBringObjectTask, BringObjectTask
 from ithor_arm.ithor_arm_constants import (
@@ -63,93 +67,102 @@ class ExploreTask(BringObjectTask):
         self.seen_objects = set()
 
         # NOTE: from luca
-        # self.visited_positions_xzrsh = {self.agent_location_tuple}
-        # self.visited_positions_xz = {self.agent_location_tuple[:2]}
-        # self.seen_pickupable_objects = set(
-        #     o["name"] for o in self.pickupable_objects(visible_only=True)
-        # )
-        # self.seen_openable_objects = set(
-        #     o["name"] for o in self.openable_not_pickupable_objects(visible_only=True)
-        # )
-        # self.total_pickupable_or_openable_objects = len(
-        #     self.pickupable_or_openable_objects(visible_only=False)
-        # )
+        self.visited_positions_xzrsh = {self.agent_location_tuple}
+        self.visited_positions_xz = {self.agent_location_tuple[:2]}
+        self.seen_pickupable_objects = set(
+            o["name"] for o in self.pickupable_objects(visible_only=True)
+        )
+        self.seen_openable_objects = set(
+            o["name"] for o in self.openable_not_pickupable_objects(visible_only=True)
+        )
+        self.total_pickupable_or_openable_objects = len(
+            self.pickupable_or_openable_objects(visible_only=False)
+        )
+
+    # def judge(self) -> float:
+    #     """Compute the reward after having taken a step."""
+    #     reward = self.reward_configs["step_penalty"]
+
+    #     ForkedPdb().set_trace()
+
+    #     # TODO @samir add reward for objects
+    #     current_agent_location = self.env.get_agent_location()
+    #     current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
+    #     all_distances = self.all_reachable_positions - current_agent_location
+    #     all_distances = (all_distances ** 2).sum(dim=-1)
+    #     location_index = torch.argmin(all_distances)
+    #     if self.has_visited[location_index] == 0:
+    #         reward += self.reward_configs["exploration_reward"]
+    #     self.has_visited[location_index] = 1
+
+    #     # TODO: mess with this
+    #     for o in self.env.visible_objects():
+    #         if o['name'] not in self.seen_objects:
+    #             reward += self.reward_configs["object_reward"]
+    #         self.seen_objects.add(o['name'])
+
+
+    #     if not self.last_action_success:
+    #         reward += self.reward_configs["failed_action_penalty"]
+
+    #     if self._took_end_action:
+    #         reward += (
+    #             self.reward_configs["goal_success_reward"]
+    #             if self._success
+    #             else self.reward_configs["failed_stop_reward"]
+    #         )
+
+    #     # add collision cost, maybe distance to goal objective,...
+    #     return float(reward)
 
     def judge(self) -> float:
-        """Compute the reward after having taken a step."""
-        reward = self.reward_configs["step_penalty"]
-
-        # TODO @samir add reward for objects
         current_agent_location = self.env.get_agent_location()
         current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
         all_distances = self.all_reachable_positions - current_agent_location
         all_distances = (all_distances ** 2).sum(dim=-1)
         location_index = torch.argmin(all_distances)
-        if self.has_visited[location_index] == 0:
-            reward += self.reward_configs["exploration_reward"]
         self.has_visited[location_index] = 1
 
-        # TODO: mess with this
-        for o in self.env.visible_objects():
-            if o['name'] not in self.seen_objects:
-                reward += self.reward_configs["object_reward"]
-            self.seen_objects.add(o['name'])
 
+        """Return the reward from a new (s, a, s'). NOTE: From Luca"""
+        total_seen_before = len(self.seen_pickupable_objects) + len(
+            self.seen_openable_objects
+        )
+        prop_seen_before = (
+            total_seen_before
+        ) / self.total_pickupable_or_openable_objects
 
-        if not self.last_action_success:
-            reward += self.reward_configs["failed_action_penalty"]
+        # Updating seen openable
+        for obj in self.openable_not_pickupable_objects(visible_only=True):
+            if obj["name"] not in self.seen_openable_objects:
+                self.seen_openable_objects.add(obj["name"])
 
-        if self._took_end_action:
-            reward += (
-                self.reward_configs["goal_success_reward"]
-                if self._success
-                else self.reward_configs["failed_stop_reward"]
-            )
+        # Updating seen pickupable
+        for obj in self.pickupable_objects(visible_only=True):
+            if obj["name"] not in self.seen_pickupable_objects:
+                self.seen_pickupable_objects.add(obj["name"])
 
-        # add collision cost, maybe distance to goal objective,...
-        return float(reward)
+        # Updating visited locations
+        agent_loc_tuple = self.agent_location_tuple
+        self.visited_positions_xzrsh.add(agent_loc_tuple)
+        if agent_loc_tuple[:2] not in self.visited_positions_xz:
+            self.visited_positions_xz.add(agent_loc_tuple[:2])
 
-    # def _judge(self) -> float:
-    #     """Return the reward from a new (s, a, s'). NOTE: From Luca"""
-    #     total_seen_before = len(self.seen_pickupable_objects) + len(
-    #         self.seen_openable_objects
-    #     )
-    #     prop_seen_before = (
-    #         total_seen_before
-    #     ) / self.total_pickupable_or_openable_objects
+        total_seen_after = len(self.seen_pickupable_objects) + len(
+            self.seen_openable_objects
+        )
+        prop_seen_after = total_seen_after / self.total_pickupable_or_openable_objects
 
-    #     # Updating seen openable
-    #     for obj in self.openable_not_pickupable_objects(visible_only=True):
-    #         if obj["name"] not in self.seen_openable_objects:
-    #             self.seen_openable_objects.add(obj["name"])
+        reward = 5 * (prop_seen_after - prop_seen_before)
 
-    #     # Updating seen pickupable
-    #     for obj in self.pickupable_objects(visible_only=True):
-    #         if obj["name"] not in self.seen_pickupable_objects:
-    #             self.seen_pickupable_objects.add(obj["name"])
+        if self._took_end_action and prop_seen_after > 0.5:
+            reward += 5 * (prop_seen_after + (prop_seen_after > 0.98))
 
-    #     # Updating visited locations
-    #     agent_loc_tuple = self.agent_location_tuple
-    #     self.visited_positions_xzrsh.add(agent_loc_tuple)
-    #     if agent_loc_tuple[:2] not in self.visited_positions_xz:
-    #         self.visited_positions_xz.add(agent_loc_tuple[:2])
-
-    #     total_seen_after = len(self.seen_pickupable_objects) + len(
-    #         self.seen_openable_objects
-    #     )
-    #     prop_seen_after = total_seen_after / self.total_pickupable_or_openable_objects
-
-    #     reward = 5 * (prop_seen_after - prop_seen_before)
-
-    #     if self._took_end_action and prop_seen_after > 0.5:
-    #         reward += 5 * (prop_seen_after + (prop_seen_after > 0.98))
-
-    #     return reward
+        return reward
 
     def metrics(self) -> Dict[str, Any]:
         result = super(AbstractBringObjectTask, self).metrics()
         if self.is_done():
-            result['percent_room_visited'] = self.has_visited.mean()
             result['percent_room_visited'] = self.has_visited.mean()
             result["success"] = self._success
             # TODO @samir add metric for obect, logged in tb automatically
@@ -181,4 +194,57 @@ class ExploreTask(BringObjectTask):
         )
         return step_result
 
+    @staticmethod
+    def agent_location_to_tuple(
+        agent_loc: Dict[str, Union[Dict[str, float], bool, float, int]]
+    ) -> Tuple[float, float, int, int, int]:
+        if "position" in agent_loc:
+            agent_loc = {
+                "x": agent_loc["position"]["x"],
+                "y": agent_loc["position"]["y"],
+                "z": agent_loc["position"]["z"],
+                "rotation": agent_loc["rotation"]["y"],
+                "horizon": agent_loc["cameraHorizon"],
+                "standing": agent_loc.get("isStanding"),
+            }
+        return (
+            round(agent_loc["x"], 2),
+            round(agent_loc["z"], 2),
+            round_to_factor(agent_loc["rotation"], 90) % 360,
+            1 * agent_loc["standing"],
+            round_to_factor(agent_loc["horizon"], 30) % 360,
+        )
 
+    @property
+    def agent_location_tuple(self) -> Tuple[float, float, int, int, int]:
+        return self.agent_location_to_tuple(self.env.get_agent_location())
+
+    def pickupable_objects(self, visible_only: bool = True):
+        with include_object_data(self.env.controller):
+            return [
+                o
+                for o in self.env.last_event.metadata["objects"]
+                if ((o["visible"] or not visible_only) and o["pickupable"])
+            ]
+
+    def openable_not_pickupable_objects(self, visible_only: bool = True):
+        with include_object_data(self.env.controller):
+            return [
+                o
+                for o in self.env.last_event.metadata["objects"]
+                if (
+                    (o["visible"] or not visible_only)
+                    and (o["openable"] and not o["pickupable"])
+                )
+            ]
+
+    def pickupable_or_openable_objects(self, visible_only: bool = True):
+        with include_object_data(self.env.controller):
+            return [
+                o
+                for o in self.env.last_event.metadata["objects"]
+                if (
+                    (o["visible"] or not visible_only)
+                    and (o["pickupable"] or (o["openable"] and not o["pickupable"]))
+                )
+            ]
