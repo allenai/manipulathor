@@ -144,8 +144,9 @@ class ExploreTaskSampler(TaskSampler):
             scene_name=scene_name#, agentMode="arm", agentControllerType="mid-level"
         )
         #NOTE @samir you can use or not use the following up to you
-        self.env.step(dict(action="RandomizeMaterials"))
-        self.env.step(dict(action="RandomizeLighting"))
+        if self.sampler_mode == 'train':
+            self.env.step(dict(action="RandomizeMaterials"))
+            self.env.step(dict(action="RandomizeLighting"))
 
 
 

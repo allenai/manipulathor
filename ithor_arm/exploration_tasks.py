@@ -61,6 +61,20 @@ class ExploreTask(BringObjectTask):
         self.all_reachable_positions = torch.Tensor(all_locations) #TODO @samir you can change this to cover more than just the lcoations and add observed objects as well
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
         self.seen_objects = set()
+
+        # NOTE: from luca
+        # self.visited_positions_xzrsh = {self.agent_location_tuple}
+        # self.visited_positions_xz = {self.agent_location_tuple[:2]}
+        # self.seen_pickupable_objects = set(
+        #     o["name"] for o in self.pickupable_objects(visible_only=True)
+        # )
+        # self.seen_openable_objects = set(
+        #     o["name"] for o in self.openable_not_pickupable_objects(visible_only=True)
+        # )
+        # self.total_pickupable_or_openable_objects = len(
+        #     self.pickupable_or_openable_objects(visible_only=False)
+        # )
+
     def judge(self) -> float:
         """Compute the reward after having taken a step."""
         reward = self.reward_configs["step_penalty"]
@@ -94,6 +108,43 @@ class ExploreTask(BringObjectTask):
 
         # add collision cost, maybe distance to goal objective,...
         return float(reward)
+
+    # def _judge(self) -> float:
+    #     """Return the reward from a new (s, a, s'). NOTE: From Luca"""
+    #     total_seen_before = len(self.seen_pickupable_objects) + len(
+    #         self.seen_openable_objects
+    #     )
+    #     prop_seen_before = (
+    #         total_seen_before
+    #     ) / self.total_pickupable_or_openable_objects
+
+    #     # Updating seen openable
+    #     for obj in self.openable_not_pickupable_objects(visible_only=True):
+    #         if obj["name"] not in self.seen_openable_objects:
+    #             self.seen_openable_objects.add(obj["name"])
+
+    #     # Updating seen pickupable
+    #     for obj in self.pickupable_objects(visible_only=True):
+    #         if obj["name"] not in self.seen_pickupable_objects:
+    #             self.seen_pickupable_objects.add(obj["name"])
+
+    #     # Updating visited locations
+    #     agent_loc_tuple = self.agent_location_tuple
+    #     self.visited_positions_xzrsh.add(agent_loc_tuple)
+    #     if agent_loc_tuple[:2] not in self.visited_positions_xz:
+    #         self.visited_positions_xz.add(agent_loc_tuple[:2])
+
+    #     total_seen_after = len(self.seen_pickupable_objects) + len(
+    #         self.seen_openable_objects
+    #     )
+    #     prop_seen_after = total_seen_after / self.total_pickupable_or_openable_objects
+
+    #     reward = 5 * (prop_seen_after - prop_seen_before)
+
+    #     if self._took_end_action and prop_seen_after > 0.5:
+    #         reward += 5 * (prop_seen_after + (prop_seen_after > 0.98))
+
+    #     return reward
 
     def metrics(self) -> Dict[str, Any]:
         result = super(AbstractBringObjectTask, self).metrics()
