@@ -67,7 +67,7 @@ class ComplexRewardNoPUWMemoryNoise(
         super().__init__()
         self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
         self.REWARD_CONFIG['object_found'] = 1 # is this too big?
-
+        self.ENV_ARGS['visibilityDistance'] = self.distance_thr
 
 
     @classmethod

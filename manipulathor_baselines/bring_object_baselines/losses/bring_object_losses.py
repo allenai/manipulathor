@@ -81,8 +81,8 @@ class BinaryArmDistanceLoss(AbstractActorCriticLoss):
         super().__init__(*args, **kwargs)
         self.criterion = torch.nn.CrossEntropyLoss()
 
-        #TODO this is literally a nightmare but oh well
-        self.average = {'closer':[], 'further':[]}
+        # #TODO this is literally a nightmare but oh well
+        # self.average = {'closer':[], 'further':[]}
 
     def loss(  # type: ignore
             self,
@@ -157,18 +157,18 @@ class BinaryArmDistanceLoss(AbstractActorCriticLoss):
         # print(gt_binary_arm_distance)
         #
 
-        #TODO have you seen a real nightmare come true?
-        if random.random() < 0.01 or platform.system() == "Darwin": #TODO if this is too slow convert to tensor and set a limit on how many it can hold
-            with torch.no_grad():
-                if torch.any(action_exist):
-                    predicted_class = torch.argmax(masked_arm_dis, dim=-1)
-                    closer_distance = gt_binary_arm_distance == 1
-                    corrects = predicted_class == gt_binary_arm_distance
-                    self.average['closer'] += corrects[closer_distance].float().tolist()
-                    self.average['further'] += corrects[~ closer_distance].float().tolist()
-                    if random.random() < 0.5 or platform.system() == "Darwin":
-                        print('closer', statistics.mean(self.average['closer']), len(self.average['closer']))
-                        print('further', statistics.mean(self.average['further']), len(self.average['further']))
+        # #TODO have you seen a real nightmare come true?
+        # if random.random() < 0.01 or platform.system() == "Darwin": #TODO if this is too slow convert to tensor and set a limit on how many it can hold
+        #     with torch.no_grad():
+        #         if torch.any(action_exist):
+        #             predicted_class = torch.argmax(masked_arm_dis, dim=-1)
+        #             closer_distance = gt_binary_arm_distance == 1
+        #             corrects = predicted_class == gt_binary_arm_distance
+        #             self.average['closer'] += corrects[closer_distance].float().tolist()
+        #             self.average['further'] += corrects[~ closer_distance].float().tolist()
+        #             if random.random() < 0.5 or platform.system() == "Darwin":
+        #                 print('closer', statistics.mean(self.average['closer']), len(self.average['closer']))
+        #                 print('further', statistics.mean(self.average['further']), len(self.average['further']))
 
         return (
             total_loss,

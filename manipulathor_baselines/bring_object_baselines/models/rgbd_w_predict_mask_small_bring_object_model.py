@@ -23,6 +23,7 @@ from allenact.utils.model_utils import make_cnn, compute_cnn_output
 from gym.spaces.dict import Dict as SpaceDict
 
 from ithor_arm.ithor_arm_constants import DONT_USE_ALL_POSSIBLE_OBJECTS_EVER
+from manipulathor_utils.debugger_util import ForkedPdb
 from utils.model_utils import LinearActorHeadNoCategory #TODO why do we have this?
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from utils.hacky_viz_utils import hacky_visualization, calc_dict_average
@@ -102,6 +103,9 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
         # # policy_weight_dir = '/Users/kianae/Desktop/important_weights/exp_NoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject_no_pu_no_noise_query_obj_w_gt_mask_and_rgb__stage_00__steps_000065308765.pt'
         # policy_weight_dir = '/Users/kianae/Desktop/exp_SmallNoiseRGBQueryObjGTMaskSimpleDiverseBringObject_continue_training_w_noise_0.2__stage_00__steps_000070844861.pt'
 
+        # detection_weight_dir = '/Users/kianae/Desktop/important_weights/detection_without_color_jitter_model_state_271.pytar'
+        # policy_weight_dir = '/Users/kianae/Desktop/important_weights/exp_ComplexRewardNoPUBinaryDistanceDistrib__stage_00__steps_000105986800.pt'
+
 
         #TODO reload the weights really bad design choice
         if detection_weight_dir is not None:
@@ -123,9 +127,15 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
             rl_model_state_keys = [k for k in self.state_dict() if k.replace('detection_model.', '') not in detection_state_dict]
             rl_model_state_dict = self.state_dict()
 
+            copied = []
             for key in rl_model_state_keys:
                 param = loaded_rl_model_weights[key]
                 rl_model_state_dict[key].copy_(param)
+                copied.append(key)
+
+            not_copied = [k for k in loaded_rl_model_weights if k not in copied]
+            print('WARNING not copied these for policy', not_copied)
+
 
     def get_detection_masks(self, query_images, images):
         self.detection_model.eval()

@@ -1,14 +1,7 @@
-import platform
-
-import gym
-from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
-from torch import nn
-
-from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
 from ithor_arm.bring_object_tasks import WPickUPExploreBringObjectTask
 
-from manipulathor_baselines.bring_object_baselines.experiments.ithor.rgbd_gt_mask import RGBDGtMaskNoNoise
+from legacy.rgbd_gt_mask import RGBDGtMaskNoNoise
 
 
 class RGBDWithPickupMoreExploreExp(

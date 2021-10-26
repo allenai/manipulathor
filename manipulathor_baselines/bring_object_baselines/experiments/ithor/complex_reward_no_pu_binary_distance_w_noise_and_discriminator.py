@@ -19,6 +19,7 @@ from ithor_arm.ithor_arm_sensors import (
     DepthSensorThor, RelativeAgentArmToObjectSensor, RelativeObjectToGoalSensor,
 )
 from ithor_arm.ithor_arm_viz import MaskImageVisualizer
+from ithor_arm.near_deadline_sensors import FancyNoisyObjectMaskWLabels
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
@@ -28,14 +29,14 @@ from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rg
 
 
 
-class ComplexRewardNoPUBinaryDistance(
+class ComplexRewardNoPUBinaryDistanceWNoiseDiscriminator(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
 ):
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
-    NOISE_LEVEL = 0
+    NOISE_LEVEL = 0.2
     distance_thr = 1.5 # is this a good number?
     TASK_SAMPLER = DiverseBringObjectTaskSampler
     TASK_TYPE = ExploreWiseRewardTask
@@ -57,8 +58,8 @@ class ComplexRewardNoPUBinaryDistance(
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
-        NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
-        NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
+        FancyNoisyObjectMaskWLabels(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
+        FancyNoisyObjectMaskWLabels(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
         RelativeArmDistanceToGoal(),
         PreviousActionTaken(),
         IsGoalObjectVisible(),
@@ -69,7 +70,7 @@ class ComplexRewardNoPUBinaryDistance(
 
 
 
-    NUM_PROCESSES = 30
+    NUM_PROCESSES = 40
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
@@ -79,8 +80,7 @@ class ComplexRewardNoPUBinaryDistance(
         super().__init__()
         self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
         self.REWARD_CONFIG['object_found'] = 1 # is this too big?
-
-        self.ENV_ARGS['visibilityDistance'] = self.distance_thr\
+        self.ENV_ARGS['visibilityDistance'] = self.distance_thr
 
 
 

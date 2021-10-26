@@ -1,4 +1,6 @@
 import copy
+import datetime
+import os
 from typing import Any
 
 from typing import Optional, Sequence, Dict
@@ -19,6 +21,26 @@ from allenact.base_abstractions.task import Task
 from allenact.utils.misc_utils import prepare_locals_for_super
 from allenact_plugins.robothor_plugin.robothor_environment import RoboThorEnvironment
 
+
+def show_3d(things_to_show, map_size = None, additional_tag=''):
+    # import matplotlib
+    # matplotlib.use('TkAgg')
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    if len(things_to_show.shape) == 3:
+        x, y, z = things_to_show[:,:,0], things_to_show[:,:,1], things_to_show[:,:,2]
+    elif len(things_to_show.shape) == 2:
+        x, y, z = things_to_show[:,0], things_to_show[:,1], things_to_show[:,2]
+    if map_size is not None:
+        ax.axes.set_xlim3d(left=0, right=map_size[0])
+        ax.axes.set_ylim3d(bottom=0, top=map_size[1])
+        ax.axes.set_zlim3d(bottom=0, top=map_size[2])
+    ax.scatter3D(x, y, z, cmap='Greens')
+    imagename = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S.%f") + additional_tag +'.png'
+    base_dir = '/Users/kianae/Desktop/pointcloud_viz'
+    os.makedirs(base_dir, exist_ok=True)
+    plt.savefig(os.path.join(base_dir, imagename))
 
 class KianaBinnedPointCloudMapTHORSensor(
     Sensor[RoboThorEnvironment, Task[RoboThorEnvironment]]
@@ -297,22 +319,7 @@ class KianaBinnedPointCloudMapBuilder(object):
 
 
 
-            def show_3d(things_to_show, map_size = None):
-                import matplotlib
-                matplotlib.use('TkAgg')
-                import matplotlib.pyplot as plt
-                fig = plt.figure()
-                ax = plt.axes(projection='3d')
-                if len(things_to_show.shape) == 3:
-                    x, y, z = things_to_show[:,:,0], things_to_show[:,:,1], things_to_show[:,:,2]
-                elif len(things_to_show.shape) == 2:
-                    x, y, z = things_to_show[:,0], things_to_show[:,1], things_to_show[:,2]
-                if map_size is not None:
-                    ax.axes.set_xlim3d(left=0, right=map_size[0])
-                    ax.axes.set_ylim3d(bottom=0, top=map_size[1])
-                    ax.axes.set_zlim3d(bottom=0, top=map_size[2])
-                ax.scatter3D(x, y, z, cmap='Greens')
-                plt.show()
+
 
             # things_to_show = world_space_point_cloud; things_to_show = torch.nn.functional.interpolate(things_to_show.permute(2, 0, 1).unsqueeze(0), (40,40)).squeeze(0).permute(1,2,0); show_3d(things_to_show)
             copied_map = self.binned_point_cloud_map.copy()

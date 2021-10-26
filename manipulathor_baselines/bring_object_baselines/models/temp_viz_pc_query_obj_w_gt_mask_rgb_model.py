@@ -21,6 +21,7 @@ from allenact.base_abstractions.misc import ActorCriticOutput
 from allenact.embodiedai.models.basic_models import RNNStateEncoder
 from allenact.utils.model_utils import make_cnn, compute_cnn_output
 from gym.spaces.dict import Dict as SpaceDict
+from torch import nn
 
 from ithor_arm.pointcloud_sensors import show_3d
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -28,7 +29,7 @@ from utils.model_utils import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization
 
 
-class MaskWPointCloudSensor(ActorCriticModel[CategoricalDistr]):
+class TempVizPCSmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -67,14 +68,10 @@ class MaskWPointCloudSensor(ActorCriticModel[CategoricalDistr]):
         network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
 
-        #TODO this is so naive and unintuitive
-        network_args = {'input_channels': 11, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(3, 3), (3, 3), (3, 3)], 'strides': [(2, 2), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 10, 'output_width': 10, 'output_channels': 512, 'flatten': True, 'output_relu': True}
-        self.point_cloud_encoder = make_cnn(**network_args)
-
         # self.detection_model = ConditionalDetectionModel()
 
         self.state_encoder = RNNStateEncoder(
-            512 + 512,
+            512,
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -83,7 +80,15 @@ class MaskWPointCloudSensor(ActorCriticModel[CategoricalDistr]):
 
         self.actor_pickup = LinearActorHeadNoCategory(self._hidden_size, action_space.n)
         self.critic_pickup = LinearCriticHead(self._hidden_size)
-
+        self.distance_close_far = nn.Sequential(
+            nn.Linear(512, 128),
+            nn.LeakyReLU(inplace=True),
+            nn.Linear(128, 64),
+            nn.LeakyReLU(inplace=True),
+            nn.Linear(64, 32),
+            nn.LeakyReLU(inplace=True),
+            nn.Linear(32, action_space.n * 2),
+        )
         self.train()
         # self.detection_model.eval()
 
@@ -138,24 +143,12 @@ class MaskWPointCloudSensor(ActorCriticModel[CategoricalDistr]):
 
         #we really need to switch to resnet now that visual features are actually important
 
-        pickup_bool = observations["pickedup_object"]
-        after_pickup = pickup_bool == 1
-
-        point_cloud_source = observations['binned_pc_map_source']['map_with_agent']
-        point_cloud_destination = observations['binned_pc_map_destination']['map_with_agent']
-
-
-        point_cloud = point_cloud_source
-        point_cloud[after_pickup] = point_cloud_destination[after_pickup]
-
-
-        point_cloud_embedding = compute_cnn_output(self.point_cloud_encoder, point_cloud.float())
-
-        #TODO add 3d conv on top?
-
         query_source_objects = observations['category_object_source']
         query_destination_objects = observations['category_object_destination']
 
+
+        pickup_bool = observations["pickedup_object"]
+        after_pickup = pickup_bool == 1
 
         query_objects = query_source_objects
         query_objects[after_pickup] = query_destination_objects[after_pickup]
@@ -168,11 +161,10 @@ class MaskWPointCloudSensor(ActorCriticModel[CategoricalDistr]):
         visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
-        visual_observation_encoding_w_memory = torch.cat([visual_observation_encoding, point_cloud_embedding], dim=-1)
 
 
         x_out, rnn_hidden_states = self.state_encoder(
-            visual_observation_encoding_w_memory, memory.tensor("rnn"), masks
+            visual_observation_encoding, memory.tensor("rnn"), masks
         )
 
 
@@ -196,13 +188,13 @@ class MaskWPointCloudSensor(ActorCriticModel[CategoricalDistr]):
         # TODO really bad design
         if self.visualize:
             hacky_visualization(observations, object_mask=gt_mask, query_objects=query_objects, base_directory_to_right_images=self.starting_time)
-            #TODO remove?
+            point_cloud_source = observations['binned_pc_map_source']['map_with_agent']
+            point_cloud_destination = observations['binned_pc_map_destination']['map_with_agent']
+
             if point_cloud_source.shape[0] == 1 and point_cloud_source.shape[1] == 1:
                 things_to_show = point_cloud_source.squeeze(0).squeeze(0); non_zeros = things_to_show.nonzero();show_3d(non_zeros, map_size = things_to_show.shape, additional_tag='source')
 
                 things_to_show = point_cloud_destination.squeeze(0).squeeze(0); non_zeros = things_to_show.nonzero();show_3d(non_zeros, map_size = things_to_show.shape, additional_tag='destination')
-
-
 
         return (
             actor_critic_output,

@@ -22,8 +22,8 @@ from manipulathor_baselines.bring_object_baselines.models.detection_model import
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.thor_category_names import thor_possible_objects
 
-from legacy.from_phone_to_sim.more_optimized import get_point_cloud
-from legacy.from_phone_to_sim.thor_frames_to_pointcloud import frames_to_world_points, world_points_to_pointcloud
+# from legacy.from_phone_to_sim.more_optimized import get_point_cloud
+# from legacy.from_phone_to_sim.thor_frames_to_pointcloud import frames_to_world_points, world_points_to_pointcloud
 
 class RelativeArmDistanceToGoal(Sensor):
     def __init__(self, uuid: str = "relative_arm_dist", **kwargs: Any):
@@ -107,47 +107,6 @@ class CategorySampleSensor(Sensor):
         image = task.task_info[info_to_search]
         return image
 
-class PointCloudMemory(Sensor):
-    def __init__(self,memory_size,  uuid: str = "point_cloud", **kwargs: Any):
-        observation_space = gym.spaces.Box(
-            low=0, high=1, shape=(1,), dtype=np.float32
-        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
-        self.memory_size = memory_size
-        super().__init__(**prepare_locals_for_super(locals()))
-        print('resolve todo')
-        ForkedPdb().set_trace()
-
-
-
-    def get_observation(
-            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
-    ) -> Any:
-        assert self.memory_size == env.MEMORY_SIZE
-
-        if len(env.memory_frames) == 0:
-            return 10 #LATER_TODO
-
-        frames = [k['rgb'] for k in env.memory_frames]
-        depth_frames = [k['depth'] for k in env.memory_frames]
-        metadatas = [k['event'] for k in env.memory_frames]
-
-        #LATER_TODO
-        if False:
-            #option 2
-            pc = get_point_cloud(frames, depth_frames, metadatas)
-        else:
-            #option1
-            xyz, normals, rgb = frames_to_world_points(metadatas, frames, depth_frames)
-            pc = world_points_to_pointcloud(xyz, normals, rgb, voxel_size=0.02)
-            dir_to_save = 'experiment_output/visualization_pointcloud/'
-            os.makedirs(dir_to_save, exist_ok=True)
-            timesmap = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S_%f.ply")
-            # if random.random() < 1/5.:
-            #     save_pointcloud_to_file(pc, os.path.join(dir_to_save, timesmap))
-            #     print('saved pointcloud', os.path.join(dir_to_save, timesmap))
-            # #LATER_TODO we probably need to convert this back to agent's coordinate frame
-            # ForkedPdb().set_trace()
-        return 10
 
 class NoisyObjectMask(Sensor):
     def __init__(self, type: str,noise, height, width,  uuid: str = "object_mask", distance_thr: float = -1, **kwargs: Any):
@@ -204,6 +163,14 @@ class NoisyObjectMask(Sensor):
             resized_mask = cv2.resize(fake_mask, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
         return resized_mask
 
+class NoMaskSensor(NoisyObjectMask):
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+
+        mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
+        result = (np.expand_dims(mask_frame.astype(np.float),axis=-1))
+        return result
 
 class NoisyObjectRegion(NoisyObjectMask):
     def __init__(self, type: str,noise, region_size,height, width,  uuid: str = "object_mask", distance_thr: float = -1, **kwargs: Any):
@@ -313,6 +280,49 @@ class TempAllMasksSensor(Sensor):
             object_type_categ_ind = DONT_USE_ALL_POSSIBLE_OBJECTS_EVER.index(object_type)
             result[mask] = object_type_categ_ind
         return result
+
+# class PointCloudMemory(Sensor):
+#     def __init__(self,memory_size,  uuid: str = "point_cloud", **kwargs: Any):
+#         observation_space = gym.spaces.Box(
+#             low=0, high=1, shape=(1,), dtype=np.float32
+#         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+#         self.memory_size = memory_size
+#         super().__init__(**prepare_locals_for_super(locals()))
+#         print('resolve todo')
+#         ForkedPdb().set_trace()
+#
+#
+#
+#     def get_observation(
+#             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+#     ) -> Any:
+#         assert self.memory_size == env.MEMORY_SIZE
+#
+#         if len(env.memory_frames) == 0:
+#             return 10 #LATER_TODO
+#
+#         frames = [k['rgb'] for k in env.memory_frames]
+#         depth_frames = [k['depth'] for k in env.memory_frames]
+#         metadatas = [k['event'] for k in env.memory_frames]
+#
+#         #LATER_TODO
+#         if False:
+#             #option 2
+#             pc = get_point_cloud(frames, depth_frames, metadatas)
+#         else:
+#             #option1
+#             xyz, normals, rgb = frames_to_world_points(metadatas, frames, depth_frames)
+#             pc = world_points_to_pointcloud(xyz, normals, rgb, voxel_size=0.02)
+#             dir_to_save = 'experiment_output/visualization_pointcloud/'
+#             os.makedirs(dir_to_save, exist_ok=True)
+#             timesmap = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S_%f.ply")
+#             # if random.random() < 1/5.:
+#             #     save_pointcloud_to_file(pc, os.path.join(dir_to_save, timesmap))
+#             #     print('saved pointcloud', os.path.join(dir_to_save, timesmap))
+#             # #LATER_TODO we probably need to convert this back to agent's coordinate frame
+#             # ForkedPdb().set_trace()
+#         return 10
+
 
 
 class DestinationObjectSensor(Sensor):
