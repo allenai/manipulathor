@@ -20,7 +20,8 @@ screen_size=224
 ENV_ARGS['width'] = screen_size
 ENV_ARGS['height'] = screen_size
 ENV_ARGS['agentMode']='stretch'
-ENV_ARGS['commit_id']='8917d82118a663af77e76e0e5701fce186dcaec7'
+# ENV_ARGS['commit_id']='8917d82118a663af77e76e0e5701fce186dcaec7'
+ENV_ARGS['commit_id']='?'
 ENV_ARGS['renderDepthImage'] = True
 
 controller = ai2thor.controller.Controller(**ENV_ARGS)#, renderInstanceSegmentation=True)

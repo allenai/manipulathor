@@ -24,7 +24,8 @@ screen_size=224
 ENV_ARGS['width'] = screen_size
 ENV_ARGS['height'] = screen_size
 ENV_ARGS['agentMode']='stretch'
-ENV_ARGS['commit_id']='69d9140a27a03c7313cf7d55e3fa681ae4a56219'
+# ENV_ARGS['commit_id']='69d9140a27a03c7313cf7d55e3fa681ae4a56219'
+ENV_ARGS['commit_id']='?'
 ENV_ARGS['renderDepthImage'] = True
 
 if platform.system() == "Darwin":
@@ -139,8 +140,8 @@ def print_locations(controller):
 
 
 def test_arm_movements(controller, scenes= all_scenes, num_tests=NUM_TESTS, episode_len=EPS_LEN, visualize_tests=False, one_by_one=False):
-    #TODO add these later , 'go', 'gc', 'wp', 'wn'
-    #TODO add p and d
+    #LATER_TODO add these later , 'go', 'gc', 'wp', 'wn'
+    #LATER_TODO add p and d
     ALL_POSSIBLE_ACTIONS = ['hu', 'hd', 'ao', 'ai'] + ['m', 'r', 'l', 'b'] + ['wp', 'wn']
     times = [1]
     for i in range(num_tests):
@@ -187,7 +188,7 @@ def test_arm_movements(controller, scenes= all_scenes, num_tests=NUM_TESTS, epis
             expected_arm_after_action = copy.deepcopy(arm_before_action)
             expected_wrist_after_action = copy.deepcopy(wrist_before_action)
             if controller.last_event.metadata['lastActionSuccess']:
-                if action in ['m', 'b']: #TODO this is not super accurate but just for now
+                if action in ['m', 'b']: #LATER_TODO this is not super accurate but just for now
                     distances = [agent_before_action['position'][k] - agent_after_action['position'][k] for k in ['x', 'y', 'z']]
                     sum_distances = sum([abs(k) for k in distances])
                     if sum_distances < 0.05:
@@ -280,11 +281,13 @@ def test_fov(controller):
 # In[26]:
 
 if __name__ == '__main__':
+    print('resolve todos')
+    pdb.set_trace()
     controller = ai2thor.controller.Controller(**ENV_ARGS)#, renderInstanceSegmentation=True)
 
-    #TODO add pickup and drop tests
+    #LATER_TODO add pickup and drop tests
 
-    # #TODO all the following tests need to pass
+    # #LATER_TODO all the following tests need to pass
     # test_arm_scene_generalizations(controller)
     # print('Testing arm stuck in all scenes')
     # test_arm_movements(controller, scenes=all_scenes, num_tests=len(all_scenes), episode_len = 30, visualize_tests=False, one_by_one=True)

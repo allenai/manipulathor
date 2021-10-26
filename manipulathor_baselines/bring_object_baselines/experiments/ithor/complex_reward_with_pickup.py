@@ -46,8 +46,9 @@ class ComplexRewardWPickupExp(
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
-        NoisyObjectMask(noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
-        NoisyObjectMask(noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
+
+        NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
+        NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
     ]
 
     MAX_STEPS = 200
@@ -65,7 +66,7 @@ class ComplexRewardWPickupExp(
         super().__init__()
         self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
         self.REWARD_CONFIG['object_found'] = 1 # is this too big?
-
+        self.ENV_ARGS['visibilityDistance'] = self.distance_thr #TODO do it everywhere if that's the plan
 
 
     @classmethod

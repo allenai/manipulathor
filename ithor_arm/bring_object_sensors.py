@@ -1,37 +1,29 @@
 """Utility classes and functions for sensory inputs used by the models."""
 import datetime
-import glob
 import os
 import random
-from typing import Any, Union, Optional
+from typing import Any
 
 import cv2
 import gym
 import numpy as np
 import torch
-from PIL import Image
 
 # from allenact.base_abstractions.sensor import DepthSensor, Sensor, RGBSensor
-from allenact.embodiedai.sensors.vision_sensors import DepthSensor, Sensor, RGBSensor
+from allenact.embodiedai.sensors.vision_sensors import Sensor
 from allenact.base_abstractions.task import Task
 from allenact.utils.misc_utils import prepare_locals_for_super
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 
-from ithor_arm.arm_calculation_utils import (
-    convert_world_to_agent_coordinate,
-    convert_state_to_tensor,
-    diff_position,
-)
 from ithor_arm.ithor_arm_constants import DONT_USE_ALL_POSSIBLE_OBJECTS_EVER
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.thor_category_names import thor_possible_objects
-import torchvision.transforms as transforms
 
-from utils.from_phone_to_sim.more_optimized import get_point_cloud
-from utils.from_phone_to_sim.thor_frames_to_pointcloud import frames_to_world_points, save_pointcloud_to_file, world_points_to_pointcloud
+from legacy.from_phone_to_sim.more_optimized import get_point_cloud
+from legacy.from_phone_to_sim.thor_frames_to_pointcloud import frames_to_world_points, world_points_to_pointcloud
 
 class RelativeArmDistanceToGoal(Sensor):
     def __init__(self, uuid: str = "relative_arm_dist", **kwargs: Any):

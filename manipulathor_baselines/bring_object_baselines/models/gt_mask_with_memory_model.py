@@ -57,6 +57,8 @@ class MemoryWGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
 
         See class documentation for parameter definitions.
         """
+        print('Resolve todos')
+        ForkedPdb().set_trace()
         super().__init__(action_space=action_space, observation_space=observation_space)
         self.visualize = visualize
         self.MEMORY_SIZE = 5
@@ -65,7 +67,7 @@ class MemoryWGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
         self.object_type_embedding_size = obj_state_embedding_size
 
         # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32, 16], 'kernel_sizes': [(7,7), (4, 4), (3, 3), (3, 3)], 'strides': [(4, 4), (2, 2), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1), (1, 1)], 'output_height': 10, 'output_width': 10, 'output_channels': 16, 'flatten': False, 'output_relu': False} #TODO I have removed relu
+        network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32, 16], 'kernel_sizes': [(7,7), (4, 4), (3, 3), (3, 3)], 'strides': [(4, 4), (2, 2), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1), (1, 1)], 'output_height': 10, 'output_width': 10, 'output_channels': 16, 'flatten': False, 'output_relu': False} #LATER_TODO I have removed relu
         self.full_visual_encoder = make_cnn(**network_args)
 
         network_args = {'input_channels': self.MEMORY_SIZE * 16, 'layer_channels': [80, 32, 16], 'kernel_sizes': [(1, 1), (1, 1), (1, 1)], 'strides': [(1, 1), (1, 1), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 10, 'output_width': 10, 'output_channels': 16, 'flatten': False, 'output_relu': False}
@@ -124,7 +126,7 @@ class MemoryWGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
                 ),
                 torch.float32,
             ),
-            prev_action=( #TODO add this later
+            prev_action=( #LATER_TODO add this later
                 (
                     ("sampler", None),
                     ("channels", self.MEMORY_SIZE),
@@ -181,7 +183,7 @@ class MemoryWGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
         previous_steps_memory = memory.tensor("prev_memory").unsqueeze(0)
 
         # if b_size > 1:
-        #     previous_steps_memory = previous_steps_memory.unsqueeze(0) #num_samplers is stacked on first element for some reason #TODO WTF
+        #     previous_steps_memory = previous_steps_memory.unsqueeze(0) #num_samplers is stacked on first element for some reason #LATER_TODO WTF
         if seq_len == 1:
             converted_previous_steps_memory = previous_steps_memory.permute(0, 1, 3, 4, 2) #It has to be channel last
             previous_steps_memory_encoding = compute_cnn_output(self.combine_memory, converted_previous_steps_memory)
@@ -195,7 +197,7 @@ class MemoryWGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
             new_memory = torch.cat([previous_steps_memory[:, :, 16:], visual_observation_encoding], dim=2)
         else:
             # We have to remake the memory, therefore
-            #TODO this is gonna be very slow? what is even the point of doing this if we are gonna do this
+            #LATER_TODO this is gonna be very slow? what is even the point of doing this if we are gonna do this
             current_rnn = memory.tensor("rnn")
             all_x_outs = []
             for i in range(seq_len):

@@ -69,7 +69,7 @@ class ComplexRewardNoPUBinaryDistance(
 
 
 
-    NUM_PROCESSES = 30 #TODO replace with 40
+    NUM_PROCESSES = 30
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 

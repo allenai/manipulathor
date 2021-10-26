@@ -7,7 +7,7 @@ from ithor_arm.ithor_arm_constants import ENV_ARGS
 from scripts.jupyter_helper import two_dict_equal
 
 # commit_id = '58bf22c0b9aa0d3abe5fd8c3b43479ecc8d2a228'
-commit_id = '2f8dd9f95e4016db60155a0cc18b834a6339c8e1' #TODO change everywhere
+commit_id = '2f8dd9f95e4016db60155a0cc18b834a6339c8e1' # change everywhere
 ENV_ARGS['commit_id'] = commit_id
 controller = ai2thor.controller.Controller(**ENV_ARGS)
 
