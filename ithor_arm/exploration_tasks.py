@@ -116,12 +116,22 @@ class ExploreTask(BringObjectTask):
     #     return float(reward)
 
     def judge(self) -> float:
+
+        reward_kiana = self.reward_configs["step_penalty"]
+
+        # TODO @samir add reward for objects
         current_agent_location = self.env.get_agent_location()
         current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
         all_distances = self.all_reachable_positions - current_agent_location
         all_distances = (all_distances ** 2).sum(dim=-1)
         location_index = torch.argmin(all_distances)
+        if self.has_visited[location_index] == 0:
+            reward_kiana += self.reward_configs["exploration_reward"]
         self.has_visited[location_index] = 1
+
+
+        if not self.last_action_success:
+            reward_kiana += self.reward_configs["failed_action_penalty"]
 
 
         """Return the reward from a new (s, a, s'). NOTE: From Luca"""
@@ -158,7 +168,7 @@ class ExploreTask(BringObjectTask):
         if self._took_end_action and prop_seen_after > 0.5:
             reward += 5 * (prop_seen_after + (prop_seen_after > 0.98))
 
-        return reward
+        return reward + reward_kiana
 
     def metrics(self) -> Dict[str, Any]:
         result = super(AbstractBringObjectTask, self).metrics()
