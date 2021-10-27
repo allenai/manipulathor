@@ -37,7 +37,7 @@ class ComplexRewardNoPUBinaryDistanceWNoiseDiscriminator(
 ):
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
-    NOISE_LEVEL = 0.1
+    NOISE_LEVEL = 0.1 #TODO do we want to increase this?
     distance_thr = 1.5 # is this a good number?
     TASK_SAMPLER = DiverseBringObjectTaskSampler
     TASK_TYPE = ExploreWiseRewardTask

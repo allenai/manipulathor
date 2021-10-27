@@ -25,8 +25,14 @@ import pdb
 #   --distributed_ip_and_port IP_ADR:6060 \
 #   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
 #   --seed 10 --machine_id 0 '
-command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_w_pc_w_distrib \
-  --extra_tag complex_reward_no_pu_w_pc_w_distrib \
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_w_pc_w_distrib \
+#   --extra_tag complex_reward_no_pu_w_pc_w_distrib \
+#   --distributed_ip_and_port IP_ADR:6060 \
+#   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
+#   --seed 10 --machine_id 0 '
+command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/predict_mask_rgbd_distrib \
+  --extra_tag predict_mask_rgbd_distrib \
+  -c ~/policy_with_binary_head_and_prediction___stage_00__steps_000000000000.pt \
   --distributed_ip_and_port IP_ADR:6060 \
   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
   --seed 10 --machine_id 0 '

@@ -147,7 +147,6 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
 
             images = images.view(batch * seqlen, c, w, h)
             query_images = query_images.view(batch * seqlen, c, w, h)
-            #LATER_TODO visualize the outputs
             predictions = self.detection_model(dict(rgb=images, target_cropped_object=query_images))
             probs_mask = predictions['object_mask']
             probs_mask = probs_mask.view(batch, seqlen, 2, w, h)
@@ -223,12 +222,6 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
             visual_observation_encoding, memory.tensor("rnn"), masks
         )
 
-        # self.visualize = platform.system() == "Darwin"
-        # TODO really bad design
-        if self.visualize:
-            gt_mask = observations['gt_mask_for_loss_source']
-            gt_mask[after_pickup] = observations['gt_mask_for_loss_destination'][after_pickup]
-            hacky_visualization(observations, object_mask=predicted_masks, query_objects=query_objects, base_directory_to_right_images=self.starting_time, gt_mask = gt_mask)
 
 
         actor_out_pickup = self.actor_pickup(x_out)
@@ -248,9 +241,11 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
 
         actor_critic_output.extras['predicted_mask'] = predicted_masks.detach()
 
-        # TODO we might have to only do this in test
-        if self.visualize:
+        if self.visualize: # TODO really bad design
             self.calc_losses(observations, actor_critic_output)
+            gt_mask = observations['gt_mask_for_loss_source'].clone()
+            gt_mask[after_pickup] = observations['gt_mask_for_loss_destination'][after_pickup]
+            hacky_visualization(observations, object_mask=predicted_masks, query_objects=query_objects, base_directory_to_right_images=self.starting_time, gt_mask = gt_mask)
 
 
         return (

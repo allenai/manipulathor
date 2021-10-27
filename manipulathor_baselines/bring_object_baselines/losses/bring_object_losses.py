@@ -180,7 +180,8 @@ class FakeMaskDetectorLoss(AbstractActorCriticLoss):
         super().__init__(*args, **kwargs)
         self.noise = noise
         fake_mask_rates = self.noise * 2
-        self.criterion = torch.nn.CrossEntropyLoss(torch.Tensor([1 / fake_mask_rates, 1 / (1 - fake_mask_rates)]))
+        self.weights = torch.Tensor([1 / fake_mask_rates, 1 / (1 - fake_mask_rates)])
+        self.criterion = None
 
 
     def loss(  # type: ignore
@@ -191,6 +192,8 @@ class FakeMaskDetectorLoss(AbstractActorCriticLoss):
             *args,
             **kwargs
     ):
+
+
 
         observations = cast(Dict[str, torch.Tensor], batch["observations"])
 
@@ -212,6 +215,9 @@ class FakeMaskDetectorLoss(AbstractActorCriticLoss):
 
         is_real_mask_pred = is_real_mask_pred.view(seq_len * b_size, num_cls)
         is_real_mask_gt = is_real_mask_gt.view(seq_len * b_size)
+
+        if self.criterion is None:
+            self.criterion = torch.nn.CrossEntropyLoss(self.weights.to(is_real_mask_pred.device))
 
         total_loss = self.criterion(is_real_mask_pred, is_real_mask_gt)
 
