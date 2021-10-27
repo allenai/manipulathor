@@ -155,7 +155,7 @@ class NoisyObjectMask(Sensor):
         else:
             fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
         fake_mask = (np.expand_dims(fake_mask.astype(np.float),axis=-1))
-        fake_mask = add_mask_noise(result, fake_mask, noise=self.noise)
+        fake_mask, is_real_mask = add_mask_noise(result, fake_mask, noise=self.noise)
         current_shape = fake_mask.shape
         if (current_shape[0], current_shape[1]) == (self.width, self.height):
             resized_mask = fake_mask
@@ -202,24 +202,35 @@ class NoisyObjectRegion(NoisyObjectMask):
         return region
 
 
-def add_mask_noise(result, fake_mask, noise):
+def add_mask_noise(real_mask, fake_mask, noise):
     TURN_OFF_RATE = noise
     REMOVE_RATE = noise
     REPLACE_WITH_FAKE = noise
 
+    result = real_mask.copy()
+
     random_prob = random.random()
     if random_prob < REMOVE_RATE:
         result[:] = 0.
-    elif random_prob < REMOVE_RATE + REPLACE_WITH_FAKE:
+        is_real_mask = False
+    elif random_prob < REMOVE_RATE + REPLACE_WITH_FAKE: #TODO I think this is too much, think of all the frames that we don't actually see the object but this is true
         result = fake_mask
-    else:
+        is_real_mask = False
+    elif random_prob < REMOVE_RATE + REPLACE_WITH_FAKE + TURN_OFF_RATE:
         w, h, d = result.shape
         mask = np.random.rand(w, h, d)
         mask = mask < TURN_OFF_RATE
         mask = mask & (result == 1)
         result[mask] = 0
+        is_real_mask = True
+    else:
+        is_real_mask = True
 
-    return result
+    masks_are_changed_but_still_similar = (result != real_mask).sum() == 0 and not is_real_mask
+    if masks_are_changed_but_still_similar:
+        is_real_mask = True
+
+    return result, is_real_mask
 
 
 

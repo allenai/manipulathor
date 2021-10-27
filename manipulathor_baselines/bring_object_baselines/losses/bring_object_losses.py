@@ -157,8 +157,8 @@ class BinaryArmDistanceLoss(AbstractActorCriticLoss):
         # print(gt_binary_arm_distance)
         #
 
-        # #TODO have you seen a real nightmare come true?
-        # if random.random() < 0.01 or platform.system() == "Darwin": #TODO if this is too slow convert to tensor and set a limit on how many it can hold
+        # TODO have you seen a real nightmare come true?
+        # if random.random() < 0.01 or platform.system() == "Darwin": # TODO if this is too slow convert to tensor and set a limit on how many it can hold
         #     with torch.no_grad():
         #         if torch.any(action_exist):
         #             predicted_class = torch.argmax(masked_arm_dis, dim=-1)
@@ -175,6 +175,52 @@ class BinaryArmDistanceLoss(AbstractActorCriticLoss):
             {"binary_arm_dist": total_loss.item(),}
         )
 
+class FakeMaskDetectorLoss(AbstractActorCriticLoss):
+    def __init__(self, noise, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.noise = noise
+        fake_mask_rates = self.noise * 2
+        self.criterion = torch.nn.CrossEntropyLoss(torch.Tensor([1 / fake_mask_rates, 1 / (1 - fake_mask_rates)]))
+
+
+    def loss(  # type: ignore
+            self,
+            step_count: int,
+            batch: ObservationType,
+            actor_critic_output: ActorCriticOutput[CategoricalDistr],
+            *args,
+            **kwargs
+    ):
+
+        observations = cast(Dict[str, torch.Tensor], batch["observations"])
+
+
+        pickup_bool = observations["pickedup_object"]
+        after_pickup = pickup_bool == 1
+
+        is_real_mask_source_gt = observations['object_mask_source']['is_real_mask']
+        is_real_mask_destination_gt = observations['object_mask_destination']['is_real_mask']
+        is_real_mask_gt = is_real_mask_source_gt.clone()
+        is_real_mask_gt[after_pickup] = is_real_mask_destination_gt[after_pickup]
+        is_real_mask_gt = is_real_mask_gt.long()
+
+        is_real_mask_pred = actor_critic_output.extras['is_real_mask']
+
+        seq_len, b_size, num_cls = is_real_mask_pred.shape
+        gt_seq_len, gt_bsize = is_real_mask_gt.shape
+        assert seq_len == gt_seq_len and b_size == gt_bsize
+
+        is_real_mask_pred = is_real_mask_pred.view(seq_len * b_size, num_cls)
+        is_real_mask_gt = is_real_mask_gt.view(seq_len * b_size)
+
+        total_loss = self.criterion(is_real_mask_pred, is_real_mask_gt)
+
+        #TODO do we want to take care of cases where there is no mask and it's all zero? if yes should we change the weight?
+
+        return (
+            total_loss,
+            {"fake_mask_detector_loss": total_loss.item(),}
+        )
 
 class MaskLoss(AbstractActorCriticLoss):
     """Expert imitation loss."""

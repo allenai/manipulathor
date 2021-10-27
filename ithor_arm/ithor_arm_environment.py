@@ -117,8 +117,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         self.controller.docker_enabled = docker_enabled  # type: ignore
 
         self.MEMORY_SIZE = 5
-        #TODO remove this if we end up not using it
-        self.memory_frames = []
+        # self.memory_frames = []
 
     def check_controller_version(self):
         if MANIPULATHOR_COMMIT_ID is not None:
@@ -181,7 +180,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
     ):
         self._move_mag = move_mag
         self._grid_size = self._move_mag
-        self.memory_frames = []
+        # self.memory_frames = []
 
         if scene_name is None:
             scene_name = self.controller.last_event.metadata["sceneName"]
@@ -332,10 +331,10 @@ class ManipulaTHOREnvironment(IThorEnvironment):
             'depth': depth,
             'event':event,
         }
-        if len(self.memory_frames) == 0:
-            self.memory_frames = [current_frame for _ in range(self.MEMORY_SIZE)]
-        else:
-            self.memory_frames = self.memory_frames[1:] + [current_frame]
+        # if len(self.memory_frames) == 0:
+        #     self.memory_frames = [current_frame for _ in range(self.MEMORY_SIZE)]
+        # else:
+        #     self.memory_frames = self.memory_frames[1:] + [current_frame]
     def step(
             self, action_dict: Dict[str, Union[str, int, float]]
     ) -> ai2thor.server.Event:

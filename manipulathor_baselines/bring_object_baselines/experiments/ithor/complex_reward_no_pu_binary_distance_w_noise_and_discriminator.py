@@ -23,8 +23,9 @@ from ithor_arm.near_deadline_sensors import FancyNoisyObjectMaskWLabels
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
-from manipulathor_baselines.bring_object_baselines.losses.bring_object_losses import BinaryArmDistanceLoss
+from manipulathor_baselines.bring_object_baselines.losses.bring_object_losses import BinaryArmDistanceLoss, FakeMaskDetectorLoss
 from manipulathor_baselines.bring_object_baselines.models.binary_distance_query_obj_w_gt_mask_rgb_model import BringObjectBinaryDistanceGtMaskRGBDModel
+from manipulathor_baselines.bring_object_baselines.models.fake_mask_detector_binary_distance_query_obj_w_gt_mask_rgb_model import FakeMaskDetectorBinaryDistanceGtMaskRGBDModel
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 
 
@@ -36,7 +37,7 @@ class ComplexRewardNoPUBinaryDistanceWNoiseDiscriminator(
 ):
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
-    NOISE_LEVEL = 0.2
+    NOISE_LEVEL = 0.1
     distance_thr = 1.5 # is this a good number?
     TASK_SAMPLER = DiverseBringObjectTaskSampler
     TASK_TYPE = ExploreWiseRewardTask
@@ -68,8 +69,6 @@ class ComplexRewardNoPUBinaryDistanceWNoiseDiscriminator(
 
     MAX_STEPS = 200
 
-
-
     NUM_PROCESSES = 40
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
@@ -86,7 +85,7 @@ class ComplexRewardNoPUBinaryDistanceWNoiseDiscriminator(
 
     @classmethod
     def create_model(cls, **kwargs) -> nn.Module:
-        return BringObjectBinaryDistanceGtMaskRGBDModel(
+        return FakeMaskDetectorBinaryDistanceGtMaskRGBDModel(
             action_space=gym.spaces.Discrete(
                 len(cls.TASK_TYPE.class_action_names())
             ),
@@ -115,7 +114,7 @@ class ComplexRewardNoPUBinaryDistanceWNoiseDiscriminator(
             update_repeats=update_repeats,
             max_grad_norm=max_grad_norm,
             num_steps=num_steps,
-            named_losses={"ppo_loss": PPO(**PPOConfig), "binary_arm_dist": BinaryArmDistanceLoss()},
+            named_losses={"ppo_loss": PPO(**PPOConfig), "binary_arm_dist": BinaryArmDistanceLoss(), "fake_mask_detector_loss": FakeMaskDetectorLoss(noise=self.NOISE_LEVEL)},
             gamma=gamma,
             use_gae=use_gae,
             gae_lambda=gae_lambda,
@@ -123,8 +122,8 @@ class ComplexRewardNoPUBinaryDistanceWNoiseDiscriminator(
             pipeline_stages=[
                 # PipelineStage(loss_names=["ppo_loss"], max_stage_steps=ppo_steps)
                 PipelineStage(
-                    loss_names=["ppo_loss", "binary_arm_dist"],
-                    loss_weights=[1.0, 0.05], #TODO how is this?
+                    loss_names=["ppo_loss", "binary_arm_dist", 'fake_mask_detector_loss'],
+                    loss_weights=[1.0, 0.05, 0.05], #TODO how is this?
                     max_stage_steps=ppo_steps,
                 )
             ],
