@@ -8,7 +8,7 @@ from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn, optim
 from torch.optim.lr_scheduler import LambdaLR
 
-from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor, RelativeArmDistanceToGoal, PreviousActionTaken, IsGoalObjectVisible
+from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor, RelativeArmDistanceToGoal, PreviousActionTaken, IsGoalObjectVisible, CategoryFeatureSampleSensor
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
 from ithor_arm.ithor_arm_constants import ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
 from ithor_arm.bring_object_tasks import WPickUPExploreBringObjectTask, ExploreWiseRewardTask
@@ -61,6 +61,8 @@ class ComplexRewardNoPUBinaryDistanceWNoiseDiscriminator(
         CategorySampleSensor(type='destination'),
         FancyNoisyObjectMaskWLabels(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
         FancyNoisyObjectMaskWLabels(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
+        CategoryFeatureSampleSensor(type='source'),
+        CategoryFeatureSampleSensor(type='destination'),
         RelativeArmDistanceToGoal(),
         PreviousActionTaken(),
         IsGoalObjectVisible(),

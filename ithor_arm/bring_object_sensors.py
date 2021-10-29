@@ -108,6 +108,31 @@ class CategorySampleSensor(Sensor):
         return image
 
 
+class CategoryFeatureSampleSensor(Sensor):
+    def __init__(self, type: str, uuid: str = "category_object_feature", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        uuid = '{}_{}'.format(uuid, type)
+        super().__init__(**prepare_locals_for_super(locals()))
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+
+        if self.type == 'source':
+            info_to_search = 'source_object_query_feature'
+        elif self.type == 'destination':
+            info_to_search = 'goal_object_query_feature'
+        else:
+            raise Exception('Not implemented', self.type)
+        image = task.task_info[info_to_search]
+        return image
+
+
+
 class NoisyObjectMask(Sensor):
     def __init__(self, type: str,noise, height, width,  uuid: str = "object_mask", distance_thr: float = -1, **kwargs: Any):
         observation_space = gym.spaces.Box(

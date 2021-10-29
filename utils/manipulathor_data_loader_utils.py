@@ -1,3 +1,4 @@
+import pickle
 import random
 
 from PIL import Image
@@ -20,3 +21,13 @@ def get_random_query_image(scene_name, object_id, query_image_dict):
     chosen_image_adr = random.choice(query_image_dict[object_type])
     image = load_and_resize_image(chosen_image_adr)
     return image
+
+def get_random_query_feature(scene_name, object_id, query_image_dict):
+    object_category = object_id.split('|')[0]
+    # object_type = object_category[0].lower() + object_category[1:]
+    object_type = object_category
+    chosen_image_adr = random.choice(query_image_dict[object_type])
+    chosen_feature_adr = chosen_image_adr.replace('query_images' ,'query_features').replace('.png', '.pkl')
+    with open(chosen_feature_adr, 'rb') as f:
+        feature = pickle.load(f)
+    return feature

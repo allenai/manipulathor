@@ -64,11 +64,11 @@ class BringObjectBinaryDistanceGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         self.object_type_embedding_size = obj_state_embedding_size
 
         # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 5, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
 
         self.distance_close_far = nn.Sequential(
-            nn.Linear(512 * 2, 128),
+            nn.Linear(512, 128),
             nn.LeakyReLU(inplace=True),
             nn.Linear(128, 64),
             nn.LeakyReLU(inplace=True),
@@ -81,7 +81,7 @@ class BringObjectBinaryDistanceGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         # self.detection_model = ConditionalDetectionModel()
 
         self.state_encoder = RNNStateEncoder(
-            512 * 2,
+            512,
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -146,27 +146,24 @@ class BringObjectBinaryDistanceGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         #we really need to switch to resnet now that visual features are actually important
 
 
+        query_source_objects = observations['category_object_source']
+        query_destination_objects = observations['category_object_destination']
 
 
         pickup_bool = observations["pickedup_object"]
         after_pickup = pickup_bool == 1
 
-        query_source_objects = observations['category_object_feature_source']
-        query_destination_objects = observations['category_object_feature_destination']
         query_objects = query_source_objects
         query_objects[after_pickup] = query_destination_objects[after_pickup]
-
 
         source_object_mask = observations['object_mask_source']
         destination_object_mask = observations['object_mask_destination']
 
         gt_mask = source_object_mask
         gt_mask[after_pickup] = destination_object_mask[after_pickup]
-
-        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'], gt_mask], dim=-1).float()
+        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'],query_objects.permute(0, 1, 3, 4, 2), gt_mask], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
-        visual_observation_encoding = torch.cat([visual_observation_encoding, query_objects], dim=-1)
 
 
         x_out, rnn_hidden_states = self.state_encoder(
@@ -198,12 +195,7 @@ class BringObjectBinaryDistanceGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
 
         # TODO really bad design
         if self.visualize:
-
-            query_image_source_objects = observations['category_object_source']
-            query_image_destination_objects = observations['category_object_destination']
-            query_image_objects = query_image_source_objects
-            query_image_objects[after_pickup] = query_image_destination_objects[after_pickup]
-            hacky_visualization(observations, object_mask=gt_mask, query_objects=query_image_objects, base_directory_to_right_images=self.starting_time)
+            hacky_visualization(observations, object_mask=gt_mask, query_objects=query_objects, base_directory_to_right_images=self.starting_time)
 
 
         return (

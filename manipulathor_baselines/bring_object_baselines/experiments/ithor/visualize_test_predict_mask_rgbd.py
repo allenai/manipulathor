@@ -26,4 +26,3 @@ class VisualizeTrainPredict(
 ):
     NUMBER_OF_TEST_PROCESS = 1
     VISUALIZE = True
-    TEST_SCENES = PredictMaskNoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject.TRAIN_SCENES

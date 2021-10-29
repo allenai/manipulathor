@@ -8,7 +8,7 @@ from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn, optim
 from torch.optim.lr_scheduler import LambdaLR
 
-from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor, RelativeArmDistanceToGoal, PreviousActionTaken, IsGoalObjectVisible
+from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor, RelativeArmDistanceToGoal, PreviousActionTaken, IsGoalObjectVisible, CategoryFeatureSampleSensor
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
 from ithor_arm.ithor_arm_constants import ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
 from ithor_arm.bring_object_tasks import WPickUPExploreBringObjectTask, ExploreWiseRewardTask
@@ -57,8 +57,11 @@ class ComplexRewardNoPUBinaryDistance(
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
+        CategoryFeatureSampleSensor(type='source'),
+        CategoryFeatureSampleSensor(type='destination'),
         NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
         NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
+
         RelativeArmDistanceToGoal(),
         PreviousActionTaken(),
         IsGoalObjectVisible(),
@@ -80,7 +83,7 @@ class ComplexRewardNoPUBinaryDistance(
         self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
         self.REWARD_CONFIG['object_found'] = 1 # is this too big?
 
-        self.ENV_ARGS['visibilityDistance'] = self.distance_thr\
+        self.ENV_ARGS['visibilityDistance'] = self.distance_thr
 
 
 
