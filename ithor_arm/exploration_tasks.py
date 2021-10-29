@@ -65,6 +65,7 @@ class ExploreTask(BringObjectTask):
         self.all_reachable_positions = torch.Tensor(all_locations) #TODO @samir you can change this to cover more than just the lcoations and add observed objects as well
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
         self.seen_objects = set()
+        self.prop_seen_after = 0
 
         # NOTE: from luca
         self.visited_positions_xzrsh = {self.agent_location_tuple}
@@ -127,6 +128,8 @@ class ExploreTask(BringObjectTask):
         location_index = torch.argmin(all_distances)
         if self.has_visited[location_index] == 0:
             reward_kiana += self.reward_configs["exploration_reward"]
+        else:
+            reward_kiana += self.reward_configs['visted_reward']
         self.has_visited[location_index] = 1
 
 
@@ -162,6 +165,7 @@ class ExploreTask(BringObjectTask):
             self.seen_openable_objects
         )
         prop_seen_after = total_seen_after / self.total_pickupable_or_openable_objects
+        self.prop_seen_after = prop_seen_after
 
         reward = 5 * (prop_seen_after - prop_seen_before)
 
@@ -174,6 +178,7 @@ class ExploreTask(BringObjectTask):
         result = super(AbstractBringObjectTask, self).metrics()
         if self.is_done():
             result['percent_room_visited'] = self.has_visited.mean()
+            result['prop_seen_after'] = self.prop_seen_after
             result["success"] = self._success
             # TODO @samir add metric for obect, logged in tb automatically
             self.finish_visualizer_metrics(result)
