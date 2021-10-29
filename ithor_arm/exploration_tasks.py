@@ -66,6 +66,7 @@ class ExploreTask(BringObjectTask):
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
         self.seen_objects = set()
         self.prop_seen_after = 0
+        self.steps_taken = 0
 
         # NOTE: from luca
         self.visited_positions_xzrsh = {self.agent_location_tuple}
@@ -132,6 +133,7 @@ class ExploreTask(BringObjectTask):
             reward_kiana += self.reward_configs['visted_reward']
         self.has_visited[location_index] = 1
 
+        self.steps_taken += 1
 
         if not self.last_action_success:
             reward_kiana += self.reward_configs["failed_action_penalty"]
@@ -169,7 +171,7 @@ class ExploreTask(BringObjectTask):
 
         reward = 5 * (prop_seen_after - prop_seen_before)
 
-        if self._took_end_action and prop_seen_after > 0.5:
+        if self.steps_taken == self.max_steps and prop_seen_after > 0.5:
             reward += 5 * (prop_seen_after + (prop_seen_after > 0.98))
 
         return reward + reward_kiana
