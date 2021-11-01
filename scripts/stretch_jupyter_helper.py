@@ -213,6 +213,8 @@ def get_current_wrist_state(controller):
 
 
 def get_current_arm_state(controller):
+    print('change this to sphere center and make sure it is right')
+    ForkedPdb().set_trace()
     arm = controller.last_event.metadata['arm']['joints'] #TODO is this the right one? how about wrist movements
     z = arm[-1]['rootRelativePosition']['z']
     x = 0 #arm[-1]['rootRelativePosition']['x']

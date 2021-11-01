@@ -81,7 +81,7 @@ class BinaryArmDistanceLoss(AbstractActorCriticLoss):
         super().__init__(*args, **kwargs)
         self.criterion = torch.nn.CrossEntropyLoss()
 
-        # #TODO this is literally a nightmare but oh well
+        # TODO this is literally a nightmare but oh well
         # self.average = {'closer':[], 'further':[]}
 
     def loss(  # type: ignore

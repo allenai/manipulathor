@@ -11,10 +11,27 @@ import pdb
 #   --distributed_ip_and_port 34.220.30.46:6060 \
 #   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
 #   --seed 10 --machine_id 0 -c ~/exp_ComplexRewardNoPUWMemory__stage_00__steps_000045112992.pt'
-command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_w_binary_distance_distrib \
-  --distributed_ip_and_port IP_ADR:6060 \
-  --config_kwargs \'{\\"distributed_nodes\\":4}\' \
-  --seed 10 --machine_id 0 '
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_w_binary_distance_distrib \
+#   -c ~/exp_ComplexRewardNoPUBinaryDistanceDistrib__stage_00__steps_000007082384.pt \
+#   --distributed_ip_and_port IP_ADR:6060 \
+#   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
+#   --seed 10 --machine_id 0 '
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_pointnav_distrib \
+#   --distributed_ip_and_port IP_ADR:6060 --extra_tag with_abs_distance\
+#   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
+#   --seed 10 --machine_id 0 '
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/temp_test_pointnav_complex_reward_no_pu_pointnav_distrib \
+#   --distributed_ip_and_port IP_ADR:6060 --extra_tag test_new_model_and_hand\
+#   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
+#   --seed 10 --machine_id 0 '
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/temp_test_train_real_pointnav_complex_reward_no_pu_pointnav_distrib \
+#   --distributed_ip_and_port IP_ADR:6060 --extra_tag test_same_model_real_pointnav\
+#   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
+#   --seed 10 --machine_id 0 '
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_binary_distance_w_noise_and_discrim_distrib \
+#   --distributed_ip_and_port IP_ADR:6060 \
+#   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
+#   --seed 10 --machine_id 0 '
 # command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_w_distrib \
 #   --extra_tag complex_reward_no_pu_w_distrib \
 #   --distributed_ip_and_port IP_ADR:6060 \

@@ -126,7 +126,7 @@ class KianaBinnedPointCloudMapTHORSensor(
                 min_xyz=np.array(
                     [
                         xyz_ranges_dict["x_range"][0],
-                        0, #TODO xyz_ranges_dict["y_range"][0],
+                        0, # TODO xyz_ranges_dict["y_range"][0],
                         xyz_ranges_dict["z_range"][0],
                     ]
                 )
@@ -137,7 +137,29 @@ class KianaBinnedPointCloudMapTHORSensor(
 
         return {k: map_dict[k] for k in self.observation_space.spaces.keys()}
 
-
+def rotate_points_to_agent(world_space_point_cloud, device, camera_xyz, camera_rotation, map_size_in_cm):
+    recentered_point_cloud = world_space_point_cloud - (
+            torch.FloatTensor([1.0, 0.0, 1.0]).to(device) * camera_xyz
+    ).reshape((1, 1, 3))
+    # Rotate the cloud so that positive-z is the direction the agent is looking
+    theta = (
+            np.pi * camera_rotation / 180
+    )  # No negative since THOR rotations are already backwards
+    cos_theta = np.cos(theta)
+    sin_theta = np.sin(theta)
+    rotation_transform = torch.FloatTensor(
+        [
+            [cos_theta, 0, -sin_theta],
+            [0, 1, 0],  # unchanged
+            [sin_theta, 0, cos_theta],
+        ]
+    ).to(device)
+    rotated_point_cloud = recentered_point_cloud @ rotation_transform.T
+    xoffset = (map_size_in_cm / 100) / 2
+    agent_centric_point_cloud = rotated_point_cloud + torch.FloatTensor(
+        [xoffset, 0, 0]
+    ).to(device)
+    return agent_centric_point_cloud
 
 class KianaBinnedPointCloudMapBuilder(object):
     """Class used to iteratively construct a map of "free space" based on input
@@ -272,29 +294,7 @@ class KianaBinnedPointCloudMapBuilder(object):
                 flip_row_col=True,
             )
             # Center the cloud on the agent
-            def rotate_points_to_agent(world_space_point_cloud, device, camera_xyz, camera_rotation, map_size_in_cm):
-                recentered_point_cloud = world_space_point_cloud - (
-                        torch.FloatTensor([1.0, 0.0, 1.0]).to(device) * camera_xyz
-                ).reshape((1, 1, 3))
-                # Rotate the cloud so that positive-z is the direction the agent is looking
-                theta = (
-                        np.pi * camera_rotation / 180
-                )  # No negative since THOR rotations are already backwards
-                cos_theta = np.cos(theta)
-                sin_theta = np.sin(theta)
-                rotation_transform = torch.FloatTensor(
-                    [
-                        [cos_theta, 0, -sin_theta],
-                        [0, 1, 0],  # unchanged
-                        [sin_theta, 0, cos_theta],
-                    ]
-                ).to(device)
-                rotated_point_cloud = recentered_point_cloud @ rotation_transform.T
-                xoffset = (map_size_in_cm / 100) / 2
-                agent_centric_point_cloud = rotated_point_cloud + torch.FloatTensor(
-                    [xoffset, 0, 0]
-                ).to(self.device)
-                return agent_centric_point_cloud
+
             agent_centric_point_cloud = rotate_points_to_agent(world_space_point_cloud, self.device, camera_xyz, camera_rotation, self.map_size_in_cm)
             allocentric_update_numpy = world_binned_map_update.cpu().numpy()
             self.binned_point_cloud_map = (

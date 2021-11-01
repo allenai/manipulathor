@@ -61,7 +61,7 @@ class ComplexRewardNoPUBinaryDistanceWNoiseDiscriminator(
         CategorySampleSensor(type='destination'),
         FancyNoisyObjectMaskWLabels(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
         FancyNoisyObjectMaskWLabels(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
-        CategoryFeatureSampleSensor(type='source'),
+        CategoryFeatureSampleSensor(type='source'), #TODO change this everywhere
         CategoryFeatureSampleSensor(type='destination'),
         RelativeArmDistanceToGoal(),
         PreviousActionTaken(),

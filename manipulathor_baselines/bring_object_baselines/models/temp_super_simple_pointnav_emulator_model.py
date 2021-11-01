@@ -28,7 +28,7 @@ from utils.model_utils import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization
 
 
-class FakeMaskDetectorBinaryDistanceGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
+class SuperSimpleRGBDModelWPointNavEmulator(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -67,29 +67,17 @@ class FakeMaskDetectorBinaryDistanceGtMaskRGBDModel(ActorCriticModel[Categorical
         network_args = {'input_channels': 5, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
 
-        self.distance_close_far = nn.Sequential(
-            nn.Linear(512 * 2, 128),
-            nn.LeakyReLU(inplace=True),
-            nn.Linear(128, 64),
-            nn.LeakyReLU(inplace=True),
-            nn.Linear(64, 32),
-            nn.LeakyReLU(inplace=True),
-            nn.Linear(32, action_space.n * 2),
-        )
-
-        self.fake_mask_detector = nn.Sequential(
-            nn.Linear(512 * 2, 128),
-            nn.LeakyReLU(inplace=True),
-            nn.Linear(128, 32),
-            nn.LeakyReLU(inplace=True),
-            nn.Linear(32, 2),
-        )
-
-
         # self.detection_model = ConditionalDetectionModel()
+        self.pointnav_embedding = nn.Sequential(
+            nn.Linear(3, 32),
+            nn.LeakyReLU(),
+            nn.Linear(32, 128),
+            nn.LeakyReLU(),
+            nn.Linear(128, 512),
+        )
 
         self.state_encoder = RNNStateEncoder(
-            512 * 2,
+            512 * 3,
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -104,24 +92,6 @@ class FakeMaskDetectorBinaryDistanceGtMaskRGBDModel(ActorCriticModel[Categorical
 
         self.starting_time = datetime.now().strftime("{}_%m_%d_%Y_%H_%M_%S_%f".format(self.__class__.__name__))
 
-
-        # policy_weight_dir = None
-        # policy_weight_dir = '/Users/kianae/Desktop/important_weights/exp_ComplexRewardNoPUBinaryDistanceDistrib__stage_00__steps_000105986800.pt'
-        #
-        # if policy_weight_dir is not None: REMOVE
-        #     loaded_rl_model_weights = torch.load(policy_weight_dir, map_location='cpu')['model_state_dict']
-        #     rl_model_state_dict = self.state_dict()
-        #
-        #     copied = []
-        #     for key in loaded_rl_model_weights:
-        #         param = loaded_rl_model_weights[key]
-        #         rl_model_state_dict[key].copy_(param)
-        #         copied.append(key)
-        #
-        #     not_copied = [k for k in rl_model_state_dict if k not in copied]
-        #     print('WARNING not copied these for policy', not_copied)
-        #
-        #     ForkedPdb().set_trace()
 
 
     @property
@@ -171,7 +141,6 @@ class FakeMaskDetectorBinaryDistanceGtMaskRGBDModel(ActorCriticModel[Categorical
 
         #we really need to switch to resnet now that visual features are actually important
 
-
         pickup_bool = observations["pickedup_object"]
         after_pickup = pickup_bool == 1
 
@@ -181,15 +150,30 @@ class FakeMaskDetectorBinaryDistanceGtMaskRGBDModel(ActorCriticModel[Categorical
         query_objects[after_pickup] = query_destination_objects[after_pickup]
 
 
-        source_object_mask = observations['object_mask_source']['mask']
-        destination_object_mask = observations['object_mask_destination']['mask']
+        source_object_mask = observations['object_mask_source']
+        destination_object_mask = observations['object_mask_destination']
 
         gt_mask = source_object_mask
         gt_mask[after_pickup] = destination_object_mask[after_pickup]
         visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'], gt_mask], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
-        visual_observation_encoding = torch.cat([visual_observation_encoding, query_objects], dim=-1)
+
+
+        arm_distance_to_obj_source = observations['point_nav_emul_source']
+        arm_distance_to_obj_destination = observations['point_nav_emul_destination']
+
+        #TODO if this is the problem it mighth be the fucking copying the tensor shit.
+        arm_distance_to_obj_source_embedding = self.pointnav_embedding(arm_distance_to_obj_source)
+        arm_distance_to_obj_destination_embedding = self.pointnav_embedding(arm_distance_to_obj_destination)
+        pointnav_embedding = arm_distance_to_obj_source_embedding
+        pointnav_embedding[after_pickup] = arm_distance_to_obj_destination_embedding[after_pickup]
+        # arm_distance_to_obj = arm_distance_to_obj_source
+        # arm_distance_to_obj[after_pickup] = arm_distance_to_obj_destination[after_pickup]
+        # pointnav_embedding = self.pointnav_embedding(arm_distance_to_obj)
+
+        #TODO is this because they are not from the same norm?
+        visual_observation_encoding = torch.cat([visual_observation_encoding, query_objects, pointnav_embedding], dim=-1)
 
 
         x_out, rnn_hidden_states = self.state_encoder(
@@ -212,19 +196,10 @@ class FakeMaskDetectorBinaryDistanceGtMaskRGBDModel(ActorCriticModel[Categorical
             distributions=actor_out, values=critic_out_final, extras={}
         )
 
-        binary_arm_distance = self.distance_close_far(visual_observation_encoding)
-        seqlen, bsize, action_val = binary_arm_distance.shape
-        binary_arm_distance = binary_arm_distance.view(seqlen, bsize, self.action_space.n, 2)
-        actor_critic_output.extras['binary_arm_distance'] = binary_arm_distance #LATER_TODO is this the right dimension?
-
-        is_real_mask = self.fake_mask_detector(visual_observation_encoding)
-        actor_critic_output.extras['is_real_mask'] = is_real_mask
-
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
         # TODO really bad design
         if self.visualize:
-
             query_image_source_objects = observations['category_object_source']
             query_image_destination_objects = observations['category_object_destination']
             query_image_objects = query_image_source_objects
