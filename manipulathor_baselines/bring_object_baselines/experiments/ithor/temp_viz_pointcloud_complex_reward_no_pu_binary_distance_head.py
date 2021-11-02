@@ -68,6 +68,7 @@ class ComplexRewardNoPUBinaryDistance(
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
+        UseCategoryFeatiureSensorAndChangeModel(),
         single_noisy_object_mask_source,
         single_noisy_object_mask_destination,
         KianaBinnedPointCloudMapTHORSensor(fov=FOV, ego_only=False, mask_sensor=single_noisy_object_mask_source,**map_info, type='source'),
@@ -93,7 +94,7 @@ class ComplexRewardNoPUBinaryDistance(
         self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
         self.REWARD_CONFIG['object_found'] = 1 # is this too big?
 
-        self.ENV_ARGS['visibilityDistance'] = self.distance_thr #TODO do it everywhere if that's the plan
+        self.ENV_ARGS['visibilityDistance'] = self.distance_thr
 
 
 
@@ -137,7 +138,7 @@ class ComplexRewardNoPUBinaryDistance(
                 # PipelineStage(loss_names=["ppo_loss"], max_stage_steps=ppo_steps)
                 PipelineStage(
                     loss_names=["ppo_loss", "binary_arm_dist"],
-                    loss_weights=[1.0, 0.05], #TODO how is this?
+                    loss_weights=[1.0, 0.05], # TODO how is this?
                     max_stage_steps=ppo_steps,
                 )
             ],

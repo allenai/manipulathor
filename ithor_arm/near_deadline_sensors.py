@@ -275,7 +275,7 @@ class PredictionObjectMask(Sensor):
             remained
         )
         self.detection_model.eval()
-        self.detection_model.to(self.device) #TODO do i need to assign this
+        self.detection_model.to(self.device) # do i need to assign this
 
     def get_detection_masks(self, query_images, images):
         query_images = query_images.to(self.device)

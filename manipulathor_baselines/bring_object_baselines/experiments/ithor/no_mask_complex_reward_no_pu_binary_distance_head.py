@@ -57,6 +57,7 @@ class ComplexRewardNoPUBinaryDistanceNoMask(
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
+        UseCategoryFeatiureSensorAndChangeModel(),
         NoMaskSensor(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
         NoMaskSensor(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
         RelativeArmDistanceToGoal(),
@@ -124,7 +125,7 @@ class ComplexRewardNoPUBinaryDistanceNoMask(
                 # PipelineStage(loss_names=["ppo_loss"], max_stage_steps=ppo_steps)
                 PipelineStage(
                     loss_names=["ppo_loss", "binary_arm_dist"],
-                    loss_weights=[1.0, 0.05], #TODO how is this?
+                    loss_weights=[1.0, 0.05], # TODO how is this?
                     max_stage_steps=ppo_steps,
                 )
             ],

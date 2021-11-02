@@ -18,7 +18,7 @@ class FeatureLearnerModule(nn.Module):
         # self.lrm = args.lrm
         # self.read_features = args.read_features
         # self.number_of_trained_resnet_blocks = args.number_of_trained_resnet_blocks
-        resnet_model = torchvision_resnet18(pretrained=False) #TODO this pretrained thing was the problem?
+        resnet_model = torchvision_resnet18(pretrained=True)
         del resnet_model.fc
         self.resnet = resnet_model
         # self.detach_level = args.detach_level

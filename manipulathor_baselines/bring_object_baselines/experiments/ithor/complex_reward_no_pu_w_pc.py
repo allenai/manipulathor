@@ -62,6 +62,7 @@ class ComplexRewardNoPUWPointCloudMemory(
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
+        UseCategoryFeatiureSensorAndChangeModel(),
         # NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
         # NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
         single_noisy_object_mask_source,
@@ -79,7 +80,7 @@ class ComplexRewardNoPUWPointCloudMemory(
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
-    def train_task_sampler_args(self, **kwargs): #TODO you have to specify it in the call to train_task_sampler_args (or valid/test_task_sampler_args). For now maybe you can just add something like:
+    def train_task_sampler_args(self, **kwargs):
         sampler_args = super(ComplexRewardNoPUWPointCloudMemory, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass

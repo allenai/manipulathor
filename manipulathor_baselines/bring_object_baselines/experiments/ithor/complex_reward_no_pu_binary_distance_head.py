@@ -127,7 +127,7 @@ class ComplexRewardNoPUBinaryDistance(
                 # PipelineStage(loss_names=["ppo_loss"], max_stage_steps=ppo_steps)
                 PipelineStage(
                     loss_names=["ppo_loss", "binary_arm_dist"],
-                    loss_weights=[1.0, 0.05], #TODO how is this?
+                    loss_weights=[1.0, 0.05], # TODO how is this?
                     max_stage_steps=ppo_steps,
                 )
             ],

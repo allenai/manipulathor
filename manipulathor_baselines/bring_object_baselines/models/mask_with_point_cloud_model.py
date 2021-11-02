@@ -66,8 +66,9 @@ class MaskWPointCloudSensor(ActorCriticModel[CategoricalDistr]):
         # sensor_names = self.observation_space.spaces.keys()
         network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
-
-        #TODO this is so naive and unintuitive
+        print('resolve todos')
+        ForkedPdb().set_trace()
+        #LATER_TODO this is so naive and unintuitive
         network_args = {'input_channels': 11, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(3, 3), (3, 3), (3, 3)], 'strides': [(2, 2), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 10, 'output_width': 10, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.point_cloud_encoder = make_cnn(**network_args)
 
@@ -151,7 +152,7 @@ class MaskWPointCloudSensor(ActorCriticModel[CategoricalDistr]):
 
         point_cloud_embedding = compute_cnn_output(self.point_cloud_encoder, point_cloud.float())
 
-        #TODO add 3d conv on top?
+        #LATER_TODO add 3d conv on top?
 
         query_source_objects = observations['category_object_source']
         query_destination_objects = observations['category_object_destination']
@@ -196,7 +197,7 @@ class MaskWPointCloudSensor(ActorCriticModel[CategoricalDistr]):
         # TODO really bad design
         if self.visualize:
             hacky_visualization(observations, object_mask=gt_mask, query_objects=query_objects, base_directory_to_right_images=self.starting_time)
-            #TODO remove?
+            #LATER_TODO remove?
             if point_cloud_source.shape[0] == 1 and point_cloud_source.shape[1] == 1:
                 things_to_show = point_cloud_source.squeeze(0).squeeze(0); non_zeros = things_to_show.nonzero();show_3d(non_zeros, map_size = things_to_show.shape, additional_tag='source')
 

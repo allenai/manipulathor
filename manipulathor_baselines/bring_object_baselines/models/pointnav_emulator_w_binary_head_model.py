@@ -28,7 +28,7 @@ from utils.model_utils import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization
 
 
-class SuperSimpleRGBDModelWPointNavEmulator(ActorCriticModel[CategoricalDistr]):
+class RGBDModelWPointNavEmulatorWBinaryHead(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -83,6 +83,16 @@ class SuperSimpleRGBDModelWPointNavEmulator(ActorCriticModel[CategoricalDistr]):
             num_layers=num_rnn_layers,
             rnn_type=rnn_type,
         )
+        self.distance_close_far = nn.Sequential(
+            nn.Linear(512 * 3, 128),
+            nn.LeakyReLU(inplace=True),
+            nn.Linear(128, 64),
+            nn.LeakyReLU(inplace=True),
+            nn.Linear(64, 32),
+            nn.LeakyReLU(inplace=True),
+            nn.Linear(32, action_space.n * 2),
+        )
+
 
         self.actor_pickup = LinearActorHeadNoCategory(self._hidden_size, action_space.n)
         self.critic_pickup = LinearCriticHead(self._hidden_size)
@@ -163,7 +173,6 @@ class SuperSimpleRGBDModelWPointNavEmulator(ActorCriticModel[CategoricalDistr]):
         arm_distance_to_obj_source = observations['point_nav_emul_source']
         arm_distance_to_obj_destination = observations['point_nav_emul_destination']
 
-        #TODO if this is the problem it mighth be the fucking copying the tensor shit.
         arm_distance_to_obj_source_embedding = self.pointnav_embedding(arm_distance_to_obj_source)
         arm_distance_to_obj_destination_embedding = self.pointnav_embedding(arm_distance_to_obj_destination)
         pointnav_embedding = arm_distance_to_obj_source_embedding
@@ -172,7 +181,6 @@ class SuperSimpleRGBDModelWPointNavEmulator(ActorCriticModel[CategoricalDistr]):
         # arm_distance_to_obj[after_pickup] = arm_distance_to_obj_destination[after_pickup]
         # pointnav_embedding = self.pointnav_embedding(arm_distance_to_obj)
 
-        #TODO is this because they are not from the same norm?
         visual_observation_encoding = torch.cat([visual_observation_encoding, query_objects, pointnav_embedding], dim=-1)
 
 
@@ -197,6 +205,11 @@ class SuperSimpleRGBDModelWPointNavEmulator(ActorCriticModel[CategoricalDistr]):
         )
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
+
+        binary_arm_distance = self.distance_close_far(visual_observation_encoding)
+        seqlen, bsize, action_val = binary_arm_distance.shape
+        binary_arm_distance = binary_arm_distance.view(seqlen, bsize, self.action_space.n, 2)
+        actor_critic_output.extras['binary_arm_distance'] = binary_arm_distance #LATER_TODO is this the right dimension?
 
         # TODO really bad design
         if self.visualize:

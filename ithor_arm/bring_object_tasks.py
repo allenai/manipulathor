@@ -810,29 +810,29 @@ class ExploreWiseRewardTaskWPU(ExploreWiseRewardTask):
         )
         return step_result
 
-class TestPointNavExploreWiseRewardTask(ExploreWiseRewardTask):
-    def _step(self, action):
-        step_result = super(TestPointNavExploreWiseRewardTask, self)._step(action)
-        pred_pointnav_source= step_result.observation['point_nav_emul_source']
-        real_pointnav_source= step_result.observation['point_nav_real_source']
-        pred_pointnav_destination= step_result.observation['point_nav_emul_destination']
-        real_pointnav_destination= step_result.observation['point_nav_real_destination']
-        if self.num_steps_taken() == 0:
-            self.source_diff = []
-            self.destination_diff = []
-        if not torch.all(pred_pointnav_source == 4):
-            #TODO is the abs our problem???
-            diff = (pred_pointnav_source.abs() - real_pointnav_source).norm()
-            self.source_diff.append(diff)
-        if not torch.all(pred_pointnav_destination == 4):
-            diff = (pred_pointnav_destination.abs() - real_pointnav_destination).norm()
-            self.destination_diff.append(diff)
-
-        return step_result
-
-    def metrics(self) -> Dict[str, Any]:
-        result = super(TestPointNavExploreWiseRewardTask, self).metrics()
-        if self.is_done():
-            result['diff_pointnav_source'] = sum(self.source_diff) / (len(self.source_diff) + 1e-9)
-            result['diff_pointnav_destination'] = sum(self.destination_diff) / (len(self.destination_diff) + 1e-9)
-        return result
+# class TestPointNavExploreWiseRewardTask(ExploreWiseRewardTask):
+#     def _step(self, action):
+#         step_result = super(TestPointNavExploreWiseRewardTask, self)._step(action)
+#         pred_pointnav_source= step_result.observation['point_nav_emul_source']
+#         real_pointnav_source= step_result.observation['point_nav_real_source']
+#         pred_pointnav_destination= step_result.observation['point_nav_emul_destination']
+#         real_pointnav_destination= step_result.observation['point_nav_real_destination']
+#         if self.num_steps_taken() == 0:
+#             self.source_diff = []
+#             self.destination_diff = []
+#         if not torch.all(pred_pointnav_source == 4):
+#             TODO is the abs our problem???
+#             diff = (pred_pointnav_source.abs() - real_pointnav_source).norm()
+#             self.source_diff.append(diff)
+#         if not torch.all(pred_pointnav_destination == 4):
+#             diff = (pred_pointnav_destination.abs() - real_pointnav_destination).norm()
+#             self.destination_diff.append(diff)
+#
+#         return step_result
+#
+#     def metrics(self) -> Dict[str, Any]:
+#         result = super(TestPointNavExploreWiseRewardTask, self).metrics()
+#         if self.is_done():
+#             result['diff_pointnav_source'] = sum(self.source_diff) / (len(self.source_diff) + 1e-9)
+#             result['diff_pointnav_destination'] = sum(self.destination_diff) / (len(self.destination_diff) + 1e-9)
+#         return result

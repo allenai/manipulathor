@@ -162,9 +162,15 @@ class RGBDModelWPointNavEmulator(ActorCriticModel[CategoricalDistr]):
 
         arm_distance_to_obj_source = observations['point_nav_emul_source']
         arm_distance_to_obj_destination = observations['point_nav_emul_destination']
-        arm_distance_to_obj = arm_distance_to_obj_source
-        arm_distance_to_obj[after_pickup] = arm_distance_to_obj_destination[after_pickup]
-        pointnav_embedding = self.pointnav_embedding(arm_distance_to_obj)
+
+        #TODO if this is the problem it mighth be the fucking copying the tensor shit.
+        arm_distance_to_obj_source_embedding = self.pointnav_embedding(arm_distance_to_obj_source)
+        arm_distance_to_obj_destination_embedding = self.pointnav_embedding(arm_distance_to_obj_destination)
+        pointnav_embedding = arm_distance_to_obj_source_embedding
+        pointnav_embedding[after_pickup] = arm_distance_to_obj_destination_embedding[after_pickup]
+        # arm_distance_to_obj = arm_distance_to_obj_source
+        # arm_distance_to_obj[after_pickup] = arm_distance_to_obj_destination[after_pickup]
+        # pointnav_embedding = self.pointnav_embedding(arm_distance_to_obj)
 
         visual_observation_encoding = torch.cat([visual_observation_encoding, query_objects, pointnav_embedding], dim=-1)
 

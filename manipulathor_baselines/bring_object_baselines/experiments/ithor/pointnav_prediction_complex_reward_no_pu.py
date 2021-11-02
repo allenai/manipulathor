@@ -25,7 +25,7 @@ from manipulathor_baselines.bring_object_baselines.models.detection_model import
 from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
 from manipulathor_baselines.bring_object_baselines.models.predict_super_simple_pointnav_emulator_model import PredictSuperSimpleRGBDModelWPointNavEmulator
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
-from manipulathor_baselines.bring_object_baselines.models.temp_super_simple_pointnav_emulator_model import SuperSimpleRGBDModelWPointNavEmulator
+from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
 
 
 class PredictionPointNavNoPUNewModelAndHand(
@@ -35,7 +35,6 @@ class PredictionPointNavNoPUNewModelAndHand(
 ):
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
-    #TODO do we want to add binary head later?
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
 
@@ -110,7 +109,7 @@ class PredictionPointNavNoPUNewModelAndHand(
                     sensor_type.device = torch.device(kwargs["devices"][0])
         return sampler_args
 
-    def train_task_sampler_args(self, **kwargs): #TODO you have to specify it in the call to train_task_sampler_args (or valid/test_task_sampler_args). For now maybe you can just add something like:
+    def train_task_sampler_args(self, **kwargs):
         sampler_args = super(type(self), self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass

@@ -54,6 +54,7 @@ class PredictMaskNoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject(
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
+        UseCategoryFeatiureSensorAndChangeModel(),
         NoisyObjectMask(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0.0, type='source', uuid='gt_mask_for_loss'),

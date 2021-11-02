@@ -213,12 +213,12 @@ def get_current_wrist_state(controller):
 
 
 def get_current_arm_state(controller):
-    print('change this to sphere center and make sure it is right')
+    print('change this to sphere center and make sure it is right, resolve todos')
     ForkedPdb().set_trace()
-    arm = controller.last_event.metadata['arm']['joints'] #TODO is this the right one? how about wrist movements
+    arm = controller.last_event.metadata['arm']['joints'] #LATER_TODO is this the right one? how about wrist movements
     z = arm[-1]['rootRelativePosition']['z']
     x = 0 #arm[-1]['rootRelativePosition']['x']
-    y = arm[0]['rootRelativePosition']['y'] - 0.16297650337219238 #TODO?
+    y = arm[0]['rootRelativePosition']['y'] - 0.16297650337219238 #LATER_TODO?
     return dict(x=0,y=y, z=z)
 
 def two_list_equal(l1, l2):
