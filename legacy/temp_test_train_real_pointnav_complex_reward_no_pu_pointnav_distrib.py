@@ -1,13 +1,10 @@
 import torch
 
-from manipulathor_baselines.bring_object_baselines.experiments.ithor.complex_reward_no_pu_binary_distance_w_noise_and_discriminator import ComplexRewardNoPUBinaryDistanceWNoiseDiscriminator
-from manipulathor_baselines.bring_object_baselines.experiments.ithor.complex_reward_no_pu_pointnav import ComplexRewardPointNavNoPU
-from manipulathor_baselines.bring_object_baselines.experiments.ithor.complex_reward_no_pu_with_scene_randomization import ComplexRewardNoPUWRandomization
-from manipulathor_baselines.bring_object_baselines.experiments.ithor.temp_test_pointnav_complex_reward_no_pu_pointnav import TmpComplexRewardPointNavNoPUNewModelAndHand
+from legacy.temp_test_train_real_pointnav_complex_reward_no_pu_pointnav import TempRealPointNavComplexRewardPointNavNoPU
 
 
-class TmpComplexRewardPointNavNoPUNewModelAndHandDistrib(
-    TmpComplexRewardPointNavNoPUNewModelAndHand
+class TempRealPointNavComplexRewardPointNavNoPUDistrib(
+    TempRealPointNavComplexRewardPointNavNoPU
 ):
     NUM_PROCESSES = 20
     def __init__(
@@ -16,7 +13,7 @@ class TmpComplexRewardPointNavNoPUNewModelAndHandDistrib(
     ):
         super().__init__()
         self.distributed_nodes = distributed_nodes
-        self.train_gpu_ids = tuple(range(torch.cuda.device_count())) #TODO should I do this for everyone?, should i add val
+        self.train_gpu_ids = tuple(range(torch.cuda.device_count()))
 
 
     def machine_params(self, mode="train", **kwargs):

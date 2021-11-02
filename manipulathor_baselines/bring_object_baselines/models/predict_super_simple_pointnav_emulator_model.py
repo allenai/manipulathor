@@ -21,13 +21,15 @@ from allenact.base_abstractions.misc import ActorCriticOutput
 from allenact.embodiedai.models.basic_models import RNNStateEncoder
 from allenact.utils.model_utils import make_cnn, compute_cnn_output
 from gym.spaces.dict import Dict as SpaceDict
+from torch import nn
 
+from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.model_utils import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization
 
 
-class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
+class PredictSuperSimpleRGBDModelWPointNavEmulator(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -67,9 +69,16 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         self.full_visual_encoder = make_cnn(**network_args)
 
         # self.detection_model = ConditionalDetectionModel()
+        self.pointnav_embedding = nn.Sequential(
+            nn.Linear(3, 32),
+            nn.LeakyReLU(),
+            nn.Linear(32, 128),
+            nn.LeakyReLU(),
+            nn.Linear(128, 512),
+        )
 
         self.state_encoder = RNNStateEncoder(
-            512 + 512,
+            512 * 3,
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -79,8 +88,11 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         self.actor_pickup = LinearActorHeadNoCategory(self._hidden_size, action_space.n)
         self.critic_pickup = LinearCriticHead(self._hidden_size)
 
+
+
         self.train()
-        # self.detection_model.eval()
+
+
 
         self.starting_time = datetime.now().strftime("{}_%m_%d_%Y_%H_%M_%S_%f".format(self.__class__.__name__))
 
@@ -108,6 +120,9 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
             )
         )
 
+
+
+
     def forward(  # type:ignore
         self,
         observations: ObservationType,
@@ -134,24 +149,39 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
         #we really need to switch to resnet now that visual features are actually important
 
 
-
         pickup_bool = observations["pickedup_object"]
         after_pickup = pickup_bool == 1
+
+        source_predicted_mask = observations['predict_object_mask_source']
+        destination_predicted_mask = observations['predict_object_mask_destination']
+        predicted_masks = source_predicted_mask.clone()
+        predicted_masks[after_pickup] = destination_predicted_mask[after_pickup].clone()
 
         query_source_objects = observations['category_object_feature_source']
         query_destination_objects = observations['category_object_feature_destination']
         query_objects = query_source_objects
         query_objects[after_pickup] = query_destination_objects[after_pickup]
 
-        source_object_mask = observations['object_mask_source']
-        destination_object_mask = observations['object_mask_destination']
 
-        gt_mask = source_object_mask
-        gt_mask[after_pickup] = destination_object_mask[after_pickup]
-        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'], gt_mask], dim=-1).float()
+
+        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'], predicted_masks], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
-        visual_observation_encoding = torch.cat([visual_observation_encoding, query_objects], dim=-1)
+
+
+        arm_distance_to_obj_source = observations['point_nav_emul_source']
+        arm_distance_to_obj_destination = observations['point_nav_emul_destination']
+
+        #TODO if this is the problem it mighth be the fucking copying the tensor shit.
+        arm_distance_to_obj_source_embedding = self.pointnav_embedding(arm_distance_to_obj_source)
+        arm_distance_to_obj_destination_embedding = self.pointnav_embedding(arm_distance_to_obj_destination)
+        pointnav_embedding = arm_distance_to_obj_source_embedding
+        pointnav_embedding[after_pickup] = arm_distance_to_obj_destination_embedding[after_pickup]
+        # arm_distance_to_obj = arm_distance_to_obj_source
+        # arm_distance_to_obj[after_pickup] = arm_distance_to_obj_destination[after_pickup]
+        # pointnav_embedding = self.pointnav_embedding(arm_distance_to_obj)
+
+        visual_observation_encoding = torch.cat([visual_observation_encoding, query_objects, pointnav_embedding], dim=-1)
 
 
         x_out, rnn_hidden_states = self.state_encoder(
@@ -178,11 +208,17 @@ class SmallBringObjectWQueryObjGtMaskRGBDModel(ActorCriticModel[CategoricalDistr
 
         # TODO really bad design
         if self.visualize:
+            source_object_mask = observations['object_mask_source']
+            destination_object_mask = observations['object_mask_destination']
+            gt_mask = source_object_mask
+            gt_mask[after_pickup] = destination_object_mask[after_pickup]
+
             query_image_source_objects = observations['category_object_source']
             query_image_destination_objects = observations['category_object_destination']
             query_image_objects = query_image_source_objects
             query_image_objects[after_pickup] = query_image_destination_objects[after_pickup]
-            hacky_visualization(observations, object_mask=gt_mask, query_objects=query_image_objects, base_directory_to_right_images=self.starting_time)
+
+            hacky_visualization(observations, object_mask=predicted_masks, query_objects=query_image_objects, base_directory_to_right_images=self.starting_time, gt_mask=gt_mask)
 
 
         return (

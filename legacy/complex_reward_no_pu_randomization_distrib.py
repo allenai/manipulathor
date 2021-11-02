@@ -13,7 +13,7 @@ class ComplexRewardNoPUWRandomizationDistrib(
     ):
         super().__init__()
         self.distributed_nodes = distributed_nodes
-        self.train_gpu_ids = tuple(range(torch.cuda.device_count())) #TODO should I do this for everyone?, should i add val
+        self.train_gpu_ids = tuple(range(torch.cuda.device_count()))
 
 
     def machine_params(self, mode="train", **kwargs):

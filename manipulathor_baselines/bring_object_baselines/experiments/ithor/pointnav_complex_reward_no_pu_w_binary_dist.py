@@ -16,7 +16,7 @@ from ithor_arm.ithor_arm_sensors import (
     DepthSensorThor, RelativeAgentArmToObjectSensor, RelativeObjectToGoalSensor,
 )
 from ithor_arm.ithor_arm_viz import MaskImageVisualizer
-from ithor_arm.near_deadline_sensors import PointNavEmulatorSensor, TempRealArmpointNav
+from ithor_arm.near_deadline_sensors import PointNavEmulatorSensor
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
@@ -25,7 +25,7 @@ from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rg
 from manipulathor_baselines.bring_object_baselines.models.temp_super_simple_pointnav_emulator_model import SuperSimpleRGBDModelWPointNavEmulator
 
 
-class TmpComplexRewardPointNavNoPUNewModelAndHand(
+class PointNavWBinaryHead(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -75,7 +75,7 @@ class TmpComplexRewardPointNavNoPUNewModelAndHand(
 
 
     def train_task_sampler_args(self, **kwargs): #TODO you have to specify it in the call to train_task_sampler_args (or valid/test_task_sampler_args). For now maybe you can just add something like:
-        sampler_args = super(TmpComplexRewardPointNavNoPUNewModelAndHand, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(type(self), self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -95,7 +95,7 @@ class TmpComplexRewardPointNavNoPUNewModelAndHand(
 
     @classmethod
     def create_model(cls, **kwargs) -> nn.Module:
-        return SuperSimpleRGBDModelWPointNavEmulator(
+        return SuperSimpleRGBDModelWPointNavEmulatorWBinaryHead(
             action_space=gym.spaces.Discrete(
                 len(cls.TASK_TYPE.class_action_names())
             ),

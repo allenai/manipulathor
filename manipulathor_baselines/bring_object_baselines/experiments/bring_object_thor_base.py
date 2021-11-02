@@ -15,6 +15,7 @@ from allenact.utils.experiment_utils import evenly_distribute_count_into_bins
 from ithor_arm.ithor_arm_constants import ENV_ARGS
 from ithor_arm.ithor_arm_viz import BringObjImageVisualizer, TestMetricLogger
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_base import BringObjectBaseConfig
+from manipulathor_utils.debugger_util import ForkedPdb
 
 
 class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
@@ -78,8 +79,15 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
             nprocesses = 1
             gpu_ids = [] if not torch.cuda.is_available() else self.VALID_GPU_IDS
         elif mode == "test":
-            nprocesses = self.NUMBER_OF_TEST_PROCESS if torch.cuda.is_available() else 1
+            # nprocesses = self.NUMBER_OF_TEST_PROCESS if torch.cuda.is_available() else 1
             gpu_ids = [] if not torch.cuda.is_available() else self.TEST_GPU_IDS
+            nprocesses = (
+                1
+                if not torch.cuda.is_available()
+                else evenly_distribute_count_into_bins(self.NUMBER_OF_TEST_PROCESS, len(gpu_ids))
+            )
+
+            # print('Test Mode', gpu_ids, 'because cuda is',torch.cuda.is_available(), 'number of workers', nprocesses)
         else:
             raise NotImplementedError("mode must be 'train', 'valid', or 'test'.")
 
@@ -100,14 +108,13 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
             else None
         )
 
-        return MachineParams(
-            nprocesses=nprocesses,
-            devices=gpu_ids,
-            sampler_devices=sampler_devices
-            if mode == "train"
-            else gpu_ids,  # ignored with > 1 gpu_ids
-            sensor_preprocessor_graph=sensor_preprocessor_graph,
-        )
+        # remove
+        # print('MACHINE PARAM', 'nprocesses',nprocesses,'devices',gpu_ids,'sampler_devices',sampler_devices,'mode = train',  mode == "train",'gpu ids', gpu_ids,)  # ignored with > 1 gpu_ids)
+        # ForkedPdb().set_trace()
+        return MachineParams(nprocesses=nprocesses,
+        devices=gpu_ids,
+        sampler_devices=sampler_devices if mode == "train" else gpu_ids,  # ignored with > 1 gpu_ids
+        sensor_preprocessor_graph=sensor_preprocessor_graph)
 
     @classmethod
     def make_sampler_fn(cls, **kwargs) -> TaskSampler:

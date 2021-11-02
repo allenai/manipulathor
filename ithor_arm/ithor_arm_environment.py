@@ -261,7 +261,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         h_max += offset
         h_min += offset
         joints = event.metadata["arm"]["joints"]
-        #TODO was this the problem?
+        #LATER_TODO debug handspherecenter
         arm = joints[-1]
         assert arm["name"] == "robot_arm_4_jnt"
         xyz_dict = copy.deepcopy(arm["rootRelativePosition"])
@@ -277,7 +277,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         arm = copy.deepcopy(joints[-1])
         assert arm["name"] == "robot_arm_4_jnt"
         xyz_dict = arm["position"]
-        #TODO was this the problem?
+        #LATER_TODO debug hand sphere center
         # xyz_dict = copy.deepcopy(self.controller.last_event.metadata['arm']['handSphereCenter'])
 
 

@@ -23,7 +23,7 @@ from ithor_arm.ithor_arm_tasks import (
 )
 from ithor_arm.ithor_arm_viz import LoggerVisualizer, BringObjImageVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
-from utils.manipulathor_data_loader_utils import get_random_query_image, get_random_query_feature
+from utils.manipulathor_data_loader_utils import get_random_query_image, get_random_query_feature, get_random_query_feature_from_img_adr
 
 
 class BringObjectAbstractTaskSampler(TaskSampler):
@@ -311,13 +311,15 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
 
 
 
-        #TODO THESE WILL BE DIFFERENT ONLY FOR VIZ IS OKAY BUT CHANGE THIS LATER
-        source_object_query = get_random_query_image(scene_name,init_object['object_id'], self.query_image_dict)
-        goal_object_query = get_random_query_image(scene_name,goal_object['object_id'], self.query_image_dict)
+        source_object_query, source_img_adr = get_random_query_image(scene_name,init_object['object_id'], self.query_image_dict)
+        goal_object_query, goal_img_adr = get_random_query_image(scene_name,goal_object['object_id'], self.query_image_dict)
 
 
-        source_object_query_feature = get_random_query_feature(scene_name,init_object['object_id'], self.query_image_dict)
-        goal_object_query_feature = get_random_query_feature(scene_name,goal_object['object_id'], self.query_image_dict)
+        # source_object_query_feature = get_random_query_feature(scene_name,init_object['object_id'], self.query_image_dict)
+        # goal_object_query_feature = get_random_query_feature(scene_name,goal_object['object_id'], self.query_image_dict)
+
+        source_object_query_feature = get_random_query_feature_from_img_adr(source_img_adr)
+        goal_object_query_feature = get_random_query_feature_from_img_adr(goal_img_adr)
 
 
         task_info = {

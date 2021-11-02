@@ -1,6 +1,7 @@
 """Utility classes and functions for sensory inputs used by the models."""
 import datetime
 import os
+import platform
 import random
 from typing import Any
 
@@ -96,7 +97,7 @@ class PointNavEmulatorSensor(Sensor):
         self.pointnav_history_aggr = None
         self.map_range_sensor = KianaReachableBoundsTHORSensor(margin=1.0)
         self.dummy_answer = torch.zeros(3)
-        self.dummy_answer[:] = 4 #TODO is this good enough?
+        self.dummy_answer[:] = 4 # is this good enough?
         self.device = torch.device("cpu")
         super().__init__(**prepare_locals_for_super(locals()))
 
@@ -104,7 +105,11 @@ class PointNavEmulatorSensor(Sensor):
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        mask = self.mask_sensor.get_observation(env, task, *args, **kwargs).astype(bool).squeeze(-1)
+        mask = self.mask_sensor.get_observation(env, task, *args, **kwargs)
+        if type(mask) == np.ndarray:
+            mask = mask.astype(bool).squeeze(-1)
+        elif type(mask) == torch.Tensor:
+            mask = mask.bool().squeeze(-1)
         depth_frame = env.controller.last_event.depth_frame.copy()
         depth_frame[~mask] = -1
         assert mask.shape == depth_frame.shape
@@ -204,35 +209,94 @@ def calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon,
         return world_space_point_cloud
 
 
-class TempRealArmpointNav(Sensor):
+# class TempRealArmpointNav(Sensor):
+#
+#     def __init__(self, type: str, uuid: str = "point_nav_real", **kwargs: Any):
+#         observation_space = gym.spaces.Box(
+#             low=0, high=1, shape=(1,), dtype=np.float32
+#         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+#         self.type = type
+#         uuid = '{}_{}'.format(uuid, type)
+#         super().__init__(**prepare_locals_for_super(locals()))
+#
+#
+#     def get_observation(
+#             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+#     ) -> Any:
+#         if self.type == 'source':
+#             info_to_search = 'source_object_id'
+#         elif self.type == 'destination':
+#             info_to_search = 'goal_object_id'
+#         goal_obj_id = task.task_info[info_to_search]
+#         object_info = env.get_object_by_id(goal_obj_id)
+#         hand_state = env.get_absolute_hand_state()
+#
+#         relative_goal_obj = convert_world_to_agent_coordinate(
+#             object_info, env.controller.last_event.metadata["agent"]
+#         )
+#         relative_hand_state = convert_world_to_agent_coordinate(
+#             hand_state, env.controller.last_event.metadata["agent"]
+#         )
+#         relative_distance = diff_position(relative_goal_obj, relative_hand_state)
+#         result = convert_state_to_tensor(dict(position=relative_distance))
+#
+#         return result
 
-    def __init__(self, type: str, uuid: str = "point_nav_real", **kwargs: Any):
+
+class PredictionObjectMask(Sensor):
+    def __init__(self, type: str,object_query_sensor, rgb_for_detection_sensor,  uuid: str = "predict_object_mask", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
         self.type = type
+        self.object_query_sensor = object_query_sensor
+        self.rgb_for_detection_sensor = rgb_for_detection_sensor
         uuid = '{}_{}'.format(uuid, type)
+        self.device = torch.device("cpu")
+
+        self.detection_model = None
+
         super().__init__(**prepare_locals_for_super(locals()))
 
+    def load_detection_weights(self):
+        self.detection_model = ConditionalDetectionModel()
+        detection_weight_dir = '/home/kianae/important_weights/detection_without_color_jitter_model_state_271.pytar'
+        if platform.system() == "Darwin":
+            detection_weight_dir = '/Users/kianae/important_weights/detection_without_color_jitter_model_state_271.pytar'
+        detection_weight_dict = torch.load(detection_weight_dir, map_location='cpu')
+        detection_state_dict = self.detection_model.state_dict()
+        for key in detection_state_dict:
+            param = detection_weight_dict[key]
+            detection_state_dict[key].copy_(param)
+        remained = [k for k in detection_weight_dict if k not in detection_state_dict]
+        # assert len(remained) == 0
+        print(
+            'WARNING!',
+            remained
+        )
+        self.detection_model.eval()
+        self.detection_model.to(self.device) #TODO do i need to assign this
+
+    def get_detection_masks(self, query_images, images):
+        query_images = query_images.to(self.device)
+        images = images.to(self.device)
+        with torch.no_grad():
+            batch, c, w, h = images.shape
+            predictions = self.detection_model(dict(rgb=images, target_cropped_object=query_images))
+            probs_mask = predictions['object_mask']
+            mask = probs_mask.argmax(dim=1).float().unsqueeze(1)#To add the channel back in the end of the image
+            return mask
 
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        if self.type == 'source':
-            info_to_search = 'source_object_id'
-        elif self.type == 'destination':
-            info_to_search = 'goal_object_id'
-        goal_obj_id = task.task_info[info_to_search]
-        object_info = env.get_object_by_id(goal_obj_id)
-        hand_state = env.get_absolute_hand_state()
+        if self.detection_model is None:
+            self.load_detection_weights()
+        query_object = self.object_query_sensor.get_observation(env, task, *args, **kwargs)
+        rgb_frame = self.rgb_for_detection_sensor.get_observation(env, task, *args, **kwargs)
+        rgb_frame = torch.Tensor(rgb_frame).permute(2, 0, 1)
 
-        relative_goal_obj = convert_world_to_agent_coordinate(
-            object_info, env.controller.last_event.metadata["agent"]
-        )
-        relative_hand_state = convert_world_to_agent_coordinate(
-            hand_state, env.controller.last_event.metadata["agent"]
-        )
-        relative_distance = diff_position(relative_goal_obj, relative_hand_state)
-        result = convert_state_to_tensor(dict(position=relative_distance))
+        predicted_masks = self.get_detection_masks(query_object.unsqueeze(0), rgb_frame.unsqueeze(0)).squeeze(0)
+        # predicted_masks = torch.zeros((1, 224, 224))
 
-        return result
+        return predicted_masks.permute(1, 2, 0).cpu() #Channel last

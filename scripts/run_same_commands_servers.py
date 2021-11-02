@@ -59,6 +59,11 @@ import pdb
 #   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
 #   --seed 10 --machine_id 0 -c ~/exp_ComplexRewardNoPUWMemoryNoiseDistrib__stage_00__steps_000034923191.pt'
 
+command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_distrib \
+  --distributed_ip_and_port IP_ADR:6060 \
+  --config_kwargs \'{\\"distributed_nodes\\":4}\' \
+  --seed 10 --machine_id 0'
+
 # command = 'scp ec2-34-220-30-46.us-west-2.compute.amazonaws.com:~/manipulathor/experiment_output/checkpoints/ComplexRewardNoPUWMemory/2021-10-08_23-12-59/exp_ComplexRewardNoPUWMemory__stage_00__steps_000045112992.pt ~/'
 # list_of_servers = ['aws1', 'aws2', 'aws3', 'aws4', ]
 server_set1 = {

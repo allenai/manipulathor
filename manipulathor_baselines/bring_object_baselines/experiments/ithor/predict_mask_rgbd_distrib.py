@@ -1,6 +1,5 @@
 import torch
 
-from manipulathor_baselines.bring_object_baselines.experiments.ithor.complex_reward_no_pu_with_scene_randomization import ComplexRewardNoPUWRandomization
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.predict_mask_rgbd import PredictMaskNoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject
 
 
