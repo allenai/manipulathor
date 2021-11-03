@@ -1,5 +1,7 @@
 from abc import ABC
 
+import torch
+
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
 from ithor_arm.bring_object_tasks import BringObjectTask
 from ithor_arm.ithor_arm_constants import TRAIN_OBJECTS, TEST_OBJECTS
@@ -40,3 +42,9 @@ class BringObjectiThorBaseConfig(BringObjectThorBaseConfig, ABC):
     OBJECT_TYPES = tuple(sorted(TRAIN_OBJECTS))
 
     UNSEEN_OBJECT_TYPES = tuple(sorted(TEST_OBJECTS))
+
+    # TEST_GPU_IDS = list(range(torch.cuda.device_count()))
+    # TEST_SCENES = BringObjectiThorBaseConfig.TEST_SCENES
+    TEST_GPU_IDS = list(range(min(len(TEST_SCENES), torch.cuda.device_count()))) #TODO are you sure this works?
+    NUMBER_OF_TEST_PROCESS = len(TEST_SCENES)
+    print('TEST_GPU_IDS', TEST_GPU_IDS)

@@ -187,8 +187,11 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         )
 
         if self.sampler_mode == "test":
-            self.deterministic_counter = 0
+            self.sampler_index = 0
             self.all_test_tasks = []
+
+            #TODO we need to fix this later
+            small_objects = ['Spatula', 'Egg']
 
             for scene in self.scenes:
                 for from_obj in self.objects:
@@ -196,11 +199,17 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
                         if from_obj == to_obj:
                             continue
 
-                        with open(f'datasets/apnd-dataset//bring_object_deterministic_tasks/tasks_obj_{from_obj}_to_{to_obj}_scene_{scene}.json') as f:
+                        with open(f'datasets/apnd-dataset/bring_object_deterministic_tasks/tasks_obj_{from_obj}_to_{to_obj}_scene_{scene}.json') as f:
                             tasks = json.load(f)['tasks']
 
-                        self.all_test_tasks += tasks
+                        if from_obj in small_objects or to_obj in small_objects:
+                            NUM_NEEDED = 1
+                        else:
+                            NUM_NEEDED = 2
 
+                        tasks = tasks[:NUM_NEEDED]
+
+                        self.all_test_tasks += tasks
             random.shuffle(self.all_test_tasks)
             self.max_tasks = self.reset_tasks = len(self.all_test_tasks)
 
@@ -414,8 +423,8 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
 
         else:
 
-            task = self.all_test_tasks[self.deterministic_counter]
-            self.deterministic_counter += 1
+            task = self.all_test_tasks[self.sampler_index]
+            self.sampler_index += 1
 
             data_point = task
 

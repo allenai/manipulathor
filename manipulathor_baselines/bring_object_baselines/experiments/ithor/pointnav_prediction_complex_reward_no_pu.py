@@ -87,7 +87,6 @@ class PredictionPointNavNoPUNewModelAndHand(
     TASK_TYPE = ExploreWiseRewardTask
 
     NUM_PROCESSES = 20
-    NUMBER_OF_TEST_PROCESS = 5 #TODO is there anyway to faster?
     # TEST_GPU_IDS = list(range(torch.cuda.device_count()))
     # print('TEST_GPU_IDS', TEST_GPU_IDS)
 

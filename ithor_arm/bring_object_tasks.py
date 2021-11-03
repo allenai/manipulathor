@@ -28,6 +28,7 @@ from ithor_arm.ithor_arm_constants import (
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
+from scripts.hacky_objects_that_move import CONSTANTLY_MOVING_OBJECTS
 from scripts.jupyter_helper import get_reachable_positions
 
 
@@ -207,17 +208,31 @@ class AbstractBringObjectTask(Task[ManipulaTHOREnvironment]):
                 ratio_distance_left = final_obj_distance_from_goal / original_distance
                 result["metric/average/ratio_distance_left"] = ratio_distance_left
                 result["metric/average/eplen_pickup"] = self.eplen_pickup
-
+            result["metric/average/success_wo_disturb"] = (
+                    0
+            )
             if self._success:
                 result["metric/average/eplen_success"] = result["ep_length"]
                 # put back this is not the reason for being slow
                 objects_moved = self.env.get_objects_moved(self.initial_object_metadata)
                 # Unnecessary, this is definitely happening objects_moved.remove(self.task_info['object_id'])
+                source_obj = self.task_info['source_object_id']
+                destination_obj = self.task_info['goal_object_id']
+                if source_obj in objects_moved:
+                    objects_moved.remove(source_obj)
+                if destination_obj in objects_moved:
+                    objects_moved.remove(destination_obj)
+                if self.env.scene_name in CONSTANTLY_MOVING_OBJECTS:
+                    should_be_removed = CONSTANTLY_MOVING_OBJECTS[self.env.scene_name]
+                    for k in should_be_removed:
+                        if k in objects_moved:
+                            objects_moved.remove(k)
+
                 result["metric/average/number_of_unwanted_moved_objects"] = (
-                    len(objects_moved) - 1
+                    len(objects_moved)
                 )
                 result["metric/average/success_wo_disturb"] = (
-                    len(objects_moved) == 1
+                    len(objects_moved) == 0
                 )  # multiply this by the successrate
 
             result["success"] = self._success

@@ -67,7 +67,7 @@ def find_closest_inverse(deg):
     rotation = R.from_euler("xyz", [0, deg, 0], degrees=True)
     result = rotation.as_matrix()
     inverse = inverse_rot_trans_mat(result)
-    print("WARNING: Had to calculate the matrix for ", deg)
+    # print("WARNING: Had to calculate the matrix for ", deg)
     return inverse
 
 

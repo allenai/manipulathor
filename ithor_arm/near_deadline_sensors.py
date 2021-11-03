@@ -1,4 +1,5 @@
 """Utility classes and functions for sensory inputs used by the models."""
+import copy
 import datetime
 import os
 import platform
@@ -26,6 +27,8 @@ from ithor_arm.pointcloud_sensors import rotate_points_to_agent, KianaReachableB
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.thor_category_names import thor_possible_objects
+from utils.noise_from_habitat import ControllerNoiseModel, MotionNoiseModel, _TruncatedMultivariateGaussian
+
 
 class FancyNoisyObjectMaskWLabels(Sensor):
     def __init__(self, type: str,noise, height, width,  uuid: str = "object_mask", distance_thr: float = -1, **kwargs: Any):
@@ -87,25 +90,84 @@ class FancyNoisyObjectMaskWLabels(Sensor):
 
 class PointNavEmulatorSensor(Sensor):
 
-    def __init__(self, type: str, mask_sensor:Sensor,  uuid: str = "point_nav_emul", **kwargs: Any):
+    def __init__(self, type: str, mask_sensor:Sensor,  uuid: str = "point_nav_emul", noise = 0, **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
         self.type = type
         self.mask_sensor = mask_sensor
         uuid = '{}_{}'.format(uuid, type)
+        self.noise = noise
         self.pointnav_history_aggr = None
         self.map_range_sensor = KianaReachableBoundsTHORSensor(margin=1.0)
         self.dummy_answer = torch.zeros(3)
         self.dummy_answer[:] = 4 # is this good enough?
         self.device = torch.device("cpu")
+        self.real_prev_location = None
+        self.belief_prev_location = None
+        self.noise_mode = ControllerNoiseModel(
+            linear_motion=MotionNoiseModel(
+                _TruncatedMultivariateGaussian([0.074, 0.036], [0.019, 0.033]),
+                _TruncatedMultivariateGaussian([0.189], [0.038]),
+            ),
+            rotational_motion=MotionNoiseModel(
+                _TruncatedMultivariateGaussian([0.002, 0.003], [0.0, 0.002]),
+                _TruncatedMultivariateGaussian([0.219], [0.019]),
+            ),
+        )
         super().__init__(**prepare_locals_for_super(locals()))
+    def get_accurate_locations(self, env):
+        metadata = copy.deepcopy(env.controller.last_event.metadata)
+        camera_xyz = np.array([metadata["cameraPosition"][k] for k in ["x", "y", "z"]])
+        camera_rotation=metadata["agent"]["rotation"]["y"]
+        camera_horizon=metadata["agent"]["cameraHorizon"]
+        arm_state = env.get_absolute_hand_state()
+        return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state)
+    def add_translation_noise(self, change_in_xyz, prev_location):
+        new_location = prev_location + change_in_xyz
+
+        if random.random() < self.noise and np.abs(change_in_xyz).sum() > 0: #TODO is this self.noise a good model?
+            noise_value_x, noise_value_z = self.noise_mode.linear_motion.linear.sample() * 0.01 #to convert to meters #TODO seriously?
+            new_location[0] += noise_value_x
+            new_location[2] += noise_value_z
+        return new_location
+    def add_rotation_noise(self, change_in_rotation, prev_rotation):
+        new_rotation = prev_rotation + change_in_rotation
+        if random.random() < self.noise and change_in_rotation > 0:
+            noise_in_rotation = self.noise_mode.rotational_motion.rotation.sample().item()
+            new_rotation += noise_in_rotation
+        return new_rotation
+    def get_agent_localizations(self, env):
+
+        if self.noise == 0:
+            return self.get_accurate_locations(env) #TODO add a test that at each time step it should give accurate (degrade should happen throuoght time)
+        else:
+            real_current_location = self.get_accurate_locations(env)
+
+            if self.real_prev_location is None:
+                self.real_prev_location = copy.deepcopy(real_current_location)
+                self.belief_prev_location = copy.deepcopy(real_current_location)
+                return real_current_location
+            else:
+                belief_arm_state = real_current_location['arm_state']
+                belief_camera_horizon = real_current_location['camera_horizon']
+                change_in_xyz = real_current_location['camera_xyz'] - self.real_prev_location['camera_xyz']
+                change_in_rotation = real_current_location['camera_rotation'] - self.real_prev_location['camera_rotation']
+                belief_camera_xyz = self.add_translation_noise(change_in_xyz, self.belief_prev_location['camera_xyz'])
+                belief_camera_rotation = self.add_rotation_noise(change_in_rotation, self.belief_prev_location['camera_rotation'])
+
+                self.belief_prev_location = copy.deepcopy(dict(camera_xyz=belief_camera_xyz, camera_rotation=belief_camera_rotation, camera_horizon=belief_camera_horizon, arm_state=belief_arm_state))
+                self.real_prev_location = copy.deepcopy(real_current_location)
 
 
+                return self.belief_prev_location
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
         mask = self.mask_sensor.get_observation(env, task, *args, **kwargs)
+        agent_locations = self.get_agent_localizations(env)
+
+
         if type(mask) == np.ndarray:
             mask = mask.astype(bool).squeeze(-1)
         elif type(mask) == torch.Tensor:
@@ -115,26 +177,16 @@ class PointNavEmulatorSensor(Sensor):
         assert mask.shape == depth_frame.shape
 
         if task.num_steps_taken() == 0:
-            # xyz_ranges_dict = self.map_range_sensor.get_observation(env=env, task=task)
-            # self.min_xyz = np.array(
-            #     [
-            #         xyz_ranges_dict["x_range"][0],
-            #         0, # TODO xyz_ranges_dict["y_range"][0],
-            #         xyz_ranges_dict["z_range"][0],
-            #     ]
-            # )
             self.pointnav_history_aggr = []
-        #TODO why?
         self.min_xyz = np.zeros((3))
 
-        metadata = env.controller.last_event.metadata
-        camera_xyz = np.array([metadata["cameraPosition"][k] for k in ["x", "y", "z"]])
-        camera_rotation=metadata["agent"]["rotation"]["y"]
-        camera_horizon=metadata["agent"]["cameraHorizon"]
-        fov = metadata['fov']
-        arm_state = env.get_absolute_hand_state()
-        # TODO should we use this for all of them?
-        # arm_state = dict(position=env.controller.last_event.metadata['arm']['handSphereCenter'], rotation=dict(x=0, y=0,z=0))
+        camera_xyz = agent_locations['camera_xyz']
+        camera_rotation = agent_locations['camera_rotation']
+        camera_horizon = agent_locations['camera_horizon']
+        arm_state = agent_locations['arm_state']
+
+        fov = env.controller.last_event.metadata['fov']
+
 
         if mask.sum() == 0:
             return self.average_so_far(camera_xyz, camera_rotation, arm_state)
@@ -154,11 +206,24 @@ class PointNavEmulatorSensor(Sensor):
         if len(self.pointnav_history_aggr) == 0:
             return self.dummy_answer
         else:
-            total_sum = [k * v for k,v in self.pointnav_history_aggr]
-            total_sum = sum(total_sum)
-            total_count = sum([v for k,v in self.pointnav_history_aggr])
-            midpoint = total_sum / total_count
-            self.pointnav_history_aggr = [(midpoint, total_count)]
+            if self.noise == 0:
+                total_sum = [k * v for k,v in self.pointnav_history_aggr]
+                total_sum = sum(total_sum)
+                total_count = sum([v for k,v in self.pointnav_history_aggr])
+                midpoint = total_sum / total_count
+                self.pointnav_history_aggr = [(midpoint, total_count)]
+
+            else:
+                #TODO this is very inefficient, also I didn't triple checked it
+                timed_weights = [i + 1 for i in range(len(self.pointnav_history_aggr))]
+                sum_weights = sum(timed_weights)
+                total_sum = [timed_weights[i] * self.pointnav_history_aggr[i][0] * self.pointnav_history_aggr[i][1] for i in range(len(self.pointnav_history_aggr))]
+                total_count = sum([v for k,v in self.pointnav_history_aggr])
+                midpoint = sum(total_sum) / total_count / sum_weights
+                midpoint = midpoint.cpu()
+
+
+
             # agent_centric_middle_of_object = rotate_to_agent(midpoint, self.device, camera_xyz, camera_rotation)
             agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
             midpoint_position_rotation = dict(position=dict(x=midpoint[0], y=midpoint[1], z=midpoint[2]), rotation=dict(x=0,y=0,z=0))
@@ -167,29 +232,11 @@ class PointNavEmulatorSensor(Sensor):
             arm_state_agent_coord = convert_world_to_agent_coordinate(arm_state, agent_state)
             distance_in_agent_coord = dict(x=arm_state_agent_coord['position']['x'] - midpoint_agent_coord['position']['x'],y=arm_state_agent_coord['position']['y'] - midpoint_agent_coord['position']['y'],z=arm_state_agent_coord['position']['z'] - midpoint_agent_coord['position']['z'])
 
-            # distance_to_obj = dict(x=arm_state['position']['x'] - midpoint[0],y=arm_state['position']['y'] - midpoint[1],z=arm_state['position']['z'] - midpoint[2])
-            # env.get_object_by_id('Pan|+01.38|+01.74|+00.39')
-            # env.get_absolute_hand_state()
-            # distance_to_obj = dict(position=distance_to_obj, rotation=dict(x=0,y=0,z=0))
-            # agent_centric_middle_of_object = convert_world_to_agent_coordinate(distance_to_obj, agent_state)
             agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
-            #TODO this is too big! we basically are saying that we have arm supervision as well
-
             #TODO IS THIS REALLY THE PROBLEM???
             agent_centric_middle_of_object = agent_centric_middle_of_object.abs()
             return agent_centric_middle_of_object
 
-def not_working_rotate_to_agent(middle_of_object, device, camera_xyz, camera_rotation):
-    recentered_point_cloud = middle_of_object - (torch.FloatTensor([1.0, 0.0, 1.0]).to(device) * camera_xyz).float().reshape((1, 1, 3))
-    # Rotate the cloud so that positive-z is the direction the agent is looking
-    theta = (np.pi * camera_rotation / 180)  # No negative since THOR rotations are already backwards
-    cos_theta = np.cos(theta)
-    sin_theta = np.sin(theta)
-    rotation_transform = torch.FloatTensor([[cos_theta, 0, -sin_theta],[0, 1, 0], [sin_theta, 0, cos_theta],]).to(device)
-    rotated_point_cloud = recentered_point_cloud @ rotation_transform.T
-    # xoffset = (map_size_in_cm / 100) / 2
-    # agent_centric_point_cloud = rotated_point_cloud + torch.FloatTensor([xoffset, 0, 0]).to(device)
-    return rotated_point_cloud.squeeze(0).squeeze(0)
 
 def calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, device, depth_frame):
     with torch.no_grad():
@@ -208,39 +255,6 @@ def calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon,
         )
         return world_space_point_cloud
 
-
-# class TempRealArmpointNav(Sensor):
-#
-#     def __init__(self, type: str, uuid: str = "point_nav_real", **kwargs: Any):
-#         observation_space = gym.spaces.Box(
-#             low=0, high=1, shape=(1,), dtype=np.float32
-#         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
-#         self.type = type
-#         uuid = '{}_{}'.format(uuid, type)
-#         super().__init__(**prepare_locals_for_super(locals()))
-#
-#
-#     def get_observation(
-#             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
-#     ) -> Any:
-#         if self.type == 'source':
-#             info_to_search = 'source_object_id'
-#         elif self.type == 'destination':
-#             info_to_search = 'goal_object_id'
-#         goal_obj_id = task.task_info[info_to_search]
-#         object_info = env.get_object_by_id(goal_obj_id)
-#         hand_state = env.get_absolute_hand_state()
-#
-#         relative_goal_obj = convert_world_to_agent_coordinate(
-#             object_info, env.controller.last_event.metadata["agent"]
-#         )
-#         relative_hand_state = convert_world_to_agent_coordinate(
-#             hand_state, env.controller.last_event.metadata["agent"]
-#         )
-#         relative_distance = diff_position(relative_goal_obj, relative_hand_state)
-#         result = convert_state_to_tensor(dict(position=relative_distance))
-#
-#         return result
 
 
 class PredictionObjectMask(Sensor):
@@ -300,3 +314,52 @@ class PredictionObjectMask(Sensor):
         # predicted_masks = torch.zeros((1, 224, 224))
 
         return predicted_masks.permute(1, 2, 0).cpu() #Channel last
+
+
+
+
+# class TempRealArmpointNav(Sensor):
+#
+#     def __init__(self, type: str, uuid: str = "point_nav_real", **kwargs: Any):
+#         observation_space = gym.spaces.Box(
+#             low=0, high=1, shape=(1,), dtype=np.float32
+#         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+#         self.type = type
+#         uuid = '{}_{}'.format(uuid, type)
+#         super().__init__(**prepare_locals_for_super(locals()))
+#
+#
+#     def get_observation(
+#             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+#     ) -> Any:
+#         if self.type == 'source':
+#             info_to_search = 'source_object_id'
+#         elif self.type == 'destination':
+#             info_to_search = 'goal_object_id'
+#         goal_obj_id = task.task_info[info_to_search]
+#         object_info = env.get_object_by_id(goal_obj_id)
+#         hand_state = env.get_absolute_hand_state()
+#
+#         relative_goal_obj = convert_world_to_agent_coordinate(
+#             object_info, env.controller.last_event.metadata["agent"]
+#         )
+#         relative_hand_state = convert_world_to_agent_coordinate(
+#             hand_state, env.controller.last_event.metadata["agent"]
+#         )
+#         relative_distance = diff_position(relative_goal_obj, relative_hand_state)
+#         result = convert_state_to_tensor(dict(position=relative_distance))
+#
+#         return result
+
+
+# def not_working_rotate_to_agent(middle_of_object, device, camera_xyz, camera_rotation):
+#     recentered_point_cloud = middle_of_object - (torch.FloatTensor([1.0, 0.0, 1.0]).to(device) * camera_xyz).float().reshape((1, 1, 3))
+#     # Rotate the cloud so that positive-z is the direction the agent is looking
+#     theta = (np.pi * camera_rotation / 180)  # No negative since THOR rotations are already backwards
+#     cos_theta = np.cos(theta)
+#     sin_theta = np.sin(theta)
+#     rotation_transform = torch.FloatTensor([[cos_theta, 0, -sin_theta],[0, 1, 0], [sin_theta, 0, cos_theta],]).to(device)
+#     rotated_point_cloud = recentered_point_cloud @ rotation_transform.T
+#     # xoffset = (map_size_in_cm / 100) / 2
+#     # agent_centric_point_cloud = rotated_point_cloud + torch.FloatTensor([xoffset, 0, 0]).to(device)
+#     return rotated_point_cloud.squeeze(0).squeeze(0)

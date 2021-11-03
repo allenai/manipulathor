@@ -23,6 +23,7 @@ from ithor_arm.ithor_arm_constants import (
     MOVE_THR, PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, SET_OF_ALL_AGENT_ACTIONS,
 )
 from manipulathor_utils.debugger_util import ForkedPdb
+from scripts.hacky_objects_that_move import OBJECTS_MOVE_THR
 
 
 class ManipulaTHOREnvironment(IThorEnvironment):
@@ -307,13 +308,13 @@ class ManipulaTHOREnvironment(IThorEnvironment):
             for k in ["x", "y", "z"]
         ]
         position_is_close = sum(position_close) == 3
-        rotation_close = [
-            abs(current_obj_pose["rotation"][k] - init_obj_pose["rotation"][k])
-            <= threshold
-            for k in ["x", "y", "z"]
-        ]
-        rotation_is_close = sum(rotation_close) == 3
-        return position_is_close and rotation_is_close
+        # rotation_close = [
+        #     abs(current_obj_pose["rotation"][k] - init_obj_pose["rotation"][k])
+        #     <= threshold
+        #     for k in ["x", "y", "z"]
+        # ]
+        # rotation_is_close = sum(rotation_close) == 3
+        return position_is_close # and rotation_is_close
 
     def get_objects_moved(self, initial_object_locations):
         current_object_locations = self.get_current_object_locations()
@@ -322,7 +323,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
             if not self.close_enough(
                     current_object_locations[object_id],
                     initial_object_locations[object_id],
-                    threshold=MOVE_THR,
+                    threshold=OBJECTS_MOVE_THR,
             ):
                 moved_objects.append(object_id)
 

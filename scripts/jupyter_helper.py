@@ -272,14 +272,14 @@ def find_arm_distance_to_obj(controller, object_type):
     distance = sum([(hand_location[k] - object_location[k]) ** 2 for k in hand_location])**0.5
     return distance
 
-def close_enough(current_obj_pose, init_obj_pose, threshold):
-    position_close = [
-        abs(current_obj_pose["position"][k] - init_obj_pose["position"][k])
-        <= threshold
-        for k in ["x", "y", "z"]
-    ]
-    position_is_close = sum(position_close) == 3
-    return position_is_close
+# def close_enough(current_obj_pose, init_obj_pose, threshold):
+#     position_close = [
+#         abs(current_obj_pose["position"][k] - init_obj_pose["position"][k])
+#         <= threshold
+#         for k in ["x", "y", "z"]
+#     ]
+#     position_is_close = sum(position_close) == 3
+#     return position_is_close
 
 def get_objects_moved(controller, initial_object_locations, only_visible=False, only_active_moving=False):
     current_object_locations = get_current_object_locations(controller)

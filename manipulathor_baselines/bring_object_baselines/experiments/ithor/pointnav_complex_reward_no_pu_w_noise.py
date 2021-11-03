@@ -33,6 +33,7 @@ class PointNavNewModelAndHand(
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
     NOISE_LEVEL = 0
+    AGENT_LOCATION_NOISE = 1 #TODO?
     distance_thr = 1.5 # is this a good number?
     source_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr)
     destination_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr)
@@ -56,8 +57,8 @@ class PointNavNewModelAndHand(
         CategoryFeatureSampleSensor(type='destination'),
         source_mask_sensor,
         destination_mask_sensor,
-        PointNavEmulatorSensor(type='source', mask_sensor=source_mask_sensor),
-        PointNavEmulatorSensor(type='destination', mask_sensor=destination_mask_sensor),
+        PointNavEmulatorSensor(type='source', mask_sensor=source_mask_sensor, noise=AGENT_LOCATION_NOISE),
+        PointNavEmulatorSensor(type='destination', mask_sensor=destination_mask_sensor, noise=AGENT_LOCATION_NOISE),
         # TempRealArmpointNav(uuid='point_nav_emul',type='source'),
         # TempRealArmpointNav(uuid='point_nav_emul', type='destination'),
     ]
@@ -73,22 +74,8 @@ class PointNavNewModelAndHand(
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
 
-
-
     def train_task_sampler_args(self, **kwargs):
         sampler_args = super(PointNavNewModelAndHand, self).train_task_sampler_args(**kwargs)
-        if platform.system() == "Darwin":
-            pass
-        else:
-
-            for pointnav_emul_sensor in sampler_args['sensors']:
-                if isinstance(pointnav_emul_sensor, PointNavEmulatorSensor):
-                    pointnav_emul_sensor.device = torch.device(kwargs["devices"][0])
-
-        return sampler_args
-
-    def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavNewModelAndHand, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
