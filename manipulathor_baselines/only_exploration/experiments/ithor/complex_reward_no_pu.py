@@ -64,7 +64,7 @@ class ComplexRewardNoPU(
     def __init__(self):
         super().__init__()
         self.REWARD_CONFIG['exploration_reward'] = 0.05 # is this too big?
-        self.REWARD_CONFIG['visted_reward'] = -0.01
+        self.REWARD_CONFIG['visted_reward'] = -0.05
         # self.REWARD_CONFIG['object_reward'] = 0.2 # is this too big?
 
 
