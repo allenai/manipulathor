@@ -327,12 +327,14 @@ class TempAllMasksSensor(Sensor):
         return result
 
 class PointCloudMemory(Sensor):
-    def __init__(self,memory_size,  uuid: str = "point_cloud", **kwargs: Any):
+    def __init__(self,memory_size, mask_generator, uuid: str = "point_cloud", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
         self.memory_size = memory_size
+        self.mask_generator = mask_generator
         super().__init__(**prepare_locals_for_super(locals()))
+        self.all_masks = []
 
 
 
@@ -343,19 +345,20 @@ class PointCloudMemory(Sensor):
 
         if len(env.memory_frames) == 0:
             return 10 #LATER_TODO
-
+        mask = self.mask_generator.get_observation(env, task, *args, **kwargs)
+        self.all_masks.append(mask)
         frames = [k['rgb'] for k in env.memory_frames]
         depth_frames = [k['depth'] for k in env.memory_frames]
         metadatas = [k['event'] for k in env.memory_frames]
+
+
 
         #LATER_TODO
         if False:
             #option 2
             pc = get_point_cloud(frames, depth_frames, metadatas)
-        else:
+        elif False:
             #option1
-
-
             # if random.random() < 1/5.:
             #     save_pointcloud_to_file(pc, os.path.join(dir_to_save, timesmap))
             #     print('saved pointcloud', os.path.join(dir_to_save, timesmap))
@@ -370,6 +373,34 @@ class PointCloudMemory(Sensor):
                 ForkedPdb().set_trace()
 
                 save_pointcloud_to_file(pc, os.path.join(dir_to_save, timesmap))
+        else:
+            if len(env.memory_frames) > 150:
+                def generate_and_save_pointcloud():
+                    print('starting to generate pointcloud')
+                    for i in range(len(env.memory_frames)):
+                        mask = self.all_masks[i].squeeze(-1).astype(bool)
+                        # env.memory_frames[i]['depth'][~mask] = 40#float('nan')
+
+                        # env.memory_frames[i]['rgb'][:,:,0] = env.memory_frames[i]['rgb'].mean(-1)
+                        # env.memory_frames[i]['rgb'][:,:,1] = env.memory_frames[i]['rgb'].mean(-1)
+                        # env.memory_frames[i]['rgb'][:,:,2] = env.memory_frames[i]['rgb'].mean(-1)
+                        gray_scale = env.memory_frames[i]['rgb'].mean(-1)
+
+                        env.memory_frames[i]['rgb'][:,:, 0][~mask] = gray_scale[~mask]
+                        env.memory_frames[i]['rgb'][:,:,1][~mask] = gray_scale[~mask]
+                        env.memory_frames[i]['rgb'][:,:,2][~mask] = gray_scale[~mask]
+                    frames = [k['rgb'] for k in env.memory_frames]
+                    depth_frames = [k['depth'] for k in env.memory_frames]
+                    metadatas = [k['event'] for k in env.memory_frames]
+                    xyz, normals, rgb = frames_to_world_points(metadatas, frames, depth_frames)
+                    pc = world_points_to_pointcloud(xyz, normals, rgb, voxel_size=0.02)
+                    dir_to_save = 'experiment_output/visualization_pointcloud/'
+                    os.makedirs(dir_to_save, exist_ok=True)
+                    timesmap = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S_%f.ply")
+                    save_pointcloud_to_file(pc, os.path.join(dir_to_save, timesmap))
+                ForkedPdb().set_trace()
+
+                # save_pointcloud_to_file(pc, os.path.join(dir_to_save, timesmap))
         return 10
 
 

@@ -31,9 +31,12 @@ class ComplexRewardNoPUWPointCloudMemory(
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
 
-    SCREEN_SIZE = 500
+    SCREEN_SIZE = 224
     NOISE_LEVEL = 0 #TODO need to put this back 0.2
     distance_thr = 1.5 # is this a good number?
+    source_object_mask = NoisyObjectMask(height=224, width=224,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr)
+    destination_object_mask = NoisyObjectMask(height=224, width=224,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr)
+
     SENSORS = [
         RGBSensorThor(
             height=224,
@@ -54,9 +57,10 @@ class ComplexRewardNoPUWPointCloudMemory(
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
-        NoMaskSensor(height=224, width=224,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
-        NoMaskSensor(height=224, width=224,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
-        PointCloudMemory(uuid='point_cloud', memory_size=5),
+
+        source_object_mask,
+        destination_object_mask,
+        PointCloudMemory(uuid='point_cloud', memory_size=5, mask_generator=source_object_mask),
     ]
 
     MAX_STEPS = 200
@@ -66,6 +70,10 @@ class ComplexRewardNoPUWPointCloudMemory(
 
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
+
+    TRAIN_SCENES = ['FloorPlan1_physics']
+    # OBJECT_TYPES = ['Pot', 'Pan']
+    OBJECT_TYPES = ['Lettuce', 'Apple']
 
 
 
