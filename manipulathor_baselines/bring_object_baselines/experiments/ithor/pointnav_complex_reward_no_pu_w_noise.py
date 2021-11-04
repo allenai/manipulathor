@@ -71,6 +71,7 @@ class PointNavNewModelAndHandWAgentNoise(
 
     NUM_PROCESSES = 20
 
+    TEST_SCENES = BringObjectiThorBaseConfig.TRAIN_SCENES
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
 

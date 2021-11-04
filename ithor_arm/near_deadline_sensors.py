@@ -1,6 +1,7 @@
 """Utility classes and functions for sensory inputs used by the models."""
 import copy
 import datetime
+import math
 import os
 import platform
 import random
@@ -99,6 +100,7 @@ class PointNavEmulatorSensor(Sensor):
         self.mask_sensor = mask_sensor
         uuid = '{}_{}'.format(uuid, type)
         self.noise = noise
+
         self.pointnav_history_aggr = None
         self.map_range_sensor = KianaReachableBoundsTHORSensor(margin=1.0)
         self.dummy_answer = torch.zeros(3)
@@ -116,6 +118,8 @@ class PointNavEmulatorSensor(Sensor):
                 _TruncatedMultivariateGaussian([0.219], [0.019]),
             ),
         )
+        self.real_locations = []
+        self.belief_locations = []
         super().__init__(**prepare_locals_for_super(locals()))
     def get_accurate_locations(self, env):
         metadata = copy.deepcopy(env.controller.last_event.metadata)
@@ -125,12 +129,29 @@ class PointNavEmulatorSensor(Sensor):
         arm_state = env.get_absolute_hand_state()
         return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state)
     def add_translation_noise(self, change_in_xyz, prev_location):
-        new_location = prev_location + change_in_xyz
+
 
         if random.random() < self.noise and np.abs(change_in_xyz).sum() > 0: #TODO is this self.noise a good model?
             noise_value_x, noise_value_z = self.noise_mode.linear_motion.linear.sample() * 0.01 #to convert to meters #TODO seriously?
-            new_location[0] += noise_value_x
-            new_location[2] += noise_value_z
+
+            #TODO ADD THIS ALSO CHECK THIS
+            new_change_in_xyz = change_in_xyz.copy()
+            new_change_in_xyz[0] += noise_value_x
+            new_change_in_xyz[2] += noise_value_z
+            real_rotation = self.real_prev_location['camera_rotation']
+            belief_rotation = self.belief_prev_location['camera_rotation']
+            diff_in_rotation = math.radians(belief_rotation - real_rotation)
+            # 𝑥2=cos𝛽𝑥1−sin𝛽𝑦1
+            # 𝑦2=sin𝛽𝑥1+cos𝛽𝑦1
+            new_location = prev_location.copy()
+            x = math.cos(diff_in_rotation) * new_change_in_xyz[0] - math.sin(diff_in_rotation) * new_change_in_xyz[2]
+            z = math.sin(diff_in_rotation) * new_change_in_xyz[0] + math.cos(diff_in_rotation) * new_change_in_xyz[2]
+            new_location[0] += x
+            new_location[2] += z
+
+
+        else:
+            new_location = prev_location + change_in_xyz
         return new_location
     def add_rotation_noise(self, change_in_rotation, prev_rotation):
         new_rotation = prev_rotation + change_in_rotation
@@ -141,14 +162,16 @@ class PointNavEmulatorSensor(Sensor):
     def get_agent_localizations(self, env):
 
         if self.noise == 0:
-            return self.get_accurate_locations(env) #TODO add a test that at each time step it should give accurate (degrade should happen throuoght time)
+            result =  self.get_accurate_locations(env) #TODO add a test that at each time step it should give accurate (degrade should happen throuoght time)
+            self.belief_prev_location = copy.deepcopy(result)
+            self.real_prev_location = copy.deepcopy(result)
         else:
             real_current_location = self.get_accurate_locations(env)
 
             if self.real_prev_location is None:
                 self.real_prev_location = copy.deepcopy(real_current_location)
                 self.belief_prev_location = copy.deepcopy(real_current_location)
-                return real_current_location
+                result = real_current_location
             else:
                 belief_arm_state = real_current_location['arm_state']
                 belief_camera_horizon = real_current_location['camera_horizon']
@@ -160,8 +183,11 @@ class PointNavEmulatorSensor(Sensor):
                 self.belief_prev_location = copy.deepcopy(dict(camera_xyz=belief_camera_xyz, camera_rotation=belief_camera_rotation, camera_horizon=belief_camera_horizon, arm_state=belief_arm_state))
                 self.real_prev_location = copy.deepcopy(real_current_location)
 
+                result =  self.belief_prev_location
+        self.real_locations.append(copy.deepcopy(self.real_prev_location))
+        self.belief_locations.append(copy.deepcopy(self.belief_prev_location))
+        return result
 
-                return self.belief_prev_location
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
@@ -177,8 +203,53 @@ class PointNavEmulatorSensor(Sensor):
         depth_frame[~mask] = -1
         assert mask.shape == depth_frame.shape
 
+        if task.num_steps_taken() == 190 or task.object_picked_up:# or (task.num_steps_taken()  > 10 and len(self.fake_pointnav_history_aggr) > 0):
+            #TODO different noise for target and the other one
+            import matplotlib
+            matplotlib.use('TkAgg')
+            import matplotlib.pyplot as plt
+            fig = plt.figure()
+            ax = fig.add_subplot(projection='3d')
+            def draw_points(locations, color):
+                xs = [x[0] for x in locations]
+                ys = [x[1] for x in locations]
+                zs = [x[2] for x in locations]
+                ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
+
+            def draw(locations, color):
+                xs = [x['camera_xyz'][0] for x in locations]
+                ys = [x['camera_xyz'][1] for x in locations]
+                zs = [x['camera_xyz'][2] for x in locations]
+                ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
+            draw(self.real_locations, 'g')
+            draw(self.belief_locations, 'b')
+            draw_points([x for x in self.perception_of_object if x.sum() != 12], 'r')
+            draw_points([[self.real_location_of_object['x'],self.real_location_of_object['y'],self.real_location_of_object['z'],]], 'purple')
+            all_diffs = ([(self.real_locations[i]['camera_xyz'] - self.real_locations[i-1]['camera_xyz']).mean() for i in range(1, len(self.real_locations))])
+            all_cameras_real = [(self.real_locations[i]['camera_xyz']) for i in range(len(self.real_locations))]
+            all_cameras_belief = [(self.belief_locations[i]['camera_xyz']) for i in range(len(self.real_locations))]
+            all_cameras_rotation_real = [(self.real_locations[i]['camera_rotation']) for i in range(len(self.real_locations))]
+            all_cameras_rotation_belief = [(self.belief_locations[i]['camera_rotation']) for i in range(len(self.real_locations))]
+            # np.abs(np.array(all_cameras_rotation_real) - np.array(all_cameras_rotation_belief)).sum(-1)
+
+            # draw_points(self.real_pointnav_history_aggr, 'black')
+            # draw_points(self.fake_pointnav_history_aggr, 'orange')
+
+            ForkedPdb().set_trace()
+
+
+
+
         if task.num_steps_taken() == 0:
             self.pointnav_history_aggr = []
+            self.pointnav_history_aggr = []
+            self.real_pointnav_history_aggr = []
+            self.real_pointnav_history_aggr = []
+            self.fake_pointnav_history_aggr = []
+            self.real_locations = []
+            self.belief_locations = []
+            self.perception_of_object = []
+            self.real_location_of_object =  copy.deepcopy(env.get_object_by_id(task.task_info['source_object_id'])['position'])
         self.min_xyz = np.zeros((3))
 
         camera_xyz = agent_locations['camera_xyz']
@@ -198,14 +269,32 @@ class PointNavEmulatorSensor(Sensor):
         valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
         point_in_world = world_space_point_cloud[valid_points]
         middle_of_object = point_in_world.mean(dim=0)
+        self.perception_of_object.append(middle_of_object)
         self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world)))
 
-        return self.average_so_far(camera_xyz, camera_rotation, arm_state)
+        real_agent_locations = self.get_accurate_locations(env)
+        real_camera_xyz = real_agent_locations['camera_xyz']
+        real_camera_rotation = real_agent_locations['camera_rotation']
+        real_world_space_point_cloud = calc_world_coordinates(self.min_xyz, real_camera_xyz, real_camera_rotation, camera_horizon, fov, self.device, depth_frame)
+        real_valid_points = (real_world_space_point_cloud == real_world_space_point_cloud).sum(dim=-1) == 3
+        real_point_in_world = real_world_space_point_cloud[real_valid_points]
+        real_middle_of_object = real_point_in_world.mean(dim=0)
+
+
+        result = self.average_so_far(camera_xyz, camera_rotation, arm_state)
+
+        self.fake_pointnav_history_aggr.append(result)
+        # self.fake_pointnav_history_aggr.append(self.calc_relative_location( camera_xyz, camera_rotation, middle_of_object, arm_state))
+        self.real_pointnav_history_aggr.append(self.calc_relative_location( real_camera_xyz, real_camera_rotation, real_middle_of_object, arm_state))
+
+
+        return result
 
 
     def average_so_far(self, camera_xyz, camera_rotation, arm_state):
+        answer = None
         if len(self.pointnav_history_aggr) == 0:
-            return self.dummy_answer
+            answer = self.dummy_answer
         else:
             if self.noise == 0:
                 total_sum = [k * v for k,v in self.pointnav_history_aggr]
@@ -216,29 +305,36 @@ class PointNavEmulatorSensor(Sensor):
 
             else:
                 #TODO this is very inefficient, also I didn't triple checked it
+                #TODO THIS IS THE FUCKING THING TO CHANGE
                 timed_weights = [i + 1 for i in range(len(self.pointnav_history_aggr))]
-                sum_weights = sum(timed_weights)
                 total_sum = [timed_weights[i] * self.pointnav_history_aggr[i][0] * self.pointnav_history_aggr[i][1] for i in range(len(self.pointnav_history_aggr))]
-                total_count = sum([v for k,v in self.pointnav_history_aggr])
-                midpoint = sum(total_sum) / total_count / sum_weights
+                total_count = [v for k,v in self.pointnav_history_aggr]
+                real_total_count = [total_count[i] * timed_weights[i] for i in range(len(total_count))]
+                midpoint = sum(total_sum) / sum(real_total_count)
                 midpoint = midpoint.cpu()
 
 
+            answer = self.calc_relative_location( camera_xyz, camera_rotation, midpoint, arm_state)
 
-            # agent_centric_middle_of_object = rotate_to_agent(midpoint, self.device, camera_xyz, camera_rotation)
-            agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
-            midpoint_position_rotation = dict(position=dict(x=midpoint[0], y=midpoint[1], z=midpoint[2]), rotation=dict(x=0,y=0,z=0))
-            midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
+        return answer
 
-            arm_state_agent_coord = convert_world_to_agent_coordinate(arm_state, agent_state)
-            distance_in_agent_coord = dict(x=arm_state_agent_coord['position']['x'] - midpoint_agent_coord['position']['x'],y=arm_state_agent_coord['position']['y'] - midpoint_agent_coord['position']['y'],z=arm_state_agent_coord['position']['z'] - midpoint_agent_coord['position']['z'])
+    def calc_relative_location(self, camera_xyz, camera_rotation, midpoint, arm_state):
 
-            agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
-            #TODO IS THIS REALLY THE PROBLEM???
-            agent_centric_middle_of_object = agent_centric_middle_of_object.abs()
-            return agent_centric_middle_of_object
+        # agent_centric_middle_of_object = rotate_to_agent(midpoint, self.device, camera_xyz, camera_rotation)
+        agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
+        midpoint_position_rotation = dict(position=dict(x=midpoint[0], y=midpoint[1], z=midpoint[2]), rotation=dict(x=0,y=0,z=0))
+        midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
 
 
+
+        arm_state_agent_coord = convert_world_to_agent_coordinate(arm_state, agent_state)
+        distance_in_agent_coord = dict(x=arm_state_agent_coord['position']['x'] - midpoint_agent_coord['position']['x'],y=arm_state_agent_coord['position']['y'] - midpoint_agent_coord['position']['y'],z=arm_state_agent_coord['position']['z'] - midpoint_agent_coord['position']['z'])
+
+        agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
+        #TODO IS THIS REALLY THE PROBLEM???
+        agent_centric_middle_of_object = agent_centric_middle_of_object.abs()
+        answer = agent_centric_middle_of_object
+        return answer
 def calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, device, depth_frame):
     with torch.no_grad():
         camera_xyz = (
