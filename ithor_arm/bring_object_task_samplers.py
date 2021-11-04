@@ -382,7 +382,8 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             #randomly choosing initial and goal objects, the whole following needs to be changed if working with static objects
             init_obj, goal_obj = random.sample(all_objects, 2)
             #randomly choosing an initial location for first object
-            init_object_location = random.choice(self.all_possible_points[(chosen_scene, init_obj)]['data_point_dict'])
+            possible_locations = [x for x in self.all_possible_points[(chosen_scene, init_obj)]['data_point_dict'] if x['countertop_id'] == 'CounterTop|-00.08|+01.15|00.00']
+            init_object_location = random.choice(possible_locations)
             initial_location = torch.tensor([init_object_location['object_location']['x'], init_object_location['object_location']['y'], init_object_location['object_location']['z']])
 
             #calulcate distance of initial object location to all the possible target location

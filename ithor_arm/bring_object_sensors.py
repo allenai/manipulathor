@@ -177,8 +177,8 @@ class NoisyObjectMask(Sensor):
                 agent_location = env.get_agent_location()
                 object_location = env.get_object_by_id(target_object_id)['position']
                 current_agent_distance_to_obj = sum([(object_location[k] - agent_location[k])**2 for k in ['x', 'z']]) ** 0.5
-                if current_agent_distance_to_obj > self.distance_thr or mask_frame.sum() < 20: #TODO objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
-                    mask_frame[:] = 0
+                # if current_agent_distance_to_obj > self.distance_thr:# or mask_frame.sum() < 20: #TODO objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
+                #     mask_frame[:] = 0
 
         else:
             mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
@@ -374,21 +374,24 @@ class PointCloudMemory(Sensor):
 
                 save_pointcloud_to_file(pc, os.path.join(dir_to_save, timesmap))
         else:
-            if len(env.memory_frames) > 150:
+            if len(env.memory_frames) % 100 == 0 or task.object_picked_up:
                 def generate_and_save_pointcloud():
                     print('starting to generate pointcloud')
                     for i in range(len(env.memory_frames)):
                         mask = self.all_masks[i].squeeze(-1).astype(bool)
-                        # env.memory_frames[i]['depth'][~mask] = 40#float('nan')
+                        env.memory_frames[i]['depth'][~mask] = float('nan')
 
                         # env.memory_frames[i]['rgb'][:,:,0] = env.memory_frames[i]['rgb'].mean(-1)
                         # env.memory_frames[i]['rgb'][:,:,1] = env.memory_frames[i]['rgb'].mean(-1)
                         # env.memory_frames[i]['rgb'][:,:,2] = env.memory_frames[i]['rgb'].mean(-1)
                         gray_scale = env.memory_frames[i]['rgb'].mean(-1)
 
-                        env.memory_frames[i]['rgb'][:,:, 0][~mask] = gray_scale[~mask]
-                        env.memory_frames[i]['rgb'][:,:,1][~mask] = gray_scale[~mask]
-                        env.memory_frames[i]['rgb'][:,:,2][~mask] = gray_scale[~mask]
+                        # env.memory_frames[i]['rgb'][:,:, 0] = gray_scale
+                        # env.memory_frames[i]['rgb'][:,:,1] = gray_scale
+                        # env.memory_frames[i]['rgb'][:,:,2] = gray_scale
+                        env.memory_frames[i]['rgb'][:,:, 0] = 0
+                        env.memory_frames[i]['rgb'][:,:,1] = 0
+                        env.memory_frames[i]['rgb'][:,:,2] = 0
                     frames = [k['rgb'] for k in env.memory_frames]
                     depth_frames = [k['depth'] for k in env.memory_frames]
                     metadatas = [k['event'] for k in env.memory_frames]

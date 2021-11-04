@@ -342,7 +342,7 @@ class EasyPickUpObjectTask(AbstractBringObjectTask):
 
         action_str = self.class_action_names()[action]
 
-        self.manual = False
+        self.manual = True
         if self.manual:
             action_str = 'something'
             actions = ('MoveArmHeightP', 'MoveArmHeightM', 'MoveArmXP', 'MoveArmXM', 'MoveArmYP', 'MoveArmYM', 'MoveArmZP', 'MoveArmZM', 'MoveAheadContinuous', 'RotateRightContinuous', 'RotateLeftContinuous')

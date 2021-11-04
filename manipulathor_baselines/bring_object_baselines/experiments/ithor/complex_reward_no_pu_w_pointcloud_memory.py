@@ -33,7 +33,7 @@ class ComplexRewardNoPUWPointCloudMemory(
 
     SCREEN_SIZE = 224
     NOISE_LEVEL = 0 #TODO need to put this back 0.2
-    distance_thr = 1.5 # is this a good number?
+    distance_thr = 100 # is this a good number?
     source_object_mask = NoisyObjectMask(height=224, width=224,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr)
     destination_object_mask = NoisyObjectMask(height=224, width=224,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr)
 
@@ -71,9 +71,9 @@ class ComplexRewardNoPUWPointCloudMemory(
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
-    TRAIN_SCENES = ['FloorPlan1_physics']
-    # OBJECT_TYPES = ['Pot', 'Pan']
-    OBJECT_TYPES = ['Lettuce', 'Apple']
+    TEST_SCENES = ['FloorPlan1_physics']
+    OBJECT_TYPES = ['Pot', 'Pan']
+    # OBJECT_TYPES = ['Lettuce', 'Apple']
 
 
 

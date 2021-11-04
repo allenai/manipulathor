@@ -306,11 +306,25 @@ class BringObjectTask(AbstractBringObjectTask):
             # actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l')
             # ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_X_P,MOVE_ARM_X_M,MOVE_ARM_Y_P,MOVE_ARM_Y_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_AHEAD,ROTATE_RIGHT,ROTATE_LEFT]
             # ARM_SHORTENED_ACTIONS_ORDERED = ['u','j','s','a','3','4','w','z','m','r','l']
+            try:
+                self.manual_sequence
+            except Exception:
+                self.manual_sequence = ['RotateLeft', 'RotateLeft', 'RotateLeft', 'RotateLeft', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateRight', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateRight', 'RotateRight', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateRight', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'RotateRight', 'RotateRight', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateRight', 'MoveAhead', 'MoveAhead', 'RotateRight', 'RotateRight', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateLeft', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'RotateRight', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateLeft', 'RotateLeft', 'MoveAhead']
             action = 'm'
             self.env.controller.step('Pass')
             print(self.task_info['source_object_id'], self.task_info['goal_object_id'], 'pickup', self.object_picked_up)
-            ForkedPdb().set_trace()
-            action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
+            # ForkedPdb().set_trace()
+            # action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
+
+            if len(self.manual_sequence) == 0:
+                ForkedPdb().set_trace()
+                action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
+            else:
+                action_str = self.manual_sequence[0]
+                self.manual_sequence = self.manual_sequence[1:]
+
+            # self.env.closest_object_of_type('Bowl')
+            # [x[0] for x in self.action_sequence_and_success]
 
 
         self._last_action_str = action_str
