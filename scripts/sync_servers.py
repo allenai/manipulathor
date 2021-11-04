@@ -2,7 +2,7 @@ import argparse
 import os
 import pdb
 
-list_of_servers = ['kiana-workstation', 'vision-server12', 'aws15', 'aws16','aws14','aws17', 'vision-server13']
+list_of_servers = ['vision-server11', 'vision-server12', 'vision-server2', 'kiana-workstation'] + [f'aws{i+1}' for i in range(12)]
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Sync')
@@ -64,9 +64,17 @@ def sync_back(args):
             command = command.replace('--exclude ImageVisualizer/ ', '')
         os.system(command)
 
+def sync_weights(args):
+    for server in args.servers:
+        print('sync to ', server)
+        command = f'rsync -avz ~/Desktop/important_weights {server}:~/'
+        os.system(command)
+
 if __name__ == '__main__':
     args = parse_args()
-    if args.sync_back:
+    if args.sync_weights:
+        sync_weights(args)
+    elif args.sync_back:
         sync_back(args)
     else:
         main(args)

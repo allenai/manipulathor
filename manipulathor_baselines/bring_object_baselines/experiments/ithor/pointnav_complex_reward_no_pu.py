@@ -72,6 +72,15 @@ class PointNavNewModelAndHand(
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
+    # remove
+    #
+    # TEST_SCENES = [f'FloorPlan{i + 1}_physics' for i in range(5)]
+    # OBJECT_TYPES = OBJECT_TYPES[:3]
+    # TEST_SCENES = [f'FloorPlan{i + 1}_physics' for i in range(1)]
+    # OBJECT_TYPES = ['Egg', 'Spatula']
+    # MAX_STEPS = 10
+
+
 
 
 

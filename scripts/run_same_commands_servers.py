@@ -70,10 +70,20 @@ import pdb
 #   --config_kwargs \'{\\"distributed_nodes\\":4}\' \
 #   --seed 10 --machine_id 0'
 
-command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_distrib \
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_distrib \
+#  --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":4}\' \
+#  -c ~/exp_ComplexRewardNoPUDistrib__stage_00__steps_000031802009.pt\
+#  --seed 10 --machine_id 0'
+
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/pointnav_complex_reward_no_pu_w_noise_distrib \
+#  --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":4}\' \
+#  --seed 10 --machine_id 0'
+
+command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_no_mask_distrib \
  --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":4}\' \
- -c ~/exp_ComplexRewardNoPUDistrib__stage_00__steps_000031802009.pt\
  --seed 10 --machine_id 0'
 
 
@@ -87,6 +97,11 @@ server_set1 = {
 server_set2 = {
     'servers':[f'aws{i}' for i in range(5, 9)],
     'ip_adr': '54.202.224.54',
+}
+
+server_set3 = {
+    'servers':[f'aws{i}' for i in range(9, 13)],
+    'ip_adr': '52.36.184.123',
 }
 
 
@@ -104,6 +119,9 @@ def parse_args():
     elif 'aws5' in args.server_set:
         args.servers += server_set2['servers']
         ip_adr = server_set2['ip_adr']
+    elif 'aws9' in args.server_set:
+        args.servers += server_set3['servers']
+        ip_adr = server_set3['ip_adr']
     args.command = args.command.replace('IP_ADR', ip_adr)
     return args
 

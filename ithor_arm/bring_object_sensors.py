@@ -24,6 +24,8 @@ from scripts.thor_category_names import thor_possible_objects
 
 # from legacy.from_phone_to_sim.more_optimized import get_point_cloud
 # from legacy.from_phone_to_sim.thor_frames_to_pointcloud import frames_to_world_points, world_points_to_pointcloud
+from utils.manipulathor_data_loader_utils import get_random_query_image_from_img_adr, get_random_query_feature_from_img_adr
+
 
 class RelativeArmDistanceToGoal(Sensor):
     def __init__(self, uuid: str = "relative_arm_dist", **kwargs: Any):
@@ -98,12 +100,15 @@ class CategorySampleSensor(Sensor):
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
+        feature_name = 'object_query'
         if self.type == 'source':
-            info_to_search = 'source_object_query'
+            info_to_search = 'source_' + feature_name
         elif self.type == 'destination':
-            info_to_search = 'goal_object_query'
+            info_to_search = 'goal_' + feature_name
         else:
             raise Exception('Not implemented', self.type)
+        # image_adr = task.task_info[info_to_search]
+        # image = get_random_query_image_from_img_adr(image_adr)
         image = task.task_info[info_to_search]
         return image
 
@@ -121,15 +126,18 @@ class CategoryFeatureSampleSensor(Sensor):
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-
+        # feature_name = 'object_query_file_name'
+        feature_name = 'object_query_feature'
         if self.type == 'source':
-            info_to_search = 'source_object_query_feature'
+            info_to_search = 'source_' + feature_name
         elif self.type == 'destination':
-            info_to_search = 'goal_object_query_feature'
+            info_to_search = 'goal_' + feature_name
         else:
             raise Exception('Not implemented', self.type)
-        image = task.task_info[info_to_search]
-        return image
+        # image_adr = task.task_info[info_to_search]
+        # feature = get_random_query_feature_from_img_adr(image_adr)
+        feature = task.task_info[info_to_search]
+        return feature
 
 
 

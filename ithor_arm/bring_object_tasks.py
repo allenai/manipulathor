@@ -1,5 +1,5 @@
 """Task Definions for the task of ArmPointNav"""
-
+import copy
 from typing import Dict, Tuple, List, Any, Optional
 
 import gym
@@ -240,7 +240,13 @@ class AbstractBringObjectTask(Task[ManipulaTHOREnvironment]):
             self.finish_visualizer_metrics(result)
             self.finish_visualizer(self._success)
             self.action_sequence_and_success = []
+            # result['task_info'] = copy.deepcopy(result['task_info'])
+            # for remove_feature in ['source_object_query', 'goal_object_query','source_object_query_feature', 'goal_object_query_feature',]:
+            #     result['task_info'][remove_feature] = []
 
+            result['task_info'] = copy.deepcopy(result['task_info'])
+            for feature_to_remove in ['source_object_query', 'goal_object_query','source_object_query_feature', 'goal_object_query_feature',]:
+                result['task_info'][feature_to_remove] = []
         return result
 
     def _step(self, action: int) -> RLStepResult:
@@ -670,7 +676,8 @@ class ExploreWiseRewardTask(BringObjectTask):
     def metrics(self) -> Dict[str, Any]:
         result = super(ExploreWiseRewardTask, self).metrics()
         if self.is_done():
-            result['percent_room_visited'] = self.has_visited.mean()
+            result['percent_room_visited'] = self.has_visited.mean().item()
+
         return result
 
     def judge(self) -> float:

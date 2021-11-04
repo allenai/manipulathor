@@ -8,7 +8,7 @@ from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn, optim
 from torch.optim.lr_scheduler import LambdaLR
 
-from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor, TempAllMasksSensor, TempEpisodeNumber, TempObjectCategorySensor
+from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor, TempAllMasksSensor, TempEpisodeNumber, TempObjectCategorySensor, CategoryFeatureSampleSensor
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
 from ithor_arm.ithor_arm_constants import ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
 from ithor_arm.ithor_arm_sensors import (
@@ -54,7 +54,10 @@ class PredictMaskNoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject(
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
-        UseCategoryFeatiureSensorAndChangeModel(),
+
+        CategoryFeatureSampleSensor(type='source'),
+        CategoryFeatureSampleSensor(type='destination'),
+
         NoisyObjectMask(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0.0, type='source', uuid='gt_mask_for_loss'),

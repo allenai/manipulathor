@@ -23,7 +23,7 @@ from ithor_arm.ithor_arm_tasks import (
 )
 from ithor_arm.ithor_arm_viz import LoggerVisualizer, BringObjImageVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
-from utils.manipulathor_data_loader_utils import get_random_query_image, get_random_query_feature, get_random_query_feature_from_img_adr
+from utils.manipulathor_data_loader_utils import get_random_query_image, get_random_query_feature, get_random_query_feature_from_img_adr, get_random_query_image_file_name
 
 
 class BringObjectAbstractTaskSampler(TaskSampler):
@@ -318,15 +318,11 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         initial_agent_location = self.env.controller.last_event.metadata["agent"]
         initial_hand_state = self.env.get_absolute_hand_state()
 
-
+        # source_img_adr = get_random_query_image_file_name(scene_name,init_object['object_id'], self.query_image_dict)
+        # goal_img_adr = get_random_query_image_file_name(scene_name,goal_object['object_id'], self.query_image_dict)
 
         source_object_query, source_img_adr = get_random_query_image(scene_name,init_object['object_id'], self.query_image_dict)
         goal_object_query, goal_img_adr = get_random_query_image(scene_name,goal_object['object_id'], self.query_image_dict)
-
-
-        # source_object_query_feature = get_random_query_feature(scene_name,init_object['object_id'], self.query_image_dict)
-        # goal_object_query_feature = get_random_query_feature(scene_name,goal_object['object_id'], self.query_image_dict)
-
         source_object_query_feature = get_random_query_feature_from_img_adr(source_img_adr)
         goal_object_query_feature = get_random_query_feature_from_img_adr(goal_img_adr)
 
@@ -343,6 +339,8 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             'goal_object_query': goal_object_query,
             'source_object_query_feature': source_object_query_feature,
             'goal_object_query_feature': goal_object_query_feature,
+            # 'source_object_query_file_name' : source_img_adr,
+            # 'goal_object_query_file_name' : goal_img_adr,
             'episode_number': random.uniform(0, 10000),
         }
 
