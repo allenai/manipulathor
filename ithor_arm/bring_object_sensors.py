@@ -24,6 +24,7 @@ from scripts.thor_category_names import thor_possible_objects
 
 # from legacy.from_phone_to_sim.more_optimized import get_point_cloud
 # from legacy.from_phone_to_sim.thor_frames_to_pointcloud import frames_to_world_points, world_points_to_pointcloud
+from utils.from_phone_to_sim.thor_frames_to_pointcloud import frames_to_world_points, world_points_to_pointcloud, save_pointcloud_to_file
 from utils.manipulathor_data_loader_utils import get_random_query_image_from_img_adr, get_random_query_feature_from_img_adr
 
 
@@ -325,47 +326,51 @@ class TempAllMasksSensor(Sensor):
             result[mask] = object_type_categ_ind
         return result
 
-# class PointCloudMemory(Sensor):
-#     def __init__(self,memory_size,  uuid: str = "point_cloud", **kwargs: Any):
-#         observation_space = gym.spaces.Box(
-#             low=0, high=1, shape=(1,), dtype=np.float32
-#         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
-#         self.memory_size = memory_size
-#         super().__init__(**prepare_locals_for_super(locals()))
-#         print('resolve todo')
-#         ForkedPdb().set_trace()
-#
-#
-#
-#     def get_observation(
-#             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
-#     ) -> Any:
-#         assert self.memory_size == env.MEMORY_SIZE
-#
-#         if len(env.memory_frames) == 0:
-#             return 10 #LATER_TODO
-#
-#         frames = [k['rgb'] for k in env.memory_frames]
-#         depth_frames = [k['depth'] for k in env.memory_frames]
-#         metadatas = [k['event'] for k in env.memory_frames]
-#
-#         #LATER_TODO
-#         if False:
-#             #option 2
-#             pc = get_point_cloud(frames, depth_frames, metadatas)
-#         else:
-#             #option1
-#             xyz, normals, rgb = frames_to_world_points(metadatas, frames, depth_frames)
-#             pc = world_points_to_pointcloud(xyz, normals, rgb, voxel_size=0.02)
-#             dir_to_save = 'experiment_output/visualization_pointcloud/'
-#             os.makedirs(dir_to_save, exist_ok=True)
-#             timesmap = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S_%f.ply")
-#             # if random.random() < 1/5.:
-#             #     save_pointcloud_to_file(pc, os.path.join(dir_to_save, timesmap))
-#             #     print('saved pointcloud', os.path.join(dir_to_save, timesmap))
-#             # #LATER_TODO we probably need to convert this back to agent's coordinate frame
-#             # ForkedPdb().set_trace()
-#         return 10
+class PointCloudMemory(Sensor):
+    def __init__(self,memory_size,  uuid: str = "point_cloud", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.memory_size = memory_size
+        super().__init__(**prepare_locals_for_super(locals()))
+
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        # assert self.memory_size == env.MEMORY_SIZE
+
+        if len(env.memory_frames) == 0:
+            return 10 #LATER_TODO
+
+        frames = [k['rgb'] for k in env.memory_frames]
+        depth_frames = [k['depth'] for k in env.memory_frames]
+        metadatas = [k['event'] for k in env.memory_frames]
+
+        #LATER_TODO
+        if False:
+            #option 2
+            pc = get_point_cloud(frames, depth_frames, metadatas)
+        else:
+            #option1
+
+
+            # if random.random() < 1/5.:
+            #     save_pointcloud_to_file(pc, os.path.join(dir_to_save, timesmap))
+            #     print('saved pointcloud', os.path.join(dir_to_save, timesmap))
+            # #LATER_TODO we probably need to convert this back to agent's coordinate frame
+            if len(env.memory_frames) > 150:
+                print('starting to generate pointcloud')
+                xyz, normals, rgb = frames_to_world_points(metadatas, frames, depth_frames)
+                pc = world_points_to_pointcloud(xyz, normals, rgb, voxel_size=0.02)
+                dir_to_save = 'experiment_output/visualization_pointcloud/'
+                os.makedirs(dir_to_save, exist_ok=True)
+                timesmap = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S_%f.ply")
+                ForkedPdb().set_trace()
+
+                save_pointcloud_to_file(pc, os.path.join(dir_to_save, timesmap))
+        return 10
 
 
 

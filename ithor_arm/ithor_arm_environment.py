@@ -117,8 +117,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         # noinspection PyTypeHints
         self.controller.docker_enabled = docker_enabled  # type: ignore
 
-        self.MEMORY_SIZE = 5
-        # self.memory_frames = []
+
 
     def check_controller_version(self):
         if MANIPULATHOR_COMMIT_ID is not None:
@@ -215,6 +214,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         self._initially_reachable_points = self.last_action_return
 
         self.list_of_actions_so_far = []
+        self.memory_frames = []
 
     def randomize_agent_location(
             self, seed: int = None, partial_position: Optional[Dict[str, float]] = None
@@ -329,15 +329,18 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
         return moved_objects
     def update_memory(self):
+        self.controller.step('ToggleMagnetVisibility')
         rgb = self.controller.last_event.frame.copy()
         depth = self.controller.last_event.depth_frame.copy()
         event = copy.deepcopy(self.controller.last_event.metadata)
+        self.controller.step('ToggleMagnetVisibility')
         # depth = depth[...,np.newaxis]
         current_frame = {
             'rgb': rgb,
             'depth': depth,
             'event':event,
         }
+        self.memory_frames.append(current_frame)
         # if len(self.memory_frames) == 0:
         #     self.memory_frames = [current_frame for _ in range(self.MEMORY_SIZE)]
         # else:

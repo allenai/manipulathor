@@ -57,8 +57,8 @@ class MemoryWGtMaskRGBDModel(ActorCriticModel[CategoricalDistr]):
 
         See class documentation for parameter definitions.
         """
-        print('Resolve todos')
-        ForkedPdb().set_trace()
+        # print('Resolve todos')
+        # ForkedPdb().set_trace()
         super().__init__(action_space=action_space, observation_space=observation_space)
         self.visualize = visualize
         self.MEMORY_SIZE = 5
