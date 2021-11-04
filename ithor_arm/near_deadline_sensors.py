@@ -318,40 +318,64 @@ class PredictionObjectMask(Sensor):
 
 
 
-# class TempRealArmpointNav(Sensor):
-#
-#     def __init__(self, type: str, uuid: str = "point_nav_real", **kwargs: Any):
-#         observation_space = gym.spaces.Box(
-#             low=0, high=1, shape=(1,), dtype=np.float32
-#         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
-#         self.type = type
-#         uuid = '{}_{}'.format(uuid, type)
-#         super().__init__(**prepare_locals_for_super(locals()))
-#
-#
-#     def get_observation(
-#             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
-#     ) -> Any:
-#         if self.type == 'source':
-#             info_to_search = 'source_object_id'
-#         elif self.type == 'destination':
-#             info_to_search = 'goal_object_id'
-#         goal_obj_id = task.task_info[info_to_search]
-#         object_info = env.get_object_by_id(goal_obj_id)
-#         hand_state = env.get_absolute_hand_state()
-#
-#         relative_goal_obj = convert_world_to_agent_coordinate(
-#             object_info, env.controller.last_event.metadata["agent"]
-#         )
-#         relative_hand_state = convert_world_to_agent_coordinate(
-#             hand_state, env.controller.last_event.metadata["agent"]
-#         )
-#         relative_distance = diff_position(relative_goal_obj, relative_hand_state)
-#         result = convert_state_to_tensor(dict(position=relative_distance))
-#
-#         return result
+class RealPointNavSensor(Sensor):
+
+    def __init__(self, type: str, uuid: str = "point_nav_real", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        uuid = '{}_{}'.format(uuid, type)
+        super().__init__(**prepare_locals_for_super(locals()))
 
 
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        if self.type == 'source':
+            info_to_search = 'source_object_id'
+        elif self.type == 'destination':
+            info_to_search = 'goal_object_id'
+        goal_obj_id = task.task_info[info_to_search]
+        object_info = env.get_object_by_id(goal_obj_id)
+        hand_state = env.get_absolute_hand_state()
+
+        relative_goal_obj = convert_world_to_agent_coordinate(
+            object_info, env.controller.last_event.metadata["agent"]
+        )
+        relative_hand_state = convert_world_to_agent_coordinate(
+            hand_state, env.controller.last_event.metadata["agent"]
+        )
+        relative_distance = diff_position(relative_goal_obj, relative_hand_state)
+        result = convert_state_to_tensor(dict(position=relative_distance))
+
+        return result
+
+
+
+class AgentRelativeLocationSensor(Sensor):
+
+    def __init__(self, uuid: str = "agent_relative_location", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+
+        super().__init__(**prepare_locals_for_super(locals()))
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+
+        agent_initial_state = task.task_info['agent_initial_state']
+
+        relative_agent_state = convert_world_to_agent_coordinate(env.controller.last_event.metadata["agent"], agent_initial_state)
+
+        #TODO there is something really wrong with convert_world_to_agent_coordinate rotation?
+
+        result = convert_state_to_tensor(relative_agent_state)
+
+        return result
 # def not_working_rotate_to_agent(middle_of_object, device, camera_xyz, camera_rotation):
 #     recentered_point_cloud = middle_of_object - (torch.FloatTensor([1.0, 0.0, 1.0]).to(device) * camera_xyz).float().reshape((1, 1, 3))
 #     # Rotate the cloud so that positive-z is the direction the agent is looking
