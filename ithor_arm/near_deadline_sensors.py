@@ -4,7 +4,7 @@ import datetime
 import os
 import platform
 import random
-from typing import Any
+from typing import Any, Optional
 
 import cv2
 import gym
@@ -23,6 +23,7 @@ from ithor_arm.arm_calculation_utils import convert_world_to_agent_coordinate, d
 from ithor_arm.bring_object_sensors import add_mask_noise
 from ithor_arm.ithor_arm_constants import DONT_USE_ALL_POSSIBLE_OBJECTS_EVER
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
+from ithor_arm.ithor_arm_sensors import DepthSensorThor
 from ithor_arm.pointcloud_sensors import rotate_points_to_agent, KianaReachableBoundsTHORSensor
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -376,6 +377,23 @@ class AgentRelativeLocationSensor(Sensor):
         result = convert_state_to_tensor(relative_agent_state)
 
         return result
+
+
+class NoisyDepthSensorThor(
+    DepthSensorThor
+):
+    """Sensor for Depth images in THOR.
+
+    Returns from a running IThorEnvironment instance, the current RGB
+    frame corresponding to the agent's egocentric view.
+    """
+
+    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+
+        depth = (env.controller.last_event.depth_frame.copy())
+        ForkedPdb().set_trace()
+
+        return depth
 # def not_working_rotate_to_agent(middle_of_object, device, camera_xyz, camera_rotation):
 #     recentered_point_cloud = middle_of_object - (torch.FloatTensor([1.0, 0.0, 1.0]).to(device) * camera_xyz).float().reshape((1, 1, 3))
 #     # Rotate the cloud so that positive-z is the direction the agent is looking
