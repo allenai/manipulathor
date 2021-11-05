@@ -13,7 +13,7 @@ from torch.distributions.utils import lazy_property
 from manipulathor_utils.debugger_util import ForkedPdb
 
 
-class simulator:
+class RedwoodDepthNoise:
 
     @lazy_property
     def model(self):
@@ -82,6 +82,33 @@ class simulator:
 
         ForkedPdb().set_trace()
 
+    def add_noise(self, depth, depth_normalizer=1):
+
+        a = depth / depth_normalizer
+        b = np.copy(a)
+        it = np.nditer(a, flags=['multi_index'], op_flags=['writeonly'])
+
+        while not it.finished:
+
+            # pixel shuffle
+            x = min(max(round(it.multi_index[1] + np.random.normal(0, 0.25)), 0), 223)
+            y = min(max(round(it.multi_index[0] + np.random.normal(0, 0.25)), 0), 223)
+
+            # downsample
+
+            d = b[y - y % 2, x - x % 2]
+
+            # distortion
+            d = self.undistort(x, y, d)
+
+            # quantization and high freq noise
+            if d == 0:
+                it[0] = 0
+            else:
+                it[0] = 35.130 * 8 / round((35.130 / d + np.random.normal(0, 0.027778)) * 8)
+
+            it.iternext()
+        return a * depth_normalizer
 
 
 if __name__ == "__main__":
@@ -90,7 +117,7 @@ if __name__ == "__main__":
         print('Usage: {0} <input png dir> <output png dir>'.format(argv[0]))
         exit(0)
 
-    s = simulator()
+    s = RedwoodDepthNoise()
     # s.loaddistmodel(argv[3])
 
     ifiles = glob.glob(argv[1] + r'/*.png')

@@ -22,9 +22,9 @@ def parse_args():
 def main(args):
 
     for server in args.servers:
-        if 'aws' in server:
-            for number in range(0, 8):
-                assert f'aws{number + 1}' in args.servers, f'You are missing server {number+1}'
+        # if 'aws' in server:
+        #     for number in range(0, 8):
+        #         assert f'aws{number + 1}' in args.servers, f'You are missing server {number+1}'
         print('syncing to ', server)
         command = 'rsync  -avz --copy-links\
              --exclude .idea \

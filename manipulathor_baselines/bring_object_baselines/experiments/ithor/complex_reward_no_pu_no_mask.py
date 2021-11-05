@@ -63,7 +63,7 @@ class ComplexRewardNoPUNoMask(
     NUM_PROCESSES = 40
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
-
+    TEST_SCENES = BringObjectiThorBaseConfig.TRAIN_SCENES #TODO are we sure?
 
 
     def __init__(self):

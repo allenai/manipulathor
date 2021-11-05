@@ -101,12 +101,12 @@ class RedwoodNoiseModelCPUImpl:
 
 @registry.register_noise_model
 @attr.s(auto_attribs=True, kw_only=True)
-class RedwoodDepthNoiseModel(SensorNoiseModel):
+class HabitatRedwoodDepthNoiseModel(SensorNoiseModel):
     noise_multiplier: float = 1.0
 
     def __attrs_post_init__(self):
         dist = np.load(
-            osp.join(osp.dirname(__file__), "data", "redwood-depth-dist-model.npy")
+            osp.join('utils/noise_depth_util_files', "redwood-depth-dist-model.npy")
         )
 
         if cuda_enabled:

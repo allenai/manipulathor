@@ -1,6 +1,7 @@
 """Utility classes and functions for sensory inputs used by the models."""
 import copy
 import datetime
+import math
 import os
 import platform
 import random
@@ -18,6 +19,7 @@ from allenact.base_abstractions.task import Task
 from allenact.utils.misc_utils import prepare_locals_for_super
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
+from torch.distributions.utils import lazy_property
 
 from ithor_arm.arm_calculation_utils import convert_world_to_agent_coordinate, diff_position, convert_state_to_tensor
 from ithor_arm.bring_object_sensors import add_mask_noise
@@ -28,6 +30,8 @@ from ithor_arm.pointcloud_sensors import rotate_points_to_agent, KianaReachableB
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.thor_category_names import thor_possible_objects
+
+from utils.noise_depth_util_files.sim_depth import RedwoodDepthNoise
 from utils.noise_from_habitat import ControllerNoiseModel, MotionNoiseModel, _TruncatedMultivariateGaussian
 
 
@@ -125,17 +129,33 @@ class PointNavEmulatorSensor(Sensor):
         arm_state = env.get_absolute_hand_state()
         return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state)
     def add_translation_noise(self, change_in_xyz, prev_location):
-        new_location = prev_location + change_in_xyz
 
-        if random.random() < self.noise and np.abs(change_in_xyz).sum() > 0: #TODO is this self.noise a good model?
-            noise_value_x, noise_value_z = self.noise_mode.linear_motion.linear.sample() * 0.01 #to convert to meters #TODO seriously?
-            new_location[0] += noise_value_x
-            new_location[2] += noise_value_z
+        #TODO this is a big change should we?
+        # if random.random() < self.noise and np.abs(change_in_xyz).sum() > 0: #TODO is this self.noise a good model?
+        if np.abs(change_in_xyz).sum() > 0: #TODO is this self.noise a good model?
+            noise_value_x, noise_value_z = self.noise_mode.linear_motion.linear.sample() * 0.01 * self.noise #to convert to meters #TODO ?
+            new_change_in_xyz = change_in_xyz.copy()
+            new_change_in_xyz[0] += noise_value_x
+            new_change_in_xyz[2] += noise_value_z
+            real_rotation = self.real_prev_location['camera_rotation']
+            belief_rotation = self.belief_prev_location['camera_rotation']
+            diff_in_rotation = math.radians(belief_rotation - real_rotation)
+            # 𝑥2=cos𝛽𝑥1−sin𝛽𝑦1
+            # 𝑦2=sin𝛽𝑥1+cos𝛽𝑦1
+            new_location = prev_location.copy()
+            x = math.cos(diff_in_rotation) * new_change_in_xyz[0] - math.sin(diff_in_rotation) * new_change_in_xyz[2]
+            z = math.sin(diff_in_rotation) * new_change_in_xyz[0] + math.cos(diff_in_rotation) * new_change_in_xyz[2]
+            new_location[0] += x
+            new_location[2] += z
+        else:
+            new_location = prev_location + change_in_xyz
         return new_location
     def add_rotation_noise(self, change_in_rotation, prev_rotation):
         new_rotation = prev_rotation + change_in_rotation
-        if random.random() < self.noise and change_in_rotation > 0:
-            noise_in_rotation = self.noise_mode.rotational_motion.rotation.sample().item()
+        #TODO this is a big change
+        # if random.random() < self.noise and change_in_rotation > 0:
+        if change_in_rotation > 0:
+            noise_in_rotation = self.noise_mode.rotational_motion.rotation.sample().item() * self.noise
             new_rotation += noise_in_rotation
         return new_rotation
     def get_agent_localizations(self, env):
@@ -216,12 +236,20 @@ class PointNavEmulatorSensor(Sensor):
 
             else:
                 #TODO this is very inefficient, also I didn't triple checked it
+                # timed_weights = [i + 1 for i in range(len(self.pointnav_history_aggr))]
+                # sum_weights = sum(timed_weights)
+                # total_sum = [timed_weights[i] * self.pointnav_history_aggr[i][0] * self.pointnav_history_aggr[i][1] for i in range(len(self.pointnav_history_aggr))]
+                # total_count = sum([v for k,v in self.pointnav_history_aggr])
+                # midpoint = sum(total_sum) / total_count / sum_weights
+                # midpoint = midpoint.cpu()
+
                 timed_weights = [i + 1 for i in range(len(self.pointnav_history_aggr))]
-                sum_weights = sum(timed_weights)
                 total_sum = [timed_weights[i] * self.pointnav_history_aggr[i][0] * self.pointnav_history_aggr[i][1] for i in range(len(self.pointnav_history_aggr))]
-                total_count = sum([v for k,v in self.pointnav_history_aggr])
-                midpoint = sum(total_sum) / total_count / sum_weights
+                total_count = [v for k,v in self.pointnav_history_aggr]
+                real_total_count = [total_count[i] * timed_weights[i] for i in range(len(total_count))]
+                midpoint = sum(total_sum) / sum(real_total_count)
                 midpoint = midpoint.cpu()
+
 
 
 
@@ -235,9 +263,21 @@ class PointNavEmulatorSensor(Sensor):
 
             agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
             #TODO IS THIS REALLY THE PROBLEM???
+            #TODO put back?
             agent_centric_middle_of_object = agent_centric_middle_of_object.abs()
             return agent_centric_middle_of_object
 
+class PointNavEmulatorSensorwScheduler(PointNavEmulatorSensor):
+    #TODO this way of implementing start_noise can be the worst thing that has happened to the humanity and coding
+    def __init__(self,start_noise, type: str, mask_sensor:Sensor,  uuid: str = "point_nav_emul", noise = 0, **kwargs: Any):
+        self.start_noise = start_noise
+        super().__init__(**prepare_locals_for_super(locals()))
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        ForkedPdb().set_trace()
+        self.noise = something
+        return super(PointNavEmulatorSensorwScheduler, self).get_observation(env, task, *args, **kwargs)
 
 def calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, device, depth_frame):
     with torch.no_grad():
@@ -369,8 +409,23 @@ class AgentRelativeLocationSensor(Sensor):
     ) -> Any:
 
         agent_initial_state = task.task_info['agent_initial_state']
+        current_agent_state = env.controller.last_event.metadata["agent"]
 
-        relative_agent_state = convert_world_to_agent_coordinate(env.controller.last_event.metadata["agent"], agent_initial_state)
+
+        # To avoid gimbal lock
+        def is_close_enough(agent_initial_state, current_agent_state, thr = 0.001):
+            initial = [agent_initial_state['position'][k] for k in ['x','y','z']] +[agent_initial_state['rotation'][k] for k in ['x','y','z']]
+            current = [current_agent_state['position'][k] for k in ['x','y','z']] +[current_agent_state['rotation'][k] for k in ['x','y','z']]
+            for i in range(len(initial)):
+                if abs(initial[i] - current[i]) > thr:
+                    return False
+            return True
+
+        if is_close_enough(agent_initial_state, current_agent_state):
+            relative_agent_state = {'position': {'x': 0.0, 'y': 0.0, 'z': 0.0}, 'rotation': {'x': 0.0, 'y': 0.0, 'z': 0.0}}
+        else:
+            relative_agent_state = convert_world_to_agent_coordinate(current_agent_state, agent_initial_state)
+
 
         #TODO there is something really wrong with convert_world_to_agent_coordinate rotation?
 
@@ -387,13 +442,29 @@ class NoisyDepthSensorThor(
     Returns from a running IThorEnvironment instance, the current RGB
     frame corresponding to the agent's egocentric view.
     """
+    @lazy_property
+    def noise_model(self):
+        return RedwoodDepthNoise()
 
     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
-
         depth = (env.controller.last_event.depth_frame.copy())
-        ForkedPdb().set_trace()
+        noisy_depth = self.noise_model.add_noise(depth, depth_normalizer=50)
+        return noisy_depth
 
-        return depth
+    # @lazy_property
+    # def noise_model(self):
+    #     from utils.noise_depth_util_files.redwood_depth_noise_model import HabitatRedwoodDepthNoiseModel
+    #     return HabitatRedwoodDepthNoiseModel()
+    #
+    # def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+    #     depth = (env.controller.last_event.depth_frame.copy())
+    #     noisy_depth = self.noise_model.apply(depth / 50) * 50
+    #     # cv2.imwrite('/Users/kianae/Desktop/before.png', depth * 25)
+    #     # cv2.imwrite('/Users/kianae/Desktop/after.png', noisy_depth * 25)
+    #
+    #     return noisy_depth
+
+
 # def not_working_rotate_to_agent(middle_of_object, device, camera_xyz, camera_rotation):
 #     recentered_point_cloud = middle_of_object - (torch.FloatTensor([1.0, 0.0, 1.0]).to(device) * camera_xyz).float().reshape((1, 1, 3))
 #     # Rotate the cloud so that positive-z is the direction the agent is looking

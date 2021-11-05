@@ -14,7 +14,7 @@ from manipulathor_baselines.bring_object_baselines.experiments.bring_object_base
 
 class BringObjectMixInPPOConfig(BringObjectBaseConfig):
     def training_pipeline(self, **kwargs):
-        ppo_steps = int(300000000)
+        ppo_steps = int(300000000) #TODO do we wanna reduce this for future?
         lr = 3e-4
         num_mini_batch = 1
         update_repeats = 4

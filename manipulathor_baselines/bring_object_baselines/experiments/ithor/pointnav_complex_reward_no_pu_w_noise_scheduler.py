@@ -1,6 +1,7 @@
 import platform
 
 import gym
+import torch
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn
 
@@ -15,14 +16,16 @@ from ithor_arm.ithor_arm_sensors import (
     DepthSensorThor, RelativeAgentArmToObjectSensor, RelativeObjectToGoalSensor,
 )
 from ithor_arm.ithor_arm_viz import MaskImageVisualizer
-from ithor_arm.near_deadline_sensors import AgentRelativeLocationSensor
+from ithor_arm.near_deadline_sensors import PointNavEmulatorSensor, PointNavEmulatorSensorwScheduler
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
+from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
-from manipulathor_baselines.bring_object_baselines.models.simple_model_w_agent_location import SimpleModelWAgentRelativeLocation
+from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
 
-class ComplexRewardNoPUwAgentLocation(
+
+class PointNavNewModelAndHandWAgentNoiseScheduler(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -30,7 +33,11 @@ class ComplexRewardNoPUwAgentLocation(
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
     NOISE_LEVEL = 0
+    START_EPOCH = 20e6
+    AGENT_LOCATION_NOISE = 1 #
     distance_thr = 1.5 # is this a good number?
+    source_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr)
+    destination_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr)
     SENSORS = [
         RGBSensorThor(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
@@ -47,26 +54,49 @@ class ComplexRewardNoPUwAgentLocation(
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
-
         CategoryFeatureSampleSensor(type='source'),
         CategoryFeatureSampleSensor(type='destination'),
-
-        AgentRelativeLocationSensor(), #TODO gimbal lock still :(
-
-        NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
-        NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
+        source_mask_sensor,
+        destination_mask_sensor,
+        PointNavEmulatorSensorwScheduler(type='source', mask_sensor=source_mask_sensor, noise=AGENT_LOCATION_NOISE, start_noise=START_EPOCH),
+        PointNavEmulatorSensorwScheduler(type='destination', mask_sensor=destination_mask_sensor, noise=AGENT_LOCATION_NOISE, start_noise=START_EPOCH),
+        # TempRealArmpointNav(uuid='point_nav_emul',type='source'),
+        # TempRealArmpointNav(uuid='point_nav_emul', type='destination'),
     ]
 
     MAX_STEPS = 200
 
     TASK_SAMPLER = DiverseBringObjectTaskSampler
+    # TASK_TYPE = TestPointNavExploreWiseRewardTask
     TASK_TYPE = ExploreWiseRewardTask
 
-    NUM_PROCESSES = 40
+    NUM_PROCESSES = 20
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
 
+    def train_task_sampler_args(self, **kwargs):
+        sampler_args = super(PointNavNewModelAndHandWAgentNoiseScheduler, self).train_task_sampler_args(**kwargs)
+        if platform.system() == "Darwin":
+            pass
+        else:
+
+            for pointnav_emul_sensor in sampler_args['sensors']:
+                if isinstance(pointnav_emul_sensor, PointNavEmulatorSensor):
+                    pointnav_emul_sensor.device = torch.device(kwargs["devices"][0])
+
+        return sampler_args
+    def test_task_sampler_args(self, **kwargs):
+        sampler_args = super(PointNavNewModelAndHandWAgentNoiseScheduler, self).test_task_sampler_args(**kwargs)
+        if platform.system() == "Darwin":
+            pass
+        else:
+
+            for pointnav_emul_sensor in sampler_args['sensors']:
+                if isinstance(pointnav_emul_sensor, PointNavEmulatorSensor):
+                    pointnav_emul_sensor.device = torch.device(kwargs["devices"][0])
+
+        return sampler_args
 
     def __init__(self):
         super().__init__()
@@ -77,7 +107,7 @@ class ComplexRewardNoPUwAgentLocation(
 
     @classmethod
     def create_model(cls, **kwargs) -> nn.Module:
-        return SimpleModelWAgentRelativeLocation(
+        return RGBDModelWPointNavEmulator(
             action_space=gym.spaces.Discrete(
                 len(cls.TASK_TYPE.class_action_names())
             ),

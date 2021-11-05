@@ -15,14 +15,15 @@ from ithor_arm.ithor_arm_sensors import (
     DepthSensorThor, RelativeAgentArmToObjectSensor, RelativeObjectToGoalSensor,
 )
 from ithor_arm.ithor_arm_viz import MaskImageVisualizer
-from ithor_arm.near_deadline_sensors import AgentRelativeLocationSensor
+from ithor_arm.near_deadline_sensors import NoisyDepthSensorThor
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
-from manipulathor_baselines.bring_object_baselines.models.simple_model_w_agent_location import SimpleModelWAgentRelativeLocation
 
-class ComplexRewardNoPUwAgentLocation(
+
+
+class ComplexRewardNoPUwDepthNoise(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -38,7 +39,7 @@ class ComplexRewardNoPUwAgentLocation(
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
-        DepthSensorThor(
+        NoisyDepthSensorThor(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
             use_normalization=True,
@@ -50,8 +51,6 @@ class ComplexRewardNoPUwAgentLocation(
 
         CategoryFeatureSampleSensor(type='source'),
         CategoryFeatureSampleSensor(type='destination'),
-
-        AgentRelativeLocationSensor(), #TODO gimbal lock still :(
 
         NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
         NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),
@@ -77,7 +76,7 @@ class ComplexRewardNoPUwAgentLocation(
 
     @classmethod
     def create_model(cls, **kwargs) -> nn.Module:
-        return SimpleModelWAgentRelativeLocation(
+        return SmallBringObjectWQueryObjGtMaskRGBDModel(
             action_space=gym.spaces.Discrete(
                 len(cls.TASK_TYPE.class_action_names())
             ),
