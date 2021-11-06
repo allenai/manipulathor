@@ -741,7 +741,7 @@ class ExploreWiseRewardTask(BringObjectTask):
                     self.last_arm_to_obj_distance - current_obj_to_arm_distance
             )
         self.last_arm_to_obj_distance = current_obj_to_arm_distance
-        reward += delta_arm_to_obj_distance_reward
+        reward += delta_arm_to_obj_distance_reward * self.reward_configs["arm_dist_multiplier"]
 
         current_obj_to_goal_distance = self.obj_distance_from_goal()
         if self.last_obj_to_goal_distance is None or self.last_obj_to_goal_distance > ARM_LENGTH * 2:
@@ -750,7 +750,7 @@ class ExploreWiseRewardTask(BringObjectTask):
             delta_obj_to_goal_distance_reward = (
                     self.last_obj_to_goal_distance - current_obj_to_goal_distance
             )
-        self.last_obj_to_goal_distance = current_obj_to_goal_distance
+        self.last_obj_to_goal_distance = current_obj_to_goal_distance * self.reward_configs["arm_dist_multiplier"]
         reward += delta_obj_to_goal_distance_reward
 
         # add collision cost, maybe distance to goal objective,...

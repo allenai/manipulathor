@@ -446,3 +446,4 @@ class ManipulaTHOREnvironment(IThorEnvironment):
             self.last_event.frame = last_frame
 
         return sr
+

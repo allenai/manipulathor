@@ -33,6 +33,7 @@ from scripts.thor_category_names import thor_possible_objects
 
 from utils.noise_depth_util_files.sim_depth import RedwoodDepthNoise
 from utils.noise_from_habitat import ControllerNoiseModel, MotionNoiseModel, _TruncatedMultivariateGaussian
+from utils.noise_in_motion_util import NoiseInMotion, squeeze_bool_mask, tensor_from_dict
 
 
 class FancyNoisyObjectMaskWLabels(Sensor):
@@ -103,13 +104,14 @@ class PointNavEmulatorSensor(Sensor):
         self.mask_sensor = mask_sensor
         uuid = '{}_{}'.format(uuid, type)
         self.noise = noise
-        self.pointnav_history_aggr = None
-        self.map_range_sensor = KianaReachableBoundsTHORSensor(margin=1.0)
+        # self.pointnav_history_aggr = None
+        # self.map_range_sensor = KianaReachableBoundsTHORSensor(margin=1.0)
         self.dummy_answer = torch.zeros(3)
         self.dummy_answer[:] = 4 # is this good enough?
         self.device = torch.device("cpu")
-        self.real_prev_location = None
-        self.belief_prev_location = None
+        self.min_xyz = np.zeros((3))
+        # self.real_prev_location = None
+        # self.belief_prev_location = None
         self.noise_mode = ControllerNoiseModel(
             linear_motion=MotionNoiseModel(
                 _TruncatedMultivariateGaussian([0.074, 0.036], [0.019, 0.033]),
@@ -121,18 +123,20 @@ class PointNavEmulatorSensor(Sensor):
             ),
         )
         super().__init__(**prepare_locals_for_super(locals()))
+
+
     def get_accurate_locations(self, env):
         metadata = copy.deepcopy(env.controller.last_event.metadata)
         camera_xyz = np.array([metadata["cameraPosition"][k] for k in ["x", "y", "z"]])
         camera_rotation=metadata["agent"]["rotation"]["y"]
         camera_horizon=metadata["agent"]["cameraHorizon"]
-        arm_state = env.get_absolute_hand_state()
+        arm_state = env.get_absolute_hand_state() #TODO this is fucking important
         return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state)
+
+
     def add_translation_noise(self, change_in_xyz, prev_location):
 
-        #TODO this is a big change should we?
-        # if random.random() < self.noise and np.abs(change_in_xyz).sum() > 0: #TODO is this self.noise a good model?
-        if np.abs(change_in_xyz).sum() > 0: #TODO is this self.noise a good model?
+        if np.abs(change_in_xyz).sum() > 0:
             noise_value_x, noise_value_z = self.noise_mode.linear_motion.linear.sample() * 0.01 * self.noise #to convert to meters #TODO ?
             new_change_in_xyz = change_in_xyz.copy()
             new_change_in_xyz[0] += noise_value_x
@@ -150,14 +154,24 @@ class PointNavEmulatorSensor(Sensor):
         else:
             new_location = prev_location + change_in_xyz
         return new_location
+    def rotate_x_z_around_center(self, x, z, rotation):
+
+        new_x = math.cos(rotation) * x - math.sin(rotation) * z
+        new_z = math.sin(rotation) * x + math.cos(rotation) * z
+
+        return new_x, new_z
     def add_rotation_noise(self, change_in_rotation, prev_rotation):
         new_rotation = prev_rotation + change_in_rotation
-        #TODO this is a big change
-        # if random.random() < self.noise and change_in_rotation > 0:
+
         if change_in_rotation > 0:
             noise_in_rotation = self.noise_mode.rotational_motion.rotation.sample().item() * self.noise
             new_rotation += noise_in_rotation
         return new_rotation
+    def add_noise_to_arm(self, env, real_arm_state, diff_in_rotation, diff_in_xyz):
+
+        ForkedPdb().set_trace()
+
+
     def get_agent_localizations(self, env):
 
         if self.noise == 0:
@@ -168,38 +182,35 @@ class PointNavEmulatorSensor(Sensor):
             if self.real_prev_location is None:
                 self.real_prev_location = copy.deepcopy(real_current_location)
                 self.belief_prev_location = copy.deepcopy(real_current_location)
-                return real_current_location
             else:
-                belief_arm_state = real_current_location['arm_state']
+
                 belief_camera_horizon = real_current_location['camera_horizon']
                 change_in_xyz = real_current_location['camera_xyz'] - self.real_prev_location['camera_xyz']
                 change_in_rotation = real_current_location['camera_rotation'] - self.real_prev_location['camera_rotation']
                 belief_camera_xyz = self.add_translation_noise(change_in_xyz, self.belief_prev_location['camera_xyz'])
                 belief_camera_rotation = self.add_rotation_noise(change_in_rotation, self.belief_prev_location['camera_rotation'])
+                # belief_arm_state = self.add_noise_to_arm(tensor_from_dict(real_current_location['arm_state']['position']), real_agent_location, ) #TODO complete this
+                belief_arm_state = real_current_location['arm_state']
 
                 self.belief_prev_location = copy.deepcopy(dict(camera_xyz=belief_camera_xyz, camera_rotation=belief_camera_rotation, camera_horizon=belief_camera_horizon, arm_state=belief_arm_state))
                 self.real_prev_location = copy.deepcopy(real_current_location)
 
 
-                return self.belief_prev_location
+            return self.belief_prev_location
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        mask = self.mask_sensor.get_observation(env, task, *args, **kwargs)
-        agent_locations = self.get_agent_localizations(env)
-
-
-        if type(mask) == np.ndarray:
-            mask = mask.astype(bool).squeeze(-1)
-        elif type(mask) == torch.Tensor:
-            mask = mask.bool().squeeze(-1)
+        mask = squeeze_bool_mask(self.mask_sensor.get_observation(env, task, *args, **kwargs))
         depth_frame = env.controller.last_event.depth_frame.copy()
         depth_frame[~mask] = -1
-        assert mask.shape == depth_frame.shape
 
         if task.num_steps_taken() == 0:
             self.pointnav_history_aggr = []
-        self.min_xyz = np.zeros((3))
+            self.real_prev_location = None
+            self.belief_prev_location = None
+
+
+        agent_locations = self.get_agent_localizations(env)
 
         camera_xyz = agent_locations['camera_xyz']
         camera_rotation = agent_locations['camera_rotation']
@@ -209,16 +220,12 @@ class PointNavEmulatorSensor(Sensor):
         fov = env.controller.last_event.metadata['fov']
 
 
-        if mask.sum() == 0:
-            return self.average_so_far(camera_xyz, camera_rotation, arm_state)
-
-        world_space_point_cloud = calc_world_coordinates(self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device, depth_frame)
-
-
-        valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
-        point_in_world = world_space_point_cloud[valid_points]
-        middle_of_object = point_in_world.mean(dim=0)
-        self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world)))
+        if mask.sum() != 0:
+            world_space_point_cloud = calc_world_coordinates(self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device, depth_frame)
+            valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
+            point_in_world = world_space_point_cloud[valid_points]
+            middle_of_object = point_in_world.mean(dim=0)
+            self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world)))
 
         return self.average_so_far(camera_xyz, camera_rotation, arm_state)
 
@@ -232,16 +239,9 @@ class PointNavEmulatorSensor(Sensor):
                 total_sum = sum(total_sum)
                 total_count = sum([v for k,v in self.pointnav_history_aggr])
                 midpoint = total_sum / total_count
-                self.pointnav_history_aggr = [(midpoint, total_count)]
+                self.pointnav_history_aggr = [(midpoint.cpu(), total_count)]
 
             else:
-                #TODO this is very inefficient, also I didn't triple checked it
-                # timed_weights = [i + 1 for i in range(len(self.pointnav_history_aggr))]
-                # sum_weights = sum(timed_weights)
-                # total_sum = [timed_weights[i] * self.pointnav_history_aggr[i][0] * self.pointnav_history_aggr[i][1] for i in range(len(self.pointnav_history_aggr))]
-                # total_count = sum([v for k,v in self.pointnav_history_aggr])
-                # midpoint = sum(total_sum) / total_count / sum_weights
-                # midpoint = midpoint.cpu()
 
                 timed_weights = [i + 1 for i in range(len(self.pointnav_history_aggr))]
                 total_sum = [timed_weights[i] * self.pointnav_history_aggr[i][0] * self.pointnav_history_aggr[i][1] for i in range(len(self.pointnav_history_aggr))]
@@ -249,9 +249,6 @@ class PointNavEmulatorSensor(Sensor):
                 real_total_count = [total_count[i] * timed_weights[i] for i in range(len(total_count))]
                 midpoint = sum(total_sum) / sum(real_total_count)
                 midpoint = midpoint.cpu()
-
-
-
 
             # agent_centric_middle_of_object = rotate_to_agent(midpoint, self.device, camera_xyz, camera_rotation)
             agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
@@ -263,21 +260,20 @@ class PointNavEmulatorSensor(Sensor):
 
             agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
             #TODO IS THIS REALLY THE PROBLEM???
-            #TODO put back?
             agent_centric_middle_of_object = agent_centric_middle_of_object.abs()
             return agent_centric_middle_of_object
 
-class PointNavEmulatorSensorwScheduler(PointNavEmulatorSensor):
-    #TODO this way of implementing start_noise can be the worst thing that has happened to the humanity and coding
-    def __init__(self,start_noise, type: str, mask_sensor:Sensor,  uuid: str = "point_nav_emul", noise = 0, **kwargs: Any):
-        self.start_noise = start_noise
-        super().__init__(**prepare_locals_for_super(locals()))
-    def get_observation(
-            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
-    ) -> Any:
-        ForkedPdb().set_trace()
-        self.noise = something
-        return super(PointNavEmulatorSensorwScheduler, self).get_observation(env, task, *args, **kwargs)
+# class PointNavEmulatorSensorwScheduler(PointNavEmulatorSensor):
+#     TODO this way of implementing start_noise can be the worst thing that has happened to the humanity and coding
+#     def __init__(self,start_noise, type: str, mask_sensor:Sensor,  uuid: str = "point_nav_emul", noise = 0, **kwargs: Any):
+#         self.start_noise = start_noise
+#         super().__init__(**prepare_locals_for_super(locals()))
+#     def get_observation(
+#             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+#     ) -> Any:
+#         ForkedPdb().set_trace()
+#         self.noise = something
+#         return super(PointNavEmulatorSensorwScheduler, self).get_observation(env, task, *args, **kwargs)
 
 def calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, device, depth_frame):
     with torch.no_grad():
@@ -318,6 +314,8 @@ class PredictionObjectMask(Sensor):
         detection_weight_dir = '/home/kianae/important_weights/detection_without_color_jitter_model_state_271.pytar'
         if platform.system() == "Darwin":
             detection_weight_dir = '/Users/kianae/important_weights/detection_without_color_jitter_model_state_271.pytar'
+        if not os.path.exists(detection_weight_dir):
+            detection_weight_dir = detection_weight_dir.replace('/home/kianae', '/home/ubuntu')
         detection_weight_dict = torch.load(detection_weight_dir, map_location='cpu')
         detection_state_dict = self.detection_model.state_dict()
         for key in detection_state_dict:

@@ -30,6 +30,7 @@ class BringObjectBaseConfig(ExperimentConfig, ABC):
             "failed_stop_reward": 0.0,
             "shaping_weight": 1.0,  # we are not using this
             "failed_action_penalty": -0.03,
+            'arm_dist_multiplier': 1,
         }
 
     @classmethod
