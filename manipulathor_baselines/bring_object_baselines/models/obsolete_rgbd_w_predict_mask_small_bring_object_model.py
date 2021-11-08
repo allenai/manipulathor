@@ -107,7 +107,7 @@ class PredictMaskSmallBringObjectWQueryObjRGBDModel(ActorCriticModel[Categorical
         # policy_weight_dir = '/Users/kianae/Desktop/important_weights/exp_ComplexRewardNoPUBinaryDistanceDistrib__stage_00__steps_000105986800.pt'
 
 
-        #TODO reload the weights really bad design choice
+        #LATER_TODO reload the weights really bad design choice
         if detection_weight_dir is not None:
             detection_weight_dict = torch.load(detection_weight_dir, map_location='cpu')
             detection_state_dict = self.detection_model.state_dict()

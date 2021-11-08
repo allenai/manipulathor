@@ -25,7 +25,7 @@ from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rg
 from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
 
 
-class PointNavNewModelAndHand(
+class PointNavNewModelAndHandExploration(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -85,7 +85,7 @@ class PointNavNewModelAndHand(
 
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavNewModelAndHand, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavNewModelAndHandExploration, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -97,7 +97,7 @@ class PointNavNewModelAndHand(
         return sampler_args
 
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavNewModelAndHand, self).test_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavNewModelAndHandExploration, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:

@@ -51,7 +51,7 @@ class ComplexRewardNoPUwAgentLocation(
         CategoryFeatureSampleSensor(type='source'),
         CategoryFeatureSampleSensor(type='destination'),
 
-        AgentRelativeLocationSensor(), #TODO gimbal lock still :(
+        AgentRelativeLocationSensor(),
 
         NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr),
         NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr),

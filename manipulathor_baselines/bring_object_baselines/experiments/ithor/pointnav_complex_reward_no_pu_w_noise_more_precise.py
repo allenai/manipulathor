@@ -33,7 +33,7 @@ class PointNavNewModelAndHandWAgentNoiseMorePrecise(
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
     NOISE_LEVEL = 0
-    AGENT_LOCATION_NOISE = 1 #TODO?
+    AGENT_LOCATION_NOISE = 1 #?
     distance_thr = 1.5 # is this a good number?
     source_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr)
     destination_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr)

@@ -99,9 +99,13 @@ import pdb
 
 
 
-command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/pointnav_complex_reward_no_pu_distrib \
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/pointnav_complex_reward_no_pu_distrib \
+#  --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":4}\' \
+#  --seed 10 --machine_id 0'
+command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/pointnav_only_agent_loc_complex_reward_no_pu_distrib \
  --distributed_ip_and_port IP_ADR:6060 \
- --config_kwargs \'{\\"distributed_nodes\\":4}\' \
+ --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
  --seed 10 --machine_id 0'
 
 # command = 'scp ec2-34-220-30-46.us-west-2.compute.amazonaws.com:~/manipulathor/experiment_output/checkpoints/ComplexRewardNoPUWMemory/2021-10-08_23-12-59/exp_ComplexRewardNoPUWMemory__stage_00__steps_000045112992.pt ~/'
@@ -118,6 +122,10 @@ server_set2 = {
 server_set3 = {
     'servers':[f'aws{i}' for i in range(9, 13)],
     'ip_adr': '52.36.184.123',
+}
+server_set_all = {
+    'servers':[f'aws{i}' for i in range(1,9)],
+    'ip_adr': '34.220.30.46',
 }
 
 
@@ -138,7 +146,11 @@ def parse_args():
     elif 'aws9' in args.server_set:
         args.servers += server_set3['servers']
         ip_adr = server_set3['ip_adr']
+    elif 'awsall' in args.server_set:
+        args.servers += server_set_all['servers']
+        ip_adr = server_set_all['ip_adr']
     args.command = args.command.replace('IP_ADR', ip_adr)
+    args.command = args.command.replace('NUM_MACHINES', str(len(args.servers)))
     return args
 
 def main(args):

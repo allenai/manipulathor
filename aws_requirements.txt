@@ -154,3 +154,4 @@ widgetsnbextension==3.5.1
 wrapt==1.12.1
 yacs==0.1.8
 zipp==3.4.1
+detectron2 @ git+https://github.com/facebookresearch/detectron2.git@d285dea0a58675217b061f48182dc031d2e3b677

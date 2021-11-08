@@ -19,6 +19,8 @@ from allenact.base_abstractions.task import Task
 from allenact.utils.misc_utils import prepare_locals_for_super
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
+
+
 from torch.distributions.utils import lazy_property
 
 from ithor_arm.arm_calculation_utils import convert_world_to_agent_coordinate, diff_position, convert_state_to_tensor
@@ -30,6 +32,7 @@ from ithor_arm.pointcloud_sensors import rotate_points_to_agent, KianaReachableB
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.thor_category_names import thor_possible_objects
+from utils.klemens_constants import OMNI_CATEGORIES, OMNI_TO_ITHOR, ITHOR_TO_OMNI
 
 from utils.noise_depth_util_files.sim_depth import RedwoodDepthNoise
 from utils.noise_from_habitat import ControllerNoiseModel, MotionNoiseModel, _TruncatedMultivariateGaussian
@@ -226,7 +229,6 @@ class PointNavEmulatorSensor(Sensor):
             point_in_world = world_space_point_cloud[valid_points]
             middle_of_object = point_in_world.mean(dim=0)
             self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world)))
-
         return self.average_so_far(camera_xyz, camera_rotation, arm_state)
 
 
@@ -259,8 +261,90 @@ class PointNavEmulatorSensor(Sensor):
             distance_in_agent_coord = dict(x=arm_state_agent_coord['position']['x'] - midpoint_agent_coord['position']['x'],y=arm_state_agent_coord['position']['y'] - midpoint_agent_coord['position']['y'],z=arm_state_agent_coord['position']['z'] - midpoint_agent_coord['position']['z'])
 
             agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
-            #TODO IS THIS REALLY THE PROBLEM???
+
+            # Removing this hurts the performance
             agent_centric_middle_of_object = agent_centric_middle_of_object.abs()
+            return agent_centric_middle_of_object
+
+class PointNavEmulatorSensorComplexArm(PointNavEmulatorSensor):
+
+    def average_so_far(self, camera_xyz, camera_rotation, arm_state):
+        if len(self.pointnav_history_aggr) == 0:
+            return self.dummy_answer
+        else:
+            if self.noise == 0:
+                total_sum = [k * v for k,v in self.pointnav_history_aggr]
+                total_sum = sum(total_sum)
+                total_count = sum([v for k,v in self.pointnav_history_aggr])
+                midpoint = total_sum / total_count
+                self.pointnav_history_aggr = [(midpoint.cpu(), total_count)]
+
+            else:
+
+                timed_weights = [i + 1 for i in range(len(self.pointnav_history_aggr))]
+                total_sum = [timed_weights[i] * self.pointnav_history_aggr[i][0] * self.pointnav_history_aggr[i][1] for i in range(len(self.pointnav_history_aggr))]
+                total_count = [v for k,v in self.pointnav_history_aggr]
+                real_total_count = [total_count[i] * timed_weights[i] for i in range(len(total_count))]
+                midpoint = sum(total_sum) / sum(real_total_count)
+                midpoint = midpoint.cpu()
+
+            # agent_centric_middle_of_object = rotate_to_agent(midpoint, self.device, camera_xyz, camera_rotation)
+
+            real_arm_state = self.real_prev_location['arm_state']
+            real_camera_xyz = self.real_prev_location['camera_xyz']
+            real_camera_rotation = self.real_prev_location['camera_rotation']
+            real_agent_state = dict(position=dict(x=real_camera_xyz[0], y=real_camera_xyz[1], z=real_camera_xyz[2], ), rotation=dict(x=0, y=real_camera_rotation, z=0))
+            real_arm_state_agent_coord = convert_world_to_agent_coordinate(real_arm_state, real_agent_state)
+
+            agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
+            midpoint_position_rotation = dict(position=dict(x=midpoint[0], y=midpoint[1], z=midpoint[2]), rotation=dict(x=0,y=0,z=0))
+            midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
+
+            # arm_state_agent_coord = convert_world_to_agent_coordinate(arm_state, agent_state)
+            distance_in_agent_coord = dict(x=real_arm_state_agent_coord['position']['x'] - midpoint_agent_coord['position']['x'],y=real_arm_state_agent_coord['position']['y'] - midpoint_agent_coord['position']['y'],z=real_arm_state_agent_coord['position']['z'] - midpoint_agent_coord['position']['z'])
+
+            agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
+
+            # Removing this hurts the performance
+            agent_centric_middle_of_object = agent_centric_middle_of_object.abs()
+            return agent_centric_middle_of_object
+class PointNavEmulatorSensorOnlyAgentLocation(PointNavEmulatorSensor):
+
+    def average_so_far(self, camera_xyz, camera_rotation, arm_state):
+        if len(self.pointnav_history_aggr) == 0:
+            return self.dummy_answer
+        else:
+            if self.noise == 0:
+                total_sum = [k * v for k,v in self.pointnav_history_aggr]
+                total_sum = sum(total_sum)
+                total_count = sum([v for k,v in self.pointnav_history_aggr])
+                midpoint = total_sum / total_count
+                self.pointnav_history_aggr = [(midpoint.cpu(), total_count)]
+
+            else:
+
+                timed_weights = [i + 1 for i in range(len(self.pointnav_history_aggr))]
+                total_sum = [timed_weights[i] * self.pointnav_history_aggr[i][0] * self.pointnav_history_aggr[i][1] for i in range(len(self.pointnav_history_aggr))]
+                total_count = [v for k,v in self.pointnav_history_aggr]
+                real_total_count = [total_count[i] * timed_weights[i] for i in range(len(total_count))]
+                midpoint = sum(total_sum) / sum(real_total_count)
+                midpoint = midpoint.cpu()
+
+            # agent_centric_middle_of_object = rotate_to_agent(midpoint, self.device, camera_xyz, camera_rotation)
+            agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
+            midpoint_position_rotation = dict(position=dict(x=midpoint[0], y=midpoint[1], z=midpoint[2]), rotation=dict(x=0,y=0,z=0))
+            midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
+            distance_in_agent_coord = midpoint_agent_coord['position']
+
+            # arm_state_agent_coord = convert_world_to_agent_coordinate(arm_state, agent_state)
+            # distance_in_agent_coord = dict(x=arm_state_agent_coord['position']['x'] - midpoint_agent_coord['position']['x'],y=arm_state_agent_coord['position']['y'] - midpoint_agent_coord['position']['y'],z=arm_state_agent_coord['position']['z'] - midpoint_agent_coord['position']['z'])
+
+            agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
+
+            # Removing this hurts the performance
+            agent_centric_middle_of_object = agent_centric_middle_of_object.abs()
+
+
             return agent_centric_middle_of_object
 
 # class PointNavEmulatorSensorwScheduler(PointNavEmulatorSensor):
@@ -357,6 +441,92 @@ class PredictionObjectMask(Sensor):
 
 
 
+class DetectronPredictionObjectMask(Sensor):
+    def __init__(self, type: str,object_query_sensor, rgb_for_detection_sensor,  uuid: str = "predict_object_mask", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        self.object_query_sensor = object_query_sensor
+        self.rgb_for_detection_sensor = rgb_for_detection_sensor
+        uuid = '{}_{}'.format(uuid, type)
+        self.device = torch.device("cpu")
+        # OMNI_CATEGORIES, ITHOR_TO_OMNI, OMNI_TO_ITHOR
+        self.detection_model = None
+
+        super().__init__(**prepare_locals_for_super(locals()))
+    def get_detectron_model(self):
+
+        from detectron2.config import get_cfg
+        from detectron2.engine import DefaultPredictor
+        from detectron2.model_zoo import model_zoo
+        from detectron2.data import MetadataCatalog
+        cfg = get_cfg()
+        cfg.merge_from_file(model_zoo.get_config_file('COCO-Detection/faster_rcnn_R_50_DC5_1x.yaml'))
+        # cfg.merge_from_file(model_zoo.get_config_file('LVISv0.5-InstanceSegmentation/mask_rcnn_R_50_FPN_1x'))
+
+        #
+        cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
+        cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST = 0.01
+
+        cfg.MODEL.DEVICE = self.device.index if self.device.type != 'cpu' else 'cpu'
+        print('loading detectron to ', self.device, cfg.MODEL.DEVICE )
+        cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1235
+        detection_weight_dir = '/home/kianae/important_weights/detectron2-ithor+lvis-300.pth'
+        if platform.system() == "Darwin":
+            detection_weight_dir = '/Users/kianae/important_weights/detectron2-ithor+lvis-300.pth'
+        if not os.path.exists(detection_weight_dir):
+            detection_weight_dir = detection_weight_dir.replace('/home/kianae', '/home/ubuntu')
+
+        # remove
+        # detection_weight_dir = model_zoo.get_checkpoint_url('COCO-Detection/faster_rcnn_R_50_DC5_1x.yaml')
+        cfg.MODEL.WEIGHTS = detection_weight_dir
+        cfg.INPUT.MIN_SIZE_TEST = 300
+        cfg = cfg
+        model = DefaultPredictor(cfg)
+        # model.eval()
+        return model
+
+    def get_detection_masks(self, images, category):
+
+        with torch.no_grad():
+            predictions = self.detection_model((images * 255.).astype(np.uint8))
+            category_of_interest = OMNI_CATEGORIES.index(ITHOR_TO_OMNI[category])
+            boxes = predictions['instances'].pred_boxes
+            labels = predictions['instances'].pred_classes
+            valid = labels == category_of_interest
+            mask = torch.zeros((images.shape[0], images.shape[1]))
+            if torch.any(valid):
+                valid_boxes = boxes[valid]
+                for i in range(len(valid_boxes)):
+                    box = valid_boxes[i]
+                    x1, y1, x2, y2 = [int(x) for x in box.tensor.squeeze()]
+                    mask[y1:y2, x1:x2] = 1
+                mask = torch.nn.functional.interpolate(mask.unsqueeze(0).unsqueeze(0), size=(224, 224)).squeeze(0).squeeze(0)
+            else:
+                mask = torch.zeros((224,224))
+            return mask.long().cpu().unsqueeze(-1).numpy()#Channel last
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        if self.detection_model is None:
+            self.detection_model = self.get_detectron_model()
+        if self.type == 'source':
+            category = task.task_info['source_object_id'].split('|')[0]
+        elif self.type == 'destination':
+            category = task.task_info['goal_object_id'].split('|')[0]
+        # query_object = self.object_query_sensor.get_observation(env, task, *args, **kwargs)
+        rgb_frame = self.rgb_for_detection_sensor.get_observation(env, task, *args, **kwargs)
+        rgb_frame = rgb_frame[:,:,::-1] #
+
+        predicted_masks = self.get_detection_masks(rgb_frame, category)
+        # predicted_masks = torch.zeros((1, 224, 224))
+
+        return predicted_masks#.permute(1, 2, 0).cpu() #Channel last
+
+
+
 class RealPointNavSensor(Sensor):
 
     def __init__(self, type: str, uuid: str = "point_nav_real", **kwargs: Any):
@@ -391,7 +561,7 @@ class RealPointNavSensor(Sensor):
         return result
 
 
-
+#TODO gimbal lock still :(
 class AgentRelativeLocationSensor(Sensor):
 
     def __init__(self, uuid: str = "agent_relative_location", **kwargs: Any):

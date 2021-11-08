@@ -299,7 +299,7 @@ class BringObjectTask(AbstractBringObjectTask):
 
         action_str = self.class_action_names()[action]
 
-        self.manual = False #
+        self.manual = False
         if self.manual:
             action_str = 'something'
             # actions = ()
