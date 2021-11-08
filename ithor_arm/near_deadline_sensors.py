@@ -212,6 +212,9 @@ class PointNavEmulatorSensor(Sensor):
             self.real_prev_location = None
             self.belief_prev_location = None
 
+            self.real_relative_object_location = []
+            self.fake_relative_object_location = []
+
 
         agent_locations = self.get_agent_localizations(env)
 
@@ -229,6 +232,41 @@ class PointNavEmulatorSensor(Sensor):
             point_in_world = world_space_point_cloud[valid_points]
             middle_of_object = point_in_world.mean(dim=0)
             self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world)))
+
+            result = self.average_so_far(camera_xyz, camera_rotation, arm_state)
+            if self.type == 'source' and result.sum() != 12:
+                object_center = env.get_object_by_id(task.task_info['source_object_id'])
+                # agent_real_location = dict(position=dict(x=self.real_prev_location['camera_xyz'][0], y=self.real_prev_location['camera_xyz'][1], z=self.real_prev_location['camera_xyz'][2], ), rotation=dict(x=0, y=self.real_prev_location['camera_rotation'], z=0))
+                # object_in_camera_coordinate = convert_world_to_agent_coordinate(object_center, agent_real_location)['position']
+                arm_real_location = dict(position=dict(x=self.real_prev_location['arm_state']['position']['x'], y=self.real_prev_location['arm_state']['position']['y'], z=self.real_prev_location['arm_state']['position']['z'], ), rotation=dict(x=0, y=self.real_prev_location['camera_rotation'], z=0))
+                object_in_camera_coordinate = convert_world_to_agent_coordinate(object_center, arm_real_location)['position']
+                object_in_camera_coordinate = torch.Tensor([object_in_camera_coordinate['x'], object_in_camera_coordinate['y'], object_in_camera_coordinate['z']])
+                self.real_relative_object_location.append(object_in_camera_coordinate)
+
+                self.fake_relative_object_location.append(result)
+                if len(self.fake_relative_object_location) > 30:
+                    import matplotlib
+                    matplotlib.use('TkAgg')
+                    import matplotlib.pyplot as plt
+                    fig = plt.figure()
+                    ax = fig.add_subplot(projection='3d')
+                    def draw_points(locations, color):
+                        xs = [x[0] for x in locations]
+                        ys = [x[1] for x in locations]
+                        zs = [x[2] for x in locations]
+                        ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
+
+                    def draw(locations, color):
+                        xs = [x['camera_xyz'][0] for x in locations]
+                        ys = [x['camera_xyz'][1] for x in locations]
+                        zs = [x['camera_xyz'][2] for x in locations]
+                        ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
+
+                    draw_points(self.real_relative_object_location, 'g')
+                    draw_points(self.fake_relative_object_location, 'b')
+
+                    ForkedPdb().set_trace()
+
         return self.average_so_far(camera_xyz, camera_rotation, arm_state)
 
 
@@ -306,7 +344,7 @@ class PointNavEmulatorSensorComplexArm(PointNavEmulatorSensor):
             agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
 
             # Removing this hurts the performance
-            agent_centric_middle_of_object = agent_centric_middle_of_object.abs()
+            # agent_centric_middle_of_object = agent_centric_middle_of_object.abs() #TODO
             return agent_centric_middle_of_object
 class PointNavEmulatorSensorOnlyAgentLocation(PointNavEmulatorSensor):
 
