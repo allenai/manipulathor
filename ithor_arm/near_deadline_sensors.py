@@ -223,6 +223,15 @@ class PointNavEmulatorSensor(Sensor):
 
         fov = env.controller.last_event.metadata['fov']
 
+        if self.type == 'source':
+
+            self.real_relative_object_location.append(self.real_prev_location['camera_xyz'])
+            self.fake_relative_object_location.append(self.belief_prev_location['camera_xyz'])
+            # print('real', self.real_prev_location['camera_xyz'])
+            # print('belief', self.belief_prev_location['camera_xyz'])
+            # if self.real_prev_location['camera_xyz'].sum() != self.belief_prev_location['camera_xyz'].sum():
+            #     ForkedPdb().set_trace()
+
 
         if mask.sum() != 0:
             world_space_point_cloud = calc_world_coordinates(self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device, depth_frame)
@@ -232,38 +241,39 @@ class PointNavEmulatorSensor(Sensor):
             self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world)))
 
             result = self.average_so_far(camera_xyz, camera_rotation, arm_state)
-            if self.type == 'source' and result.sum() != 12:
-                object_center = env.get_object_by_id(task.task_info['source_object_id'])
-                # agent_real_location = dict(position=dict(x=self.real_prev_location['camera_xyz'][0], y=self.real_prev_location['camera_xyz'][1], z=self.real_prev_location['camera_xyz'][2], ), rotation=dict(x=0, y=self.real_prev_location['camera_rotation'], z=0))
-                # object_in_camera_coordinate = convert_world_to_agent_coordinate(object_center, agent_real_location)['position']
-                arm_real_location = dict(position=dict(x=self.real_prev_location['arm_state']['position']['x'], y=self.real_prev_location['arm_state']['position']['y'], z=self.real_prev_location['arm_state']['position']['z'], ), rotation=dict(x=0, y=self.real_prev_location['camera_rotation'], z=0))
-                object_in_camera_coordinate = convert_world_to_agent_coordinate(object_center, arm_real_location)['position']
-                object_in_camera_coordinate = torch.Tensor([object_in_camera_coordinate['x'], object_in_camera_coordinate['y'], object_in_camera_coordinate['z']])
-                self.real_relative_object_location.append(object_in_camera_coordinate)
+            # if self.type == 'source' and result.sum() != 12:
+            #     object_center = env.get_object_by_id(task.task_info['source_object_id'])
+            #     # agent_real_location = dict(position=dict(x=self.real_prev_location['camera_xyz'][0], y=self.real_prev_location['camera_xyz'][1], z=self.real_prev_location['camera_xyz'][2], ), rotation=dict(x=0, y=self.real_prev_location['camera_rotation'], z=0))
+            #     # object_in_camera_coordinate = convert_world_to_agent_coordinate(object_center, agent_real_location)['position']
+            #     arm_real_location = dict(position=dict(x=self.real_prev_location['arm_state']['position']['x'], y=self.real_prev_location['arm_state']['position']['y'], z=self.real_prev_location['arm_state']['position']['z'], ), rotation=dict(x=0, y=self.real_prev_location['camera_rotation'], z=0))
+            #     object_in_camera_coordinate = convert_world_to_agent_coordinate(object_center, arm_real_location)['position']
+            #     object_in_camera_coordinate = torch.Tensor([object_in_camera_coordinate['x'], object_in_camera_coordinate['y'], object_in_camera_coordinate['z']])
+            #
+            #
+            #     self.real_relative_object_location.append(object_in_camera_coordinate)
+            #     self.fake_relative_object_location.append(result)
 
-                self.fake_relative_object_location.append(result)
-                if len(self.fake_relative_object_location) > 30:
-                    import matplotlib
-                    matplotlib.use('TkAgg')
-                    import matplotlib.pyplot as plt
-                    fig = plt.figure()
-                    ax = fig.add_subplot(projection='3d')
-                    def draw_points(locations, color):
-                        xs = [x[0] for x in locations]
-                        ys = [x[1] for x in locations]
-                        zs = [x[2] for x in locations]
-                        ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
 
-                    def draw(locations, color):
-                        xs = [x['camera_xyz'][0] for x in locations]
-                        ys = [x['camera_xyz'][1] for x in locations]
-                        zs = [x['camera_xyz'][2] for x in locations]
-                        ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
+        if len(self.fake_relative_object_location) > 190:
+            import matplotlib
+            matplotlib.use('TkAgg')
+            import matplotlib.pyplot as plt
+            fig = plt.figure()
+            ax = fig.add_subplot(projection='3d')
+            def draw_points(locations, color):
+                xs = [x[0] for x in locations]
+                ys = [x[1] for x in locations]
+                zs = [x[2] for x in locations]
+                ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
 
-                    draw_points(self.real_relative_object_location, 'g')
-                    draw_points(self.fake_relative_object_location, 'b')
+            def draw(locations, color):
+                xs = [x['camera_xyz'][0] for x in locations]
+                ys = [x['camera_xyz'][1] for x in locations]
+                zs = [x['camera_xyz'][2] for x in locations]
+                ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
 
-                    ForkedPdb().set_trace()
+            # draw_points(self.real_relative_object_location, 'g'); draw_points(self.fake_relative_object_location, 'b'); plt.show()
+            ForkedPdb().set_trace()
 
         return self.average_so_far(camera_xyz, camera_rotation, arm_state)
 
