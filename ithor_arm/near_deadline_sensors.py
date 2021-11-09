@@ -133,13 +133,14 @@ class PointNavEmulatorSensor(Sensor):
         camera_xyz = np.array([metadata["cameraPosition"][k] for k in ["x", "y", "z"]])
         camera_rotation=metadata["agent"]["rotation"]["y"]
         camera_horizon=metadata["agent"]["cameraHorizon"]
-        arm_state = env.get_absolute_hand_state() #TODO this is fucking important
+        arm_state = env.get_absolute_hand_state()
         return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state)
 
 
     def add_translation_noise(self, change_in_xyz, prev_location):
 
         if np.abs(change_in_xyz).sum() > 0:
+
             noise_value_x, noise_value_z = self.noise_mode.linear_motion.linear.sample() * 0.01 * self.noise #to convert to meters #TODO ?
             new_change_in_xyz = change_in_xyz.copy()
             new_change_in_xyz[0] += noise_value_x
@@ -167,12 +168,9 @@ class PointNavEmulatorSensor(Sensor):
         new_rotation = prev_rotation + change_in_rotation
 
         if change_in_rotation > 0:
-            noise_in_rotation = self.noise_mode.rotational_motion.rotation.sample().item() * self.noise
+            noise_in_rotation = self.noise_mode.rotational_motion.rotation.sample().item() #TODO * self.noise
             new_rotation += noise_in_rotation
         return new_rotation
-    def add_noise_to_arm(self, env, real_arm_state, diff_in_rotation, diff_in_xyz):
-
-        ForkedPdb().set_trace()
 
 
     def get_agent_localizations(self, env):
@@ -192,7 +190,7 @@ class PointNavEmulatorSensor(Sensor):
                 change_in_rotation = real_current_location['camera_rotation'] - self.real_prev_location['camera_rotation']
                 belief_camera_xyz = self.add_translation_noise(change_in_xyz, self.belief_prev_location['camera_xyz'])
                 belief_camera_rotation = self.add_rotation_noise(change_in_rotation, self.belief_prev_location['camera_rotation'])
-                # belief_arm_state = self.add_noise_to_arm(tensor_from_dict(real_current_location['arm_state']['position']), real_agent_location, ) #TODO complete this
+                # belief_arm_state = self.add_noise_to_arm(tensor_from_dict(real_current_location['arm_state']['position']), real_agent_location, )
                 belief_arm_state = real_current_location['arm_state']
 
                 self.belief_prev_location = copy.deepcopy(dict(camera_xyz=belief_camera_xyz, camera_rotation=belief_camera_rotation, camera_horizon=belief_camera_horizon, arm_state=belief_arm_state))
@@ -529,14 +527,90 @@ class DetectronPredictionObjectMask(Sensor):
 
 class RealPointNavSensor(Sensor):
 
-    def __init__(self, type: str, uuid: str = "point_nav_real", **kwargs: Any):
+    def __init__(self, type: str, noise=0, uuid: str = "point_nav_real", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
         self.type = type
+        self.noise = noise
         uuid = '{}_{}'.format(uuid, type)
+        self.noise_mode = ControllerNoiseModel(
+            linear_motion=MotionNoiseModel(
+                _TruncatedMultivariateGaussian([0.074, 0.036], [0.019, 0.033]),
+                _TruncatedMultivariateGaussian([0.189], [0.038]),
+            ),
+            rotational_motion=MotionNoiseModel(
+                _TruncatedMultivariateGaussian([0.002, 0.003], [0.0, 0.002]),
+                _TruncatedMultivariateGaussian([0.219], [0.019]),
+            ),
+        )
         super().__init__(**prepare_locals_for_super(locals()))
 
+    def get_accurate_locations(self, env):
+        metadata = copy.deepcopy(env.controller.last_event.metadata['agent'])
+        # camera_xyz = np.array([metadata["cameraPosition"][k] for k in ["x", "y", "z"]])
+        # camera_rotation=metadata["agent"]["rotation"]["y"]
+        # camera_horizon=metadata["agent"]["cameraHorizon"]
+        # arm_state = env.get_absolute_hand_state()
+        return metadata
+
+    def add_translation_noise(self, change_in_xyz, prev_location, real_rotation, belief_rotation):
+
+        if np.abs(change_in_xyz).sum() > 0:
+            noise_value_x, noise_value_z = self.noise_mode.linear_motion.linear.sample() * 0.01 * self.noise #to convert to meters
+            new_change_in_xyz = change_in_xyz.clone()
+            new_change_in_xyz[0] += noise_value_x
+            new_change_in_xyz[2] += noise_value_z
+            diff_in_rotation = math.radians(belief_rotation - real_rotation)
+            # 𝑥2=cos𝛽𝑥1−sin𝛽𝑦1
+            # 𝑦2=sin𝛽𝑥1+cos𝛽𝑦1
+            new_location = prev_location.clone()
+            x = math.cos(diff_in_rotation) * new_change_in_xyz[0] - math.sin(diff_in_rotation) * new_change_in_xyz[2]
+            z = math.sin(diff_in_rotation) * new_change_in_xyz[0] + math.cos(diff_in_rotation) * new_change_in_xyz[2]
+            new_location[0] += x
+            new_location[2] += z
+        else:
+            new_location = prev_location + change_in_xyz
+        return new_location
+    def rotate_x_z_around_center(self, x, z, rotation):
+
+        new_x = math.cos(rotation) * x - math.sin(rotation) * z
+        new_z = math.sin(rotation) * x + math.cos(rotation) * z
+
+        return new_x, new_z
+    def add_rotation_noise(self, change_in_rotation, prev_rotation):
+        new_rotation = prev_rotation + change_in_rotation
+
+        if change_in_rotation > 0:
+            noise_in_rotation = self.noise_mode.rotational_motion.rotation.sample().item()
+            new_rotation += noise_in_rotation
+        return new_rotation
+
+
+    def get_agent_localizations(self, env):
+
+        if self.noise == 0:
+            return self.get_accurate_locations(env)
+        else:
+            real_current_location = self.get_accurate_locations(env)
+
+            if self.real_prev_location is None:
+                self.real_prev_location = copy.deepcopy(real_current_location)
+                self.belief_prev_location = copy.deepcopy(real_current_location)
+            else:
+                change_in_xyz = tensor_from_dict(real_current_location['position']) - tensor_from_dict(self.real_prev_location['position'])
+
+                last_step_real_rotation, last_step_belief_rotation = self.real_prev_location['rotation']['y'], self.belief_prev_location['rotation']['y']
+                change_in_rotation = real_current_location['rotation']['y'] - self.real_prev_location['rotation']['y']
+                belief_camera_xyz = self.add_translation_noise(change_in_xyz, tensor_from_dict(self.belief_prev_location['position']), last_step_real_rotation, last_step_belief_rotation)
+                belief_camera_rotation = self.add_rotation_noise(change_in_rotation, last_step_belief_rotation)
+                # belief_arm_state = self.add_noise_to_arm(tensor_from_dict(real_current_location['arm_state']['position']), real_agent_location, )
+
+                self.belief_prev_location = copy.deepcopy(dict(position=dict(x=belief_camera_xyz[0], y=belief_camera_xyz[1],z=belief_camera_xyz[2]), rotation=dict(x=0,y=belief_camera_rotation, z=0)))
+                self.real_prev_location = copy.deepcopy(real_current_location)
+
+
+            return self.belief_prev_location
 
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
@@ -545,15 +619,21 @@ class RealPointNavSensor(Sensor):
             info_to_search = 'source_object_id'
         elif self.type == 'destination':
             info_to_search = 'goal_object_id'
+        if task.num_steps_taken() == 0:
+            self.real_prev_location = None
+            self.belief_prev_location = None
         goal_obj_id = task.task_info[info_to_search]
-        object_info = env.get_object_by_id(goal_obj_id)
-        hand_state = env.get_absolute_hand_state()
+        real_object_info = env.get_object_by_id(goal_obj_id)
+        real_hand_state = env.get_absolute_hand_state()
+        self.get_agent_localizations(env)
+        real_agent_state = self.real_prev_location
+        belief_agent_state = self.belief_prev_location
 
         relative_goal_obj = convert_world_to_agent_coordinate(
-            object_info, env.controller.last_event.metadata["agent"]
+            real_object_info, belief_agent_state
         )
         relative_hand_state = convert_world_to_agent_coordinate(
-            hand_state, env.controller.last_event.metadata["agent"]
+            real_hand_state, real_agent_state
         )
         relative_distance = diff_position(relative_goal_obj, relative_hand_state)
         result = convert_state_to_tensor(dict(position=relative_distance))
@@ -564,11 +644,11 @@ class RealPointNavSensor(Sensor):
 #TODO gimbal lock still :(
 class AgentRelativeLocationSensor(Sensor):
 
-    def __init__(self, uuid: str = "agent_relative_location", **kwargs: Any):
+    def __init__(self, noise = 0, uuid: str = "agent_relative_location", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
-
+        self.noise = noise
         super().__init__(**prepare_locals_for_super(locals()))
 
 
@@ -579,7 +659,9 @@ class AgentRelativeLocationSensor(Sensor):
         agent_initial_state = task.task_info['agent_initial_state']
         current_agent_state = env.controller.last_event.metadata["agent"]
 
-
+        if self.noise != 0:
+            print('Not implemented yet')
+            ForkedPdb().set_trace()
         # To avoid gimbal lock
         def is_close_enough(agent_initial_state, current_agent_state, thr = 0.001):
             initial = [agent_initial_state['position'][k] for k in ['x','y','z']] +[agent_initial_state['rotation'][k] for k in ['x','y','z']]

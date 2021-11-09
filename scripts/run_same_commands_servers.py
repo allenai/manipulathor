@@ -103,8 +103,12 @@ import pdb
 #  --distributed_ip_and_port IP_ADR:6060 \
 #  --config_kwargs \'{\\"distributed_nodes\\":4}\' \
 #  --seed 10 --machine_id 0'
-command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/pointnav_only_agent_loc_complex_reward_no_pu_distrib \
- --distributed_ip_and_port IP_ADR:6060 \
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/pointnav_only_agent_loc_complex_reward_no_pu_distrib \
+#  --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0'
+command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/pointnav_complex_reward_no_pu_distrib \
+ --distributed_ip_and_port IP_ADR:6060 -c ~/exp_TmpComplexRewardPointNavNoPUNewModelAndHandDistrib_test_new_model_and_hand__stage_00__steps_000046743650.pt\
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
  --seed 10 --machine_id 0'
 
