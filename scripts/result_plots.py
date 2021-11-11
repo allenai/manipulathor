@@ -67,11 +67,13 @@ def plot_files(results, text, linestyle=None, color=None, plot_title = ''):
     PU = [x[1] for x in results]
     SR = [x[2] for x in results]
     SRwD = [x[3] for x in results]
-    plt.plot(x_list, PU, linestyle=linestyle, label=f'PU({text})',linewidth=3, color=c1)
-    plt.plot(x_list, SR,  linestyle=linestyle, label=f'SR({text})',linewidth=3, color=c2)
-    plt.plot(x_list, SRwD,  linestyle=linestyle, label=f'SRwD({text})',linewidth=3, color=c3)
+    text = f'({text})' if text != '' else ''
+    plt.plot(x_list, PU, linestyle=linestyle, label=f'PU{text}',linewidth=3, color=c1)
+    plt.plot(x_list, SR,  linestyle=linestyle, label=f'SR{text}',linewidth=3, color=c2)
+    plt.plot(x_list, SRwD,  linestyle=linestyle, label=f'SRwD{text}',linewidth=3, color=c3)
     # plt.xlim(right=4.5)
-    plt.legend(loc="upper right", prop={'size': 11},framealpha=0.2)
+    plt.legend(loc="best", prop={'size': 11},framealpha=0.2)
+    # plt.legend(loc="upper right", prop={'size': 11},framealpha=0.2)
     plt.xlabel(plot_title)
     plt.ylabel('Performance')
     plt.grid(True)
@@ -136,4 +138,22 @@ def noise_in_depth():
     plot_files(LocationAwareMaskDriven,"LocationAwareMaskDriven", 'dotted', color='green')
     plot_files(PNEmulator,"PNEmulator", 'dashed', color='orange')
     plt.show()
-noise_in_depth()
+def noise_in_mask():
+    RetrievalNoise = [
+        (0,0,0,0),
+        (0.1,57.7,22.4,10.9),
+        (0.3,74.7,47.1,23.3),
+        (0.6,80,56.4,28.4),
+        (0.9,81.4,58.6,31.2),
+        (1,81.2,59.6,31),
+    ]
+
+    font = {'family' : 'normal',
+            # 'weight' : 'bold',
+            'size'   : 12}
+
+    matplotlib.rc('font', **font)
+    plot_files(RetrievalNoise, '', 'solid', plot_title='Detection Recall')
+    plt.show()
+
+noise_in_mask()
