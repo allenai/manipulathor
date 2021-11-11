@@ -26,7 +26,7 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.bring_object_baselines.models.predict_simple_model_no_pu import PredictMaskSmallBringObjectWQueryObjRGBDModel
 
 
-class PredictMaskNoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject(
+class PredictComplexReward(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -86,7 +86,7 @@ class PredictMaskNoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject(
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(type(self), self).test_task_sampler_args(**kwargs)
+        sampler_args = super(PredictComplexReward, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -96,7 +96,7 @@ class PredictMaskNoNoiseRGBQueryObjGTMaskSimpleDiverseBringObject(
         return sampler_args
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(type(self), self).train_task_sampler_args(**kwargs)
+        sampler_args = super(PredictComplexReward, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:

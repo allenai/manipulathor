@@ -125,6 +125,15 @@ class PointNavEmulatorSensor(Sensor):
                 _TruncatedMultivariateGaussian([0.219], [0.019]),
             ),
         )
+
+        # TODO remove
+        # def get_samples(num_samples):
+        #     samples = [self.noise_mode.linear_motion.linear.sample() for _ in range(num_samples)]
+        #     samples = np.array(samples)
+        #     return samples
+        # samples = get_samples(1000)
+        # np.absolute(samples * 2).mean(axis=0)
+        # ForkedPdb().set_trace() TODO remove
         super().__init__(**prepare_locals_for_super(locals()))
 
 
@@ -227,6 +236,7 @@ class PointNavEmulatorSensor(Sensor):
             point_in_world = world_space_point_cloud[valid_points]
             middle_of_object = point_in_world.mean(dim=0)
             self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world)))
+
         return self.average_so_far(camera_xyz, camera_rotation, arm_state)
 
 
@@ -544,6 +554,8 @@ class RealPointNavSensor(Sensor):
                 _TruncatedMultivariateGaussian([0.219], [0.019]),
             ),
         )
+
+
         super().__init__(**prepare_locals_for_super(locals()))
 
     def get_accurate_locations(self, env):
@@ -726,3 +738,126 @@ class NoisyDepthSensorThor(
 #     # xoffset = (map_size_in_cm / 100) / 2
 #     # agent_centric_point_cloud = rotated_point_cloud + torch.FloatTensor([xoffset, 0, 0]).to(device)
 #     return rotated_point_cloud.squeeze(0).squeeze(0)
+
+
+class MisDetectionNoisyObjectMask(Sensor):
+    def __init__(self, type: str,noise, height, width,  uuid: str = "object_mask", distance_thr: float = -1, misdetection_percent = 1, **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        self.height = height
+        self.width = width
+        uuid = '{}_{}'.format(uuid, type)
+        self.noise = noise
+        self.misdetection_percent = misdetection_percent
+        self.distance_thr = distance_thr
+        super().__init__(**prepare_locals_for_super(locals()))
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+
+        if self.type == 'source':
+            info_to_search = 'source_object_id'
+        elif self.type == 'destination':
+            info_to_search = 'goal_object_id'
+        else:
+            raise Exception('Not implemented', self.type)
+
+        target_object_id = task.task_info[info_to_search]
+        all_visible_masks = env.controller.last_event.instance_masks
+        if target_object_id in all_visible_masks:
+            mask_frame = all_visible_masks[target_object_id]
+
+            if self.distance_thr > 0:
+
+                agent_location = env.get_agent_location()
+                object_location = env.get_object_by_id(target_object_id)['position']
+                current_agent_distance_to_obj = sum([(object_location[k] - agent_location[k])**2 for k in ['x', 'z']]) ** 0.5
+                if current_agent_distance_to_obj > self.distance_thr or mask_frame.sum() < 20: #TODO objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
+                    mask_frame[:] = 0
+
+        else:
+            mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
+
+        result = (np.expand_dims(mask_frame.astype(np.float),axis=-1))
+        if len(env.controller.last_event.instance_masks) == 0:
+            fake_mask = np.zeros(env.controller.last_event.frame[:,:,0].shape)
+        else:
+            fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
+        fake_mask = (np.expand_dims(fake_mask.astype(np.float),axis=-1))
+        # fake_mask, is_real_mask = add_mask_noise(result, fake_mask, noise=self.noise)
+        current_shape = fake_mask.shape
+        if random.random() < self.misdetection_percent and result.sum() > 0:
+            result = fake_mask
+        if (current_shape[0], current_shape[1]) == (self.width, self.height):
+            resized_mask = result
+        else:
+            resized_mask = cv2.resize(result, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
+
+        return resized_mask
+
+
+class MaskCutoffNoisyObjectMask(Sensor):
+    def __init__(self, type: str, mask_cutoff_percent,noise, height, width,  uuid: str = "object_mask", distance_thr: float = -1, **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        self.height = height
+        self.width = width
+        uuid = '{}_{}'.format(uuid, type)
+        self.noise = noise
+        self.mask_cutoff_percent = mask_cutoff_percent
+        self.distance_thr = distance_thr
+        super().__init__(**prepare_locals_for_super(locals()))
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+
+        if self.type == 'source':
+            info_to_search = 'source_object_id'
+        elif self.type == 'destination':
+            info_to_search = 'goal_object_id'
+        else:
+            raise Exception('Not implemented', self.type)
+
+        target_object_id = task.task_info[info_to_search]
+        all_visible_masks = env.controller.last_event.instance_masks
+        if target_object_id in all_visible_masks:
+            mask_frame = all_visible_masks[target_object_id]
+
+            if self.distance_thr > 0:
+
+                agent_location = env.get_agent_location()
+                object_location = env.get_object_by_id(target_object_id)['position']
+                current_agent_distance_to_obj = sum([(object_location[k] - agent_location[k])**2 for k in ['x', 'z']]) ** 0.5
+                if current_agent_distance_to_obj > self.distance_thr or mask_frame.sum() < 20: #TODO objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
+                    mask_frame[:] = 0
+
+        else:
+            mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
+
+        result = (np.expand_dims(mask_frame.astype(np.float),axis=-1))
+        current_shape = result.shape
+
+        if result.sum() > 0:
+            w,h,d = current_shape
+            mask = np.random.rand(w,h,d)
+            mask = mask < self.mask_cutoff_percent
+            mask = mask & (result == 1)
+            result[mask] = 0
+            # plt.imsave('somethingelse.png',result[:,:,0])
+
+        # if random.random() < self.mask_cutoff_percent and result.sum() > 0:
+        #     result = fake_mask
+        if (current_shape[0], current_shape[1]) == (self.width, self.height):
+            resized_mask = result
+        else:
+            resized_mask = cv2.resize(result, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
+
+        return resized_mask

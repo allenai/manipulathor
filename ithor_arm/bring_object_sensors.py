@@ -142,7 +142,7 @@ class CategoryFeatureSampleSensor(Sensor):
 
 
 class NoisyObjectMask(Sensor):
-    def __init__(self, type: str,noise, height, width,  uuid: str = "object_mask", distance_thr: float = -1, **kwargs: Any):
+    def __init__(self, type: str,noise, height, width,  uuid: str = "object_mask", distance_thr: float = -1, recall_percent = 1, **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
@@ -151,9 +151,10 @@ class NoisyObjectMask(Sensor):
         self.width = width
         uuid = '{}_{}'.format(uuid, type)
         self.noise = noise
+        self.recall_percent = recall_percent
         self.distance_thr = distance_thr
         super().__init__(**prepare_locals_for_super(locals()))
-
+        assert self.recall_percent == 1 or self.noise == 0
 
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
@@ -194,6 +195,9 @@ class NoisyObjectMask(Sensor):
             resized_mask = fake_mask
         else:
             resized_mask = cv2.resize(fake_mask, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
+        if self.recall_percent < 1:
+            if random.random() > self.recall_percent:
+                resized_mask[:] = 0
         return resized_mask
 
 class NoMaskSensor(NoisyObjectMask):

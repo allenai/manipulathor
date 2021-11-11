@@ -7,6 +7,7 @@ ssh-keygen; cat ~/.ssh/id_rsa.pub
 sudo apt-get install xinit
 sudo python3 scripts/startx.py &
 cat scripts/public_keys.txt >> ~/.ssh/authorized_keys
+cat ~/manipulathor/scripts/public_keys.txt >> ~/.ssh/authorized_keys
 export PYTHONPATH="./"
 allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu
 tensorboard --logdir experiment_output/tb --bind_all

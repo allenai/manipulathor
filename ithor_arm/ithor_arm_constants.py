@@ -75,6 +75,8 @@ ARM_SHORTENED_ACTIONS_ORDERED = ['u','j','s','a','3','4','w','z','m','r','l']
 TRAIN_OBJECTS = ["Apple", "Bread", "Tomato", "Lettuce", "Pot", "Mug"]
 TEST_OBJECTS = ["Potato", "Pan", "Egg", "Spatula", "Cup", 'SoapBottle'] # we have to remove soap bottle from categories, "SoapBottle"
 
+
+
 DONT_USE_ALL_POSSIBLE_OBJECTS_EVER = ['ButterKnife', 'Sink', 'GarbageCan', 'Plate', 'PepperShaker', 'Cup', 'Mug', 'CoffeeMachine', 'Knife', 'Spatula', 'Pan', 'Egg', 'Pot', 'Toaster', 'DishSponge', 'Potato', 'Spoon', 'Apple', 'Bread', 'Fork', 'Faucet', 'StoveBurner', 'Lettuce', 'SoapBottle', 'Bowl', 'SaltShaker', 'Tomato']
 
 def make_all_objects_unbreakable(controller):
