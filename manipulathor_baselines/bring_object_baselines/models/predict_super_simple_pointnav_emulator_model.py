@@ -216,8 +216,8 @@ class PredictSuperSimpleRGBDModelWPointNavEmulator(ActorCriticModel[CategoricalD
             query_image_destination_objects = observations['category_object_destination']
             query_image_objects = query_image_source_objects
             query_image_objects[after_pickup] = query_image_destination_objects[after_pickup]
-
             hacky_visualization(observations, object_mask=predicted_masks, query_objects=query_image_objects, base_directory_to_right_images=self.starting_time, gt_mask=gt_mask)
+
 
 
         return (

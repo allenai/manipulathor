@@ -17,7 +17,7 @@ from ithor_arm.ithor_arm_sensors import (
     DepthSensorThor, RelativeAgentArmToObjectSensor, RelativeObjectToGoalSensor,
 )
 from ithor_arm.ithor_arm_viz import MaskImageVisualizer
-from ithor_arm.near_deadline_sensors import PointNavEmulatorSensor, PredictionObjectMask, TopDownView, ColorFullDepth
+from ithor_arm.near_deadline_sensors import PointNavEmulatorSensor, PredictionObjectMask
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
@@ -28,7 +28,7 @@ from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rg
 from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
 
 
-class PredictionPointNavNoPUNewModelAndHand(
+class PredictPointNavEmulZeroShotTest(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -55,7 +55,6 @@ class PredictionPointNavNoPUNewModelAndHand(
 
 
     SENSORS = [
-
         RGBSensorThor(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
@@ -79,9 +78,6 @@ class PredictionPointNavNoPUNewModelAndHand(
         destination_mask_sensor_prediction,
         PointNavEmulatorSensor(type='source', mask_sensor=source_mask_sensor_prediction),
         PointNavEmulatorSensor(type='destination', mask_sensor=destination_mask_sensor_prediction),
-        TopDownView(),
-        ColorFullDepth(),
-        rgb_for_detection_sensor,
     ]
 
     MAX_STEPS = 200
@@ -96,12 +92,12 @@ class PredictionPointNavNoPUNewModelAndHand(
 
 
     # VISUALIZE = True
-
-    OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
+    TRAIN_SCENES = []
+    OBJECT_TYPES = TRAIN_OBJECTS
 
 
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PredictionPointNavNoPUNewModelAndHand, self).test_task_sampler_args(**kwargs)
+        sampler_args = super(PredictPointNavEmulZeroShotTest, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -113,7 +109,7 @@ class PredictionPointNavNoPUNewModelAndHand(
         return sampler_args
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PredictionPointNavNoPUNewModelAndHand, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(PredictPointNavEmulZeroShotTest, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:

@@ -32,6 +32,7 @@ from ithor_arm.pointcloud_sensors import rotate_points_to_agent, KianaReachableB
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.thor_category_names import thor_possible_objects
+from scripts.visualization_stuff_for_qualitative import TASKINFO
 from utils.klemens_constants import OMNI_CATEGORIES, OMNI_TO_ITHOR, ITHOR_TO_OMNI
 
 from utils.noise_depth_util_files.sim_depth import RedwoodDepthNoise
@@ -861,3 +862,81 @@ class MaskCutoffNoisyObjectMask(Sensor):
             resized_mask = cv2.resize(result, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
 
         return resized_mask
+
+
+class TopDownView(
+    Sensor
+):
+    """Sensor for Depth images in THOR.
+
+    Returns from a running IThorEnvironment instance, the current RGB
+    frame corresponding to the agent's egocentric view.
+    """
+    def __init__(self, uuid: str = "topdown_view", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        super().__init__(**prepare_locals_for_super(locals()))
+
+    def setup_thirdparty_camera(self, controller):
+        if len(controller.last_event.third_party_camera_frames) > 0:
+            return
+        else:
+            event = controller.step('GetReachablePositions')
+            reachable_positions = event.metadata['actionReturn']
+            xs = [pos['x'] for pos in reachable_positions]
+            zs = [pos['z'] for pos in reachable_positions]
+            mean_x = sum(xs) / len(xs)
+            mean_z = sum(zs) / len(zs)
+            controller.step('AddThirdPartyCamera',rotation=dict(x=90,y=0, z=0), position=dict(x=mean_x, y=reachable_positions[0]['y'] + TASKINFO['camera_height'], z=mean_z), fieldOfView=100)
+            # import matplotlib.pyplot as plt;plt.imsave('/Users/kianae/Desktop/something.png', controller.last_event.third_party_camera_frames[-1].copy())
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        self.setup_thirdparty_camera(env.controller)
+        frame = env.controller.last_event.third_party_camera_frames[-1].copy()
+
+        return frame
+
+class ColorFullDepth(Sensor):
+    def __init__(self, uuid: str = "colorful_depth", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        super().__init__(**prepare_locals_for_super(locals()))
+    def colorize(self, image, clipping_range, colormap = cv2.COLORMAP_HSV):
+        if clipping_range[0] or clipping_range[1]:
+            img = image.clip(clipping_range[0], clipping_range[1])
+        else:
+            img = image.copy()
+        img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        img = cv2.applyColorMap(img, colormap)
+        return img
+
+
+    def color_map_color(self, depth, cmap_name='viridis', vmin=0, vmax=20):
+        import matplotlib.pyplot as plt
+        import matplotlib.cm as cm
+        import matplotlib
+        norm = matplotlib.colors.Normalize(vmin=depth.min(), vmax=depth.max())
+        rgb = cm.get_cmap(plt.get_cmap('viridis'))(norm(depth))[:, :, :3]
+        return rgb
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        depth = env.controller.last_event.depth_frame.copy()
+        depth[depth > 5] = 0
+        # frame= self.colorize(frame, (frame.min(), frame.max()))
+        # frame= self.colorize(frame, (None, 20))
+        # depth = depth.clip(0, 10)
+        # max = depth.max()
+        # depth = depth * (255. / max)
+        # frame = self.colorize(depth, (None,20))[:,:,::-1]
+        frame = self.color_map_color(depth)
+
+        # frame= self.colorize(depth , (0, 25))[:,:,::-1]
+        # frame= self.another_colorize(depth)[:,:,::-1]
+        # import matplotlib.pyplot as plt;plt.imsave('/Users/kianae/Desktop/something.png',frame)
+        # frame = frame.astype(float) / 255.
+        return frame

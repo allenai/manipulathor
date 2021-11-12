@@ -30,6 +30,7 @@ from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.hacky_objects_that_move import CONSTANTLY_MOVING_OBJECTS
 from scripts.jupyter_helper import get_reachable_positions
+from scripts.visualization_stuff_for_qualitative import TASKINFO
 
 
 def position_distance(s1, s2):
@@ -298,6 +299,19 @@ class BringObjectTask(AbstractBringObjectTask):
     def _step(self, action: int) -> RLStepResult:
 
         action_str = self.class_action_names()[action]
+        #TODO_KIANA_ADDED
+        self.action_reload = True
+        if self.action_reload:
+            try:
+                self.actions_to_take
+            except Exception:
+                self.actions_to_take = TASKINFO['action_sequence']
+                self.actions_to_take.remove('')
+
+            action_str = self.actions_to_take[0]
+            self.actions_to_take = self.actions_to_take[1:]
+
+
 
         self.manual = False
         if self.manual:

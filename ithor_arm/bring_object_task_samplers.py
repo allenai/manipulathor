@@ -23,6 +23,7 @@ from ithor_arm.ithor_arm_tasks import (
 )
 from ithor_arm.ithor_arm_viz import LoggerVisualizer, BringObjImageVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
+from scripts.visualization_stuff_for_qualitative import TASKINFO
 from utils.manipulathor_data_loader_utils import get_random_query_image, get_random_query_feature, get_random_query_feature_from_img_adr, get_random_query_image_file_name
 
 
@@ -423,6 +424,15 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
 
             task = self.all_test_tasks[self.sampler_index]
             self.sampler_index += 1
+
+            #TODO_KIANA_ADDED
+            task_details = TASKINFO['task_info_metrics']['task_info']
+            task['scene_name'] = task_details['init_location']['scene_name']
+            task['init_object'] = task_details['init_location']
+            task['goal_object'] = task_details['goal_location']
+            task['initial_agent_pose'] = task_details['agent_initial_state']
+
+
 
             data_point = task
 
