@@ -148,12 +148,38 @@ def noise_in_mask():
         (1,81.2,59.6,31),
     ]
 
+    MisDetection = [
+        (0,81.2,59.6,31),
+        (0.1,57.7,31.2,14.3),
+        (0.2,43.1,22.4,10.4),
+        (0.3,33.8,12.5,4.95),
+        (0.6,22.1,4.59,1.17),
+        (0.9,13.7,2.88,1.17),
+        (1,0,0,0),
+    ]
+
+    MaskIOU = [
+        (0,81.2,59.6,31),
+        (0.1,82.4,60.2,33.6),
+        (0.3,81.5,59.6,31.5),
+        (0.6,80.7,58.6,30.6),
+        (0.9,74.3,47.7,23.9),
+        (1,0,0,0),
+    ]
+
+    def reverse(result):
+        for i in range(len(result)):
+            result[i] = (1 - result[i][0],result[i][1],result[i][2],result[i][3])
+        return result
+
     font = {'family' : 'normal',
             # 'weight' : 'bold',
             'size'   : 12}
 
     matplotlib.rc('font', **font)
-    plot_files(RetrievalNoise, '', 'solid', plot_title='Detection Recall')
+    # plot_files(RetrievalNoise, '', 'solid', plot_title='Detection Recall')
+    # plot_files(MisDetection, '', 'solid', plot_title='Misdetection rate')
+    plot_files(reverse(MaskIOU), '', 'solid', plot_title='Accuracy')
     plt.show()
 
 noise_in_mask()
