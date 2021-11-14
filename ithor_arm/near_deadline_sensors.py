@@ -176,7 +176,10 @@ class PointNavEmulatorSensor(Sensor):
     def get_agent_localizations(self, env):
 
         if self.noise == 0:
-            return self.get_accurate_locations(env) #TODO add a test that at each time step it should give accurate (degrade should happen throuoght time)
+            real_current_location = self.get_accurate_locations(env)
+            self.real_prev_location = copy.deepcopy(real_current_location)
+            self.belief_prev_location = copy.deepcopy(real_current_location)
+            return real_current_location #TODO add a test that at each time step it should give accurate (degrade should happen throuoght time)
         else:
             real_current_location = self.get_accurate_locations(env)
 
