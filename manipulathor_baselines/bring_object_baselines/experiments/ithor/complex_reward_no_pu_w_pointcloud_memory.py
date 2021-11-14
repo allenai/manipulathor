@@ -72,7 +72,8 @@ class ComplexRewardNoPUWPointCloudMemory(
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
 
     TEST_SCENES = ['FloorPlan1_physics']
-    OBJECT_TYPES = ['Pot', 'Pan']
+    TRAIN_SCENES = ['FloorPlan1_physics']
+    OBJECT_TYPES = ['Pan', 'Pot']
     # OBJECT_TYPES = ['Lettuce', 'Apple']
 
 

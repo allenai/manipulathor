@@ -299,7 +299,7 @@ class BringObjectTask(AbstractBringObjectTask):
 
         action_str = self.class_action_names()[action]
 
-        self.manual = False #
+        self.manual = True #
         if self.manual:
             action_str = 'something'
             # actions = ()
@@ -309,7 +309,7 @@ class BringObjectTask(AbstractBringObjectTask):
             try:
                 self.manual_sequence
             except Exception:
-                self.manual_sequence = ['RotateLeft', 'RotateLeft', 'RotateLeft', 'RotateLeft', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateRight', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateRight', 'RotateRight', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateRight', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'RotateRight', 'RotateRight', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateRight', 'MoveAhead', 'MoveAhead', 'RotateRight', 'RotateRight', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateLeft', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'RotateRight', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateLeft', 'RotateLeft', 'MoveAhead']
+                self.manual_sequence = []#['RotateLeft', 'RotateLeft', 'RotateLeft', 'RotateLeft', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateRight', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateRight', 'RotateRight', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateRight', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'RotateRight', 'RotateRight', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateRight', 'MoveAhead', 'MoveAhead', 'RotateRight', 'RotateRight', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateLeft', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateLeft', 'MoveAhead', 'MoveAhead', 'RotateRight', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'MoveAhead', 'RotateLeft', 'RotateLeft', 'MoveAhead']
             action = 'm'
             self.env.controller.step('Pass')
             print(self.task_info['source_object_id'], self.task_info['goal_object_id'], 'pickup', self.object_picked_up)
