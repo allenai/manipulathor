@@ -257,42 +257,42 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
 
         this_controller = self.env
 
-        def put_object_in_location(location_point):
+        # def put_object_in_location(location_point):
+        #
+        #     object_id = location_point['object_id']
+        #     location = location_point['object_location']
+        #     event = transport_wrapper(
+        #         this_controller,
+        #         object_id,
+        #         location,
+        #     )
+        #     return event
+        #
+        # event_transport_init_obj = put_object_in_location(init_object)
+        # event_transport_goal_obj = put_object_in_location(goal_object)
+        #
+        # if not event_transport_goal_obj.metadata['lastActionSuccess'] or not event_transport_init_obj.metadata['lastActionSuccess']:
+        #     print('scene', scene_name, 'init', init_object['object_id'], 'goal', goal_object['object_id'])
+        #     print('ERROR: one of transfers fail', 'init', event_transport_init_obj.metadata['errorMessage'], 'goal', event_transport_goal_obj.metadata['errorMessage'])
 
-            object_id = location_point['object_id']
-            location = location_point['object_location']
-            event = transport_wrapper(
-                this_controller,
-                object_id,
-                location,
-            )
-            return event
+        # event = this_controller.step(
+        #     dict(
+        #         action="TeleportFull",
+        #         standing=True,
+        #         x=agent_state["position"]["x"],
+        #         y=agent_state["position"]["y"],
+        #         z=agent_state["position"]["z"],
+        #         rotation=dict(
+        #             x=agent_state["rotation"]["x"],
+        #             y=agent_state["rotation"]["y"],
+        #             z=agent_state["rotation"]["z"],
+        #         ),
+        #         horizon=agent_state["cameraHorizon"],
+        #     )
+        # )
 
-        event_transport_init_obj = put_object_in_location(init_object)
-        event_transport_goal_obj = put_object_in_location(goal_object)
-
-        if not event_transport_goal_obj.metadata['lastActionSuccess'] or not event_transport_init_obj.metadata['lastActionSuccess']:
-            print('scene', scene_name, 'init', init_object['object_id'], 'goal', goal_object['object_id'])
-            print('ERROR: one of transfers fail', 'init', event_transport_init_obj.metadata['errorMessage'], 'goal', event_transport_goal_obj.metadata['errorMessage'])
-
-        event = this_controller.step(
-            dict(
-                action="TeleportFull",
-                standing=True,
-                x=agent_state["position"]["x"],
-                y=agent_state["position"]["y"],
-                z=agent_state["position"]["z"],
-                rotation=dict(
-                    x=agent_state["rotation"]["x"],
-                    y=agent_state["rotation"]["y"],
-                    z=agent_state["rotation"]["z"],
-                ),
-                horizon=agent_state["cameraHorizon"],
-            )
-        )
-
-        if not event.metadata['lastActionSuccess']:
-            print('ERROR: Teleport failed')
+        # if not event.metadata['lastActionSuccess']:
+        #     print('ERROR: Teleport failed')
 
             # print(this_controller.last_event.metadata['sceneName'])
             # print(dict(

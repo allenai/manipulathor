@@ -23,7 +23,7 @@ from ithor_arm.ithor_arm_constants import (
     ROTATE_RIGHT,
     ROTATE_LEFT,
     PICKUP,
-    DONE, ARM_LENGTH, ARM_ACTIONS_ORDERED, ARM_SHORTENED_ACTIONS_ORDERED,
+    DONE, ARM_LENGTH, ARM_ACTIONS_ORDERED, ARM_SHORTENED_ACTIONS_ORDERED, transport_wrapper,
 )
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
@@ -300,7 +300,7 @@ class BringObjectTask(AbstractBringObjectTask):
 
         action_str = self.class_action_names()[action]
         #TODO_KIANA_ADDED
-        self.action_reload = True
+        self.action_reload = False
         if self.action_reload:
             try:
                 self.actions_to_take
@@ -313,7 +313,7 @@ class BringObjectTask(AbstractBringObjectTask):
 
 
 
-        self.manual = False
+        self.manual = True
         if self.manual:
             action_str = 'something'
             # actions = ()
@@ -324,6 +324,15 @@ class BringObjectTask(AbstractBringObjectTask):
             self.env.controller.step('Pass')
             print(self.task_info['source_object_id'], self.task_info['goal_object_id'], 'pickup', self.object_picked_up)
             ForkedPdb().set_trace()
+            # pot_id = 'Pot|-01.22|+00.90|-02.36'
+            # book_position = self.env.closest_object_of_type('Book')['position']
+            # bowl = self.env.closest_object_of_type('Bowl')['position']
+            # countertop_id = 'CounterTop|-00.08|+01.15|00.00'
+            # x = 0.2
+            # y=1.20
+            # z=0
+            # transport_wrapper(self.env.controller, pot_id, dict(x=x,y=y,z=z))
+
             action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
 
 

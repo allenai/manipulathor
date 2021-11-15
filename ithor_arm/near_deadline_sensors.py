@@ -211,6 +211,7 @@ class PointNavEmulatorSensor(Sensor):
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
+        return self.dummy_answer
         mask = squeeze_bool_mask(self.mask_sensor.get_observation(env, task, *args, **kwargs))
         depth_frame = env.controller.last_event.depth_frame.copy()
         depth_frame[~mask] = -1
@@ -880,7 +881,7 @@ class TopDownView(
 
     def setup_thirdparty_camera(self, controller):
         camera_height = TASKINFO['camera_height']
-        camera_height = 1.5 #TODO
+        # camera_height = 1.5 #TODO
         if len(controller.last_event.third_party_camera_frames) > 0:
             return
         else:
@@ -892,16 +893,21 @@ class TopDownView(
             mean_z = sum(zs) / len(zs)
             controller.step('AddThirdPartyCamera',rotation=dict(x=90,y=0, z=0), position=dict(x=mean_x, y=reachable_positions[0]['y'] + camera_height, z=mean_z), fieldOfView=100)
             # ForkedPdb().set_trace()
-            #
-            #
+
+
             # controller.reset('FloorPlan1_physics', width=900, height=900)
-            #
-            #
+
+
             # position = [o for o in controller.last_event.metadata['objects'] if 'Sink' in o['objectId']][0]['position']
             # y=2.
             # x = position['x']
             # z = position['z']
             # rotation = 90-45
+            # y = 2
+            # x = 1.7
+            # z=2. - 0.2
+            # rotation = 45 + 180
+            # controller.step('Teleport',position=dict(x=1.75, y=0.9, z=2),rotation=dict(x=0, y=270, z=0),horizon=30,standing=True); controller.step('Pass')
             # controller.step('AddThirdPartyCamera',rotation=dict(x=40,y=rotation, z=0), position=dict(x=x, y= y, z=z), fieldOfView=100)
             # import matplotlib.pyplot as plt;plt.imsave('/Users/kianae/Desktop/something.png', controller.last_event.third_party_camera_frames[-1].copy())
     def get_observation(
