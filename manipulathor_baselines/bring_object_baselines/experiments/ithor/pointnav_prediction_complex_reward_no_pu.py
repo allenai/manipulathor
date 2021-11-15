@@ -96,8 +96,9 @@ class PredictionPointNavNoPUNewModelAndHand(
 
 
     # VISUALIZE = True
-
+    TRAIN_SCENES = ['FloorPlan1_physics'] #TODO remove
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
+    OBJECT_TYPES = ['Pot', 'Pan']
 
 
     def test_task_sampler_args(self, **kwargs):
