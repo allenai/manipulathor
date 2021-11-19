@@ -880,7 +880,6 @@ class TopDownView(
 
     def setup_thirdparty_camera(self, controller):
         camera_height = TASKINFO['camera_height']
-        camera_height = 1.5 #TODO
         if len(controller.last_event.third_party_camera_frames) > 0:
             return
         else:

@@ -33,17 +33,19 @@ def hacky_visualization(observations, object_mask, query_objects, base_directory
         viz_mask = predicted_masks.squeeze(0).squeeze(0).repeat(1,1, 3)
         viz_image = unnormalize_image(viz_image)
         viz_query_obj = unnormalize_image(viz_query_obj)
-        list_of_visualizations = [viz_image, depth, viz_mask, viz_query_obj]
+        viz_mask = overlay_mask(viz_image, viz_mask)
+        list_of_visualizations = [viz_image, depth, viz_mask] #TODO , viz_query_obj]
         if gt_mask is not None:
             gt_mask = gt_mask.squeeze(0).squeeze(0).repeat(1,1, 3)
+            gt_mask = overlay_mask(viz_image, gt_mask)
             list_of_visualizations.append(gt_mask)
         combined = torch.cat(list_of_visualizations, dim=1)
         directory_to_write_images = os.path.join('experiment_output/visualizations_masks', base_directory_to_right_images)
         os.makedirs(directory_to_write_images, exist_ok=True)
         time_to_write = datetime.now().strftime("%m_%d_%Y_%H_%M_%S_%f.png")
         cv2.imwrite(os.path.join(directory_to_write_images, time_to_write), (combined[:,:,[2,1,0]] * 255.).int().cpu().numpy())
-        for i in range(len(list_of_visualizations)):
-            cv2.imwrite(os.path.join(directory_to_write_images, time_to_write + f'_{i}.png'), (list_of_visualizations[i][:,:,[2,1,0]] * 255.).int().cpu().numpy())
+        # for i in range(len(list_of_visualizations)):
+        #     cv2.imwrite(os.path.join(directory_to_write_images, time_to_write + f'_{i}.png'), (list_of_visualizations[i][:,:,[2,1,0]] * 255.).int().cpu().numpy())
         if 'topdown_view' in observations:
             combined = observations['topdown_view'].squeeze(0).squeeze(0)
             directory_to_write_images = os.path.join('experiment_output/visualizations_topdown', base_directory_to_right_images)
@@ -51,7 +53,15 @@ def hacky_visualization(observations, object_mask, query_objects, base_directory
             time_to_write = datetime.now().strftime("%m_%d_%Y_%H_%M_%S_%f.png")
             cv2.imwrite(os.path.join(directory_to_write_images, time_to_write), (combined[:,:,[2,1,0]] ).int().cpu().numpy())
 
-
+def overlay_mask(image, mask):
+    mask = mask[:,:,0]
+    image = image.mean(-1).unsqueeze(-1).repeat(1,1,3)
+    if mask.sum() > 0:
+        thing_to_change = image[mask == 1]
+        thing_to_change[:,0] += 0.2
+        image[mask == 1] = thing_to_change
+    image = image.clip(0,1)
+    return image
 def calc_dict_average(nested_dict):
     if type(nested_dict) == list:
         total_str = sum(nested_dict) / len(nested_dict)
