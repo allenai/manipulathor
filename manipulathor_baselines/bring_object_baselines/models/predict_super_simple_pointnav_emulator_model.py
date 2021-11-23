@@ -216,7 +216,13 @@ class PredictSuperSimpleRGBDModelWPointNavEmulator(ActorCriticModel[CategoricalD
             query_image_destination_objects = observations['category_object_destination']
             query_image_objects = query_image_source_objects
             query_image_objects[after_pickup] = query_image_destination_objects[after_pickup]
-            hacky_visualization(observations, object_mask=predicted_masks, query_objects=query_image_objects, base_directory_to_right_images=self.starting_time, gt_mask=gt_mask)
+
+            arm_distance_to_obj_source = observations['point_nav_emul_source'].clone()
+            arm_distance_to_obj_destination = observations['point_nav_emul_destination'].clone()
+            visual_compass = arm_distance_to_obj_source
+            visual_compass[after_pickup] = arm_distance_to_obj_destination[after_pickup]
+
+            hacky_visualization(observations, object_mask=predicted_masks, query_objects=query_image_objects, base_directory_to_right_images=self.starting_time, gt_mask=gt_mask, visual_compass_source=visual_compass, visual_compass_destination=visual_compass, )
 
 
 
