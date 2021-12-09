@@ -65,7 +65,7 @@ class RealPointNavModel(ActorCriticModel[CategoricalDistr]):
         self.object_type_embedding_size = obj_state_embedding_size
 
         # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 4, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        network_args = {'input_channels': 4 * 2, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
 
         # self.detection_model = ConditionalDetectionModel()
@@ -153,8 +153,8 @@ class RealPointNavModel(ActorCriticModel[CategoricalDistr]):
         after_pickup = pickup_bool == 1
 
 
-
-        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres']], dim=-1).float()
+        # visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres']], dim=-1).float()
+        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'], observations['depth_lowres_arm'], observations['rgb_lowres_arm']], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
 

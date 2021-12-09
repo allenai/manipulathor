@@ -698,10 +698,10 @@ class ExploreWiseRewardTask(BringObjectTask):
 
         if visited_new_place and not self.source_observed_reward:
             reward += self.reward_configs["exploration_reward"]
-        elif visited_new_place and self.object_picked_up and not self.goal_observed_reward: #TODO test all these
+        elif visited_new_place and self.object_picked_up and not self.goal_observed_reward:
             reward += self.reward_configs["exploration_reward"]
 
-        #TODO this is too hacky
+
         source_is_visible = self.env.last_event.get_object(self.task_info['source_object_id'])['visible']
         goal_is_visible = self.env.last_event.get_object(self.task_info['goal_object_id'])['visible']
 

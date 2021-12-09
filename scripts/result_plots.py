@@ -50,7 +50,6 @@ def show_plot(frequence, countertops, objects):
 def plot_files(results, text, linestyle=None, color=None, plot_title = ''):
 
 
-    #TODO use these colors
     #
     if color is  None:
         c1=(68,114,196)

@@ -17,16 +17,23 @@ import numpy as np
 from pyquaternion import Quaternion
 
 from scripts.jupyter_helper import get_reachable_positions
-from scripts.stretch_jupyter_helper import ENV_ARGS, two_dict_equal, ARM_MOVE_CONSTANT, get_current_arm_state, initialize_arm, only_reset_scene, transport_wrapper, ADITIONAL_ARM_ARGS, execute_command, WRIST_ROTATION, get_current_wrist_state
+from scripts.stretch_jupyter_helper import two_dict_equal, ARM_MOVE_CONSTANT, get_current_arm_state, only_reset_scene, transport_wrapper, ADITIONAL_ARM_ARGS, execute_command, WRIST_ROTATION, get_current_wrist_state
+from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
 
 screen_size=224
 
-ENV_ARGS['width'] = screen_size
-ENV_ARGS['height'] = screen_size
-ENV_ARGS['agentMode']='stretch'
-# ENV_ARGS['commit_id']='69d9140a27a03c7313cf7d55e3fa681ae4a56219'
-ENV_ARGS['commit_id']='?'
-ENV_ARGS['renderDepthImage'] = True
+STRETCH_ENV_ARGS['width'] = screen_size
+STRETCH_ENV_ARGS['height'] = screen_size
+STRETCH_ENV_ARGS['agentMode']='stretch'
+# STRETCH_ENV_ARGS['commit_id']='69d9140a27a03c7313cf7d55e3fa681ae4a56219'
+# STRETCH_ENV_ARGS['commit_id']='b25593b766d47d4b53d1b6e03ab5ba5d152bf775' #before new camera
+# STRETCH_ENV_ARGS['commit_id']='482d1ce0ad48a85200aa4bd08c0c82770e072a9a' #after new camera
+# STRETCH_ENV_ARGS['commit_id']='31f60f097085b7cea8bc327d8a4a18c482f7c2b3' #after new camera
+# STRETCH_ENV_ARGS['commit_id']='879ad7c373420b7465de74576cda54e0a18a9718'
+STRETCH_ENV_ARGS['commit_id']='03b26e96a43c83f955386b8cac925d4d2b550837'
+
+
+STRETCH_ENV_ARGS['renderDepthImage'] = True
 
 if platform.system() == "Darwin":
     saved_image_folder = '/Users/kianae/Desktop/saved_stretch_images'
@@ -48,10 +55,10 @@ NUM_TESTS = 100
 EPS_LEN = 500
 
 def setup_thirdparty_camera(controller, camera_position):
-    controller.step('Pass')
-    if len(controller.last_event.third_party_camera_frames) > 0:
+    # controller.step('Pass')
+    if len(controller.last_event.third_party_camera_frames) > 1:
         controller.step('UpdateThirdPartyCamera',
-            thirdPartyCameraId=0, # id is available in the metadata response
+            thirdPartyCameraId=1, # id is available in the metadata response
             rotation=camera_position['rotation'],
             position=camera_position['position']
             )
@@ -89,8 +96,10 @@ def visualize(controller, save=False, addition_str=''):
     # controller.step('Pass')
     setup_thirdparty_camera(controller, camera_position)
     image = controller.last_event.frame
-    third_view = controller.last_event.third_party_camera_frames[0]
-    combined=np.concatenate([image, third_view], 0)
+    arm_view = controller.last_event.third_party_camera_frames[0]
+    third_view = controller.last_event.third_party_camera_frames[1]
+
+    combined=np.concatenate([image, arm_view, third_view], 0)
     
     imagename = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S.%f")
     imagename += addition_str
@@ -140,8 +149,7 @@ def print_locations(controller):
 
 
 def test_arm_movements(controller, scenes= all_scenes, num_tests=NUM_TESTS, episode_len=EPS_LEN, visualize_tests=False, one_by_one=False):
-    #LATER_TODO add these later , 'go', 'gc', 'wp', 'wn'
-    #LATER_TODO add p and d
+    #TODO add p and d
     ALL_POSSIBLE_ACTIONS = ['hu', 'hd', 'ao', 'ai'] + ['m', 'r', 'l', 'b'] + ['wp', 'wn']
     times = [1]
     for i in range(num_tests):
@@ -153,7 +161,7 @@ def test_arm_movements(controller, scenes= all_scenes, num_tests=NUM_TESTS, epis
             controller.reset(scene)
         except Exception:
             print('Failed for scene, ', scene)
-            controller = ai2thor.controller.Controller(**ENV_ARGS)#, renderInstanceSegmentation=True)
+            controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)#, renderInstanceSegmentation=True)
             controller.reset(scene)
 
         print('fps', 1.0 / (sum(times) / len(times)))
@@ -188,7 +196,7 @@ def test_arm_movements(controller, scenes= all_scenes, num_tests=NUM_TESTS, epis
             expected_arm_after_action = copy.deepcopy(arm_before_action)
             expected_wrist_after_action = copy.deepcopy(wrist_before_action)
             if controller.last_event.metadata['lastActionSuccess']:
-                if action in ['m', 'b']: #LATER_TODO this is not super accurate but just for now
+                if action in ['m', 'b']: #TODO this is not super accurate but just for now
                     distances = [agent_before_action['position'][k] - agent_after_action['position'][k] for k in ['x', 'y', 'z']]
                     sum_distances = sum([abs(k) for k in distances])
                     if sum_distances < 0.05:
@@ -246,7 +254,7 @@ def test_arm_scene_generalizations(controller):
             controller.reset(scene)
         except Exception:
             print('Failed to Start', scene)
-            controller = ai2thor.controller.Controller(**ENV_ARGS)
+            controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
     print('finished test arm openning all scenes')
 
 def test_teleport_agent(controller, scenes=all_scenes):
@@ -263,17 +271,17 @@ def test_teleport_agent(controller, scenes=all_scenes):
                     print('Failed to teleport but said successful')
             else:
                 failed += 1
-                print(event_TeleportFull)
-                print('scene', scene)
-                print('step', teleport_detail)
+                # print(event_TeleportFull)
+                # print('scene', scene)
+                # print('step', teleport_detail)
         print('scene', scene, 'failed', failed, 'out of', len(reachable_positions))
 
 def test_fov(controller):
-    ENV_ARGS['width'] = int(720/3)
-    ENV_ARGS['height'] = int(1280/3)
-    # ENV_ARGS['agentMode'] = 'arm'
-    print(ENV_ARGS)
-    controller = ai2thor.controller.Controller(**ENV_ARGS)
+    STRETCH_ENV_ARGS['width'] = int(720/3)
+    STRETCH_ENV_ARGS['height'] = int(1280/3)
+    # STRETCH_ENV_ARGS['agentMode'] = 'arm'
+    print(STRETCH_ENV_ARGS)
+    controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
     print('Done')
     manual_task(controller, 'FloorPlan2', logger_number =0, final=False, save_frames=True)
 
@@ -281,23 +289,29 @@ def test_fov(controller):
 # In[26]:
 
 if __name__ == '__main__':
-    print('resolve todos')
-    pdb.set_trace()
-    controller = ai2thor.controller.Controller(**ENV_ARGS)#, renderInstanceSegmentation=True)
 
-    #LATER_TODO add pickup and drop tests
+    controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)#, renderInstanceSegmentation=True)
 
-    # #LATER_TODO all the following tests need to pass
-    # test_arm_scene_generalizations(controller)
-    # print('Testing arm stuck in all scenes')
-    # test_arm_movements(controller, scenes=all_scenes, num_tests=len(all_scenes), episode_len = 30, visualize_tests=False, one_by_one=True)
-    # print('Finished Testing arm stuck in all scenes')
-    # print('Random tests')
-    # test_arm_movements(controller, scenes=all_scenes, num_tests=1000, visualize_tests=False)
-    # print('Finished')
+    #TODO add pickup and drop tests
 
+    # # all the following tests need to pass
+    print('Test 1')
+    test_arm_scene_generalizations(controller)
+
+    print('Test 2')
+    print('Testing arm stuck in all scenes')
+    test_arm_movements(controller, scenes=all_scenes, num_tests=len(all_scenes), episode_len = 30, visualize_tests=False, one_by_one=True)
+    print('Finished Testing arm stuck in all scenes')
+    #
+    print('Test 3')
+    print('Random tests')
+    test_arm_movements(controller, scenes=all_scenes, num_tests=1000, visualize_tests=False)
+    # test_arm_movements(controller, scenes=all_scenes, num_tests=1000, visualize_tests=True)
+    print('Finished')
+
+    print('Test 4')
     test_teleport_agent(controller)
-    # test_fov(controller)
+    test_fov(controller)
 
 
     # manual_task(controller, 'FloorPlan2', logger_number =0, final=False, save_frames=True)

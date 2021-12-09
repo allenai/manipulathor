@@ -52,7 +52,36 @@ class DepthSensorStretchIntel(
     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
 
         depth = (env.controller.last_event.depth_frame.copy())
-        return cv2.resize(depth, (224,224))
+        return depth
+
+
+class DepthSensorStretchKinect(
+    DepthSensorThor
+):
+    """Sensor for Depth images in THOR.
+
+    Returns from a running IThorEnvironment instance, the current RGB
+    frame corresponding to the agent's egocentric view.
+    """
+
+    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+
+        depth = env.controller.last_event.third_party_depth_frames[0].copy()
+        return depth
+
+class RGBSensorStretchKinect(
+    RGBSensorThor
+):
+    """Sensor for RGB images in THOR.
+
+    Returns from a running IThorEnvironment instance, the current RGB
+    frame corresponding to the agent's egocentric view.
+    """
+
+    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+
+        rgb = env.controller.last_event.third_party_camera_frames[0].copy()
+        return rgb
 
 
 class RGBSensorStretchIntel(
@@ -68,8 +97,7 @@ class RGBSensorStretchIntel(
 
         rgb = (env.controller.last_event.frame.copy())
 
-        #TODO i think we actually don't need this
-        return cv2.resize(rgb, (224,224))
+        return rgb#cv2.resize(rgb, (224,224))
 
 class NoisyObjectMaskStretch(NoisyObjectMask): #TODO double check correctness of this
 

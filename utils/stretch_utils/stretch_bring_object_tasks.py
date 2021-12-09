@@ -24,7 +24,7 @@ from ithor_arm.ithor_arm_constants import (
     ROTATE_RIGHT,
     ROTATE_LEFT,
     PICKUP,
-    DONE, ARM_LENGTH, MOVE_BACK,
+    DONE, ARM_LENGTH, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M,
 )
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
@@ -200,6 +200,109 @@ class ExploreWiseRewardTaskObjNav(BringObjectTask):
                     self.last_obj_to_goal_distance - current_obj_to_goal_distance
             )
         self.last_obj_to_goal_distance = current_obj_to_goal_distance
+        reward += delta_obj_to_goal_distance_reward
+
+        # add collision cost, maybe distance to goal objective,...
+
+        return float(reward)
+
+class StretchExploreWiseRewardTask(BringObjectTask):
+    _actions = (
+        MOVE_ARM_HEIGHT_P,
+        MOVE_ARM_HEIGHT_M,
+        MOVE_ARM_Z_P,
+        MOVE_ARM_Z_M,
+        MOVE_WRIST_P,
+        MOVE_WRIST_M,
+        MOVE_AHEAD,
+        MOVE_BACK,
+        ROTATE_RIGHT,
+        ROTATE_LEFT,
+        # PICKUP,
+        # DONE,
+    )
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions(self.env.controller)]
+        self.all_reachable_positions = torch.Tensor(all_locations)
+        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
+        self.source_observed_reward = False
+        self.goal_observed_reward = False
+    def metrics(self) -> Dict[str, Any]:
+        result = super(StretchExploreWiseRewardTask, self).metrics()
+        if self.is_done():
+            result['percent_room_visited'] = self.has_visited.mean().item()
+
+        return result
+
+    def judge(self) -> float:
+        """Compute the reward after having taken a step."""
+        reward = self.reward_configs["step_penalty"]
+
+
+        current_agent_location = self.env.get_agent_location()
+        current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
+        all_distances = self.all_reachable_positions - current_agent_location
+        all_distances = (all_distances ** 2).sum(dim=-1)
+        location_index = torch.argmin(all_distances)
+        if self.has_visited[location_index] == 0:
+            visited_new_place = True
+        else:
+            visited_new_place = False
+        self.has_visited[location_index] = 1
+
+        if visited_new_place and not self.source_observed_reward:
+            reward += self.reward_configs["exploration_reward"]
+        elif visited_new_place and self.object_picked_up and not self.goal_observed_reward:
+            reward += self.reward_configs["exploration_reward"]
+
+        source_is_visible = self.env.last_event.get_object(self.task_info['source_object_id'])['visible']
+        goal_is_visible = self.env.last_event.get_object(self.task_info['goal_object_id'])['visible']
+
+        if not self.source_observed_reward and source_is_visible:
+            self.source_observed_reward = True
+            reward += self.reward_configs['object_found']
+
+        if not self.goal_observed_reward and goal_is_visible:
+            self.goal_observed_reward = True
+            reward += self.reward_configs['object_found']
+
+        if not self.last_action_success or (
+                self._last_action_str == PICKUP and not self.object_picked_up
+        ):
+            reward += self.reward_configs["failed_action_penalty"]
+
+        if self._took_end_action:
+            reward += (
+                self.reward_configs["goal_success_reward"]
+                if self._success
+                else self.reward_configs["failed_stop_reward"]
+            )
+
+        # increase reward if object pickup and only do it once
+        if not self.got_reward_for_pickup and self.object_picked_up:
+            reward += self.reward_configs["pickup_success_reward"]
+            self.got_reward_for_pickup = True
+        #
+
+        current_obj_to_arm_distance = self.arm_distance_from_obj()
+        if self.last_arm_to_obj_distance is None or self.last_arm_to_obj_distance > ARM_LENGTH * 2: # is this good?
+            delta_arm_to_obj_distance_reward = 0
+        else:
+            delta_arm_to_obj_distance_reward = (
+                    self.last_arm_to_obj_distance - current_obj_to_arm_distance
+            )
+        self.last_arm_to_obj_distance = current_obj_to_arm_distance
+        reward += delta_arm_to_obj_distance_reward * self.reward_configs["arm_dist_multiplier"]
+
+        current_obj_to_goal_distance = self.obj_distance_from_goal()
+        if self.last_obj_to_goal_distance is None or self.last_obj_to_goal_distance > ARM_LENGTH * 2:
+            delta_obj_to_goal_distance_reward = 0
+        else:
+            delta_obj_to_goal_distance_reward = (
+                    self.last_obj_to_goal_distance - current_obj_to_goal_distance
+            )
+        self.last_obj_to_goal_distance = current_obj_to_goal_distance * self.reward_configs["arm_dist_multiplier"]
         reward += delta_obj_to_goal_distance_reward
 
         # add collision cost, maybe distance to goal objective,...

@@ -309,7 +309,7 @@ class KianaBinnedPointCloudMapBuilder(object):
                 resolution_in_cm=self.resolution_in_cm,
                 flip_row_col=True,
             )
-            #TODO what was this?
+            # TODO what was this?
             # vr = self.vision_range_in_map_units
             # vr_div_2 = self.vision_range_in_map_units // 2
             # width_div_2 = agent_centric_binned_map.shape[1] // 2

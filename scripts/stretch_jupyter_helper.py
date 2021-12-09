@@ -9,6 +9,8 @@ import ai2thor.fifo_server
 ### CONSTANTS
 from pyquaternion import Quaternion
 
+from manipulathor_utils.debugger_util import ForkedPdb
+
 ADITIONAL_ARM_ARGS = {
     'disableRendering': True,
     'returnToStart': True,
@@ -16,19 +18,19 @@ ADITIONAL_ARM_ARGS = {
 }
 
 ARM_MOVE_CONSTANT = 0.05
-WRIST_ROTATION = 10
+WRIST_ROTATION = 10 #TODO we might have to make this smalelr tbh
 
 SCENE_INDICES = [i + 1 for i in range(30)] +[i + 1 for i in range(200,230)] +[i + 1 for i in range(300,330)] +[i + 1 for i in range(400,430)]
 SCENE_NAMES = ['FloorPlan{}_physics'.format(i) for i in SCENE_INDICES]
 
 
-ENV_ARGS = dict(gridSize=0.25,
-                width=224, height=224, agentMode='arm', fieldOfView=100,
-                agentControllerType='mid-level',
-                server_class=ai2thor.fifo_server.FifoServer,
-                useMassThreshold = True, massThreshold = 10,
-                autoSimulation=False, autoSyncTransforms=True,
-                )
+# ENV_ARGS = dict(gridSize=0.25,
+#                 width=224, height=224, agentMode='arm', fieldOfView=100,
+#                 agentControllerType='mid-level',
+#                 server_class=ai2thor.fifo_server.FifoServer,
+#                 useMassThreshold = True, massThreshold = 10,
+#                 autoSimulation=False, autoSyncTransforms=True,
+#                 )
 
 #Functions
 
@@ -57,14 +59,6 @@ def is_agent_at_position(controller, action_detail):
 def get_object_details(controller, obj_id):
     return [o for o in controller.last_event.metadata['objects'] if o['objectId'] == obj_id][0]
 
-def initialize_arm(controller, scene_starting_cheating_locations):
-    # for start arm from high up as a cheating, this block is very important. never remove
-    scene = controller.last_event.metadata['sceneName']
-    initial_pose = scene_starting_cheating_locations[scene]
-    event1 = controller.step(dict(action='TeleportFull', standing=True, x=initial_pose['x'], y=initial_pose['y'], z=initial_pose['z'], rotation=dict(x=0, y=initial_pose['rotation'], z=0), horizon=initial_pose['horizon']))
-    event2 = controller.step(dict(action='MoveArm',  position=dict(x=0.0, y=0, z=0.35), **ADITIONAL_ARM_ARGS))
-    event3 = controller.step(dict(action='MoveArmBase', y=0.8, **ADITIONAL_ARM_ARGS))
-    return event1, event2, event3
 
 def make_all_objects_unbreakable(controller):
     all_breakable_objects = [o['objectType'] for o in controller.last_event.metadata['objects'] if o['breakable'] is True]
@@ -78,17 +72,27 @@ def reset_the_scene_and_get_reachables(controller, scene_name=None, scene_option
         if scene_options is None:
             scene_options = SCENE_NAMES
         scene_name = random.choice(scene_options)
-    controller.reset(scene_name)
-    controller.step(action='MakeAllObjectsMoveable')
-    controller.step(action='MakeObjectsStaticKinematicMassThreshold')
-    make_all_objects_unbreakable(controller)
+
+    only_reset_scene(controller, scene_name)
     return get_reachable_positions(controller)
+
+def reset_environment_and_additional_commands(controller, scene_name):
+    controller.reset(scene_name)
+    controller.step(action="MakeAllObjectsMoveable")
+    controller.step(action="MakeObjectsStaticKinematicMassThreshold")
+    make_all_objects_unbreakable(controller)
+
+    event_init_arm = controller.step(dict(action="MoveArmBase", y=0.8, **ADITIONAL_ARM_ARGS))
+    if event_init_arm.metadata['lastActionSuccess'] is False:
+        print('Initialze arm failed')
+    return
 
 def only_reset_scene(controller, scene_name):
     controller.reset(scene_name)
     controller.step(action='MakeAllObjectsMoveable')
     controller.step(action='MakeObjectsStaticKinematicMassThreshold')
     make_all_objects_unbreakable(controller)
+
 
 def transport_wrapper(controller, target_object, target_location):
     action_detail_list = []
@@ -213,12 +217,11 @@ def get_current_wrist_state(controller):
 
 
 def get_current_arm_state(controller):
-    print('change this to sphere center and make sure it is right, resolve todos')
-    ForkedPdb().set_trace()
-    arm = controller.last_event.metadata['arm']['joints'] #LATER_TODO is this the right one? how about wrist movements
+
+    arm = controller.last_event.metadata['arm']['joints'] #TODO is this the right one? how about wrist movements
     z = arm[-1]['rootRelativePosition']['z']
     x = 0 #arm[-1]['rootRelativePosition']['x']
-    y = arm[0]['rootRelativePosition']['y'] - 0.16297650337219238 #LATER_TODO?
+    y = arm[0]['rootRelativePosition']['y'] - 0.16297650337219238 #TODO?
     return dict(x=0,y=y, z=z)
 
 def two_list_equal(l1, l2):

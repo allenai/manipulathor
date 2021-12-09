@@ -2,6 +2,7 @@
 
 import copy
 import typing
+import warnings
 from typing import Dict, Union, Optional
 
 import ai2thor.server
@@ -10,9 +11,12 @@ from ai2thor.controller import Controller
 
 from ithor_arm.ithor_arm_constants import (
     ADITIONAL_ARM_ARGS,
-    PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_BACK,
+    PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_BACK, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_WRIST_P, MOVE_WRIST_M,
 )
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
+from manipulathor_utils.debugger_util import ForkedPdb
+from scripts.jupyter_helper import ARM_MOVE_CONSTANT
+from scripts.stretch_jupyter_helper import get_current_arm_state, WRIST_ROTATION, reset_environment_and_additional_commands
 from utils.stretch_utils.stretch_constants import STRETCH_MANIPULATHOR_COMMIT_ID
 
 
@@ -27,6 +31,46 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
 
     controller : The ai2thor controller.
     """
+    def reset(
+            self,
+            scene_name: Optional[str],
+            move_mag: float = 0.25,
+            **kwargs,
+    ):
+        self._move_mag = move_mag
+        self._grid_size = self._move_mag
+        # self.memory_frames = []
+
+        if scene_name is None:
+            scene_name = self.controller.last_event.metadata["sceneName"]
+        # self.reset_init_params()#**kwargs) removing this fixes one of the crashing problem
+
+        # to solve the crash issue
+        # why do we still have this crashing problem?
+        try:
+            reset_environment_and_additional_commands(self.controller, scene_name)
+        except Exception as e:
+            print("RESETTING THE SCENE,", scene_name, 'because of', str(e))
+            self.controller = self.create_controller()
+            reset_environment_and_additional_commands(self.controller, scene_name)
+
+        if self.object_open_speed != 1.0:
+            self.controller.step(
+                {"action": "ChangeOpenSpeed", "x": self.object_open_speed}
+            )
+
+        self._initially_reachable_points = None
+        self._initially_reachable_points_set = None
+        self.controller.step({"action": "GetReachablePositions"})
+        if not self.controller.last_event.metadata["lastActionSuccess"]:
+            warnings.warn(
+                "Error when getting reachable points: {}".format(
+                    self.controller.last_event.metadata["errorMessage"]
+                )
+            )
+        self._initially_reachable_points = self.last_action_return
+
+        self.list_of_actions_so_far = []
 
 
     def check_controller_version(self):
@@ -44,6 +88,10 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
 
         return controller
 
+    @property
+    def arm_frame(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        return self.controller.last_event.third_party_camera_frames[0]
 
     def get_current_arm_state(self):
         arm = self.controller.last_event.metadata['arm']['joints'] #TODO is this the right one? how about wrist movements
@@ -54,11 +102,11 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
 
 
     def get_absolute_hand_state(self):
-        event = self.controller.last_event
-        joints = event.metadata["arm"]["joints"]
-        arm = copy.deepcopy(joints[-1])
-        xyz_dict = arm["position"]
-        xyz_dict = self.correct_nan_inf(xyz_dict, "absolute hand")
+        # event = self.controller.last_event
+        # joints = event.metadata["arm"]["joints"]
+        # arm = copy.deepcopy(joints[-1])
+        # xyz_dict = arm["position"]
+        xyz_dict = get_current_arm_state(self.controller)
         return dict(position=xyz_dict, rotation={"x": 0, "y": 0, "z": 0})
 
     def get_pickupable_objects(self):
@@ -113,45 +161,31 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
                 action_dict["ahead"] = 0.2 #TODO replace with constant equal to real world stuff
             elif action == MOVE_BACK:
                 action_dict["action"] = "MoveAgent"
-                action_dict["ahead"] = -0.2
+                action_dict["ahead"] = -0.2 #TODO we might have to mess with this and arm constant as well
             elif action == ROTATE_RIGHT:
                 action_dict["action"] = "RotateAgent"
-                action_dict["degrees"] = 45
+                action_dict["degrees"] = 45 #TODO we might have to make this smaller.
 
             elif action == ROTATE_LEFT:
                 action_dict["action"] = "RotateAgent"
                 action_dict["degrees"] = -45
-        # elif "MoveArm" in action:
-        #     copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
-        #     action_dict = {**action_dict, **copy_aditions}
-        #     base_position = self.get_current_arm_state()
-        #     if "MoveArmHeight" in action:
-        #         action_dict["action"] = "MoveArmBase"
-        #
-        #         if action == MOVE_ARM_HEIGHT_P:
-        #             base_position["h"] += MOVE_ARM_HEIGHT_CONSTANT
-        #         if action == MOVE_ARM_HEIGHT_M:
-        #             base_position[
-        #                 "h"
-        #             ] -= MOVE_ARM_HEIGHT_CONSTANT  # height is pretty big!
-        #         action_dict["y"] = base_position["h"]
-        #     else:
-        #         action_dict["action"] = "MoveArm"
-        #         if action == MOVE_ARM_X_P:
-        #             base_position["x"] += MOVE_ARM_CONSTANT
-        #         elif action == MOVE_ARM_X_M:
-        #             base_position["x"] -= MOVE_ARM_CONSTANT
-        #         elif action == MOVE_ARM_Y_P:
-        #             base_position["y"] += MOVE_ARM_CONSTANT
-        #         elif action == MOVE_ARM_Y_M:
-        #             base_position["y"] -= MOVE_ARM_CONSTANT
-        #         elif action == MOVE_ARM_Z_P:
-        #             base_position["z"] += MOVE_ARM_CONSTANT
-        #         elif action == MOVE_ARM_Z_M:
-        #             base_position["z"] -= MOVE_ARM_CONSTANT
-        #         action_dict["position"] = {
-        #             k: v for (k, v) in base_position.items() if k in ["x", "y", "z"]
-        #         }
+        elif action in [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,]:
+            base_position = get_current_arm_state(self.controller)
+            change_value = ARM_MOVE_CONSTANT
+            if action == MOVE_ARM_HEIGHT_P:
+                base_position['y'] += change_value
+            elif action == MOVE_ARM_HEIGHT_M:
+                base_position['y'] -= change_value
+            elif action == MOVE_ARM_Z_P:
+                base_position['z'] += change_value
+            elif action == MOVE_ARM_Z_M:
+                base_position['z'] -= change_value
+            action_dict = dict(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**ADITIONAL_ARM_ARGS)
+        elif action in [MOVE_WRIST_P,MOVE_WRIST_M,]:
+            if action == MOVE_WRIST_P:
+                action_dict = dict(action='RotateWristRelative', yaw=-WRIST_ROTATION)
+            elif action == MOVE_WRIST_M:
+                action_dict = dict(action='RotateWristRelative', yaw=WRIST_ROTATION)
 
         sr = self.controller.step(action_dict)
         self.list_of_actions_so_far.append(action_dict)

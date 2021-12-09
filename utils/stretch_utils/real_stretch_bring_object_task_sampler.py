@@ -14,7 +14,6 @@ from allenact.base_abstractions.task import Task
 from allenact.base_abstractions.task import TaskSampler
 from allenact.utils.experiment_utils import set_deterministic_cudnn, set_seed
 
-from ithor_arm.arm_calculation_utils import initialize_arm
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
 from ithor_arm.bring_object_tasks import BringObjectTask
 from ithor_arm.ithor_arm_constants import transport_wrapper

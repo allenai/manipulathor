@@ -150,7 +150,7 @@ class PointNavEmulatorSensor(Sensor):
 
         if np.abs(change_in_xyz).sum() > 0:
 
-            noise_value_x, noise_value_z = self.noise_mode.linear_motion.linear.sample() * 0.01 * self.noise #to convert to meters #TODO ?
+            noise_value_x, noise_value_z = self.noise_mode.linear_motion.linear.sample() * 0.01 * self.noise #to convert to meters
             new_change_in_xyz = change_in_xyz.copy()
             new_change_in_xyz[0] += noise_value_x
             new_change_in_xyz[2] += noise_value_z
@@ -177,7 +177,7 @@ class PointNavEmulatorSensor(Sensor):
         new_rotation = prev_rotation + change_in_rotation
 
         if change_in_rotation > 0:
-            noise_in_rotation = self.noise_mode.rotational_motion.rotation.sample().item() #TODO * self.noise
+            noise_in_rotation = self.noise_mode.rotational_motion.rotation.sample().item()
             new_rotation += noise_in_rotation
         return new_rotation
 
@@ -185,7 +185,7 @@ class PointNavEmulatorSensor(Sensor):
     def get_agent_localizations(self, env):
 
         if self.noise == 0:
-            return self.get_accurate_locations(env) #TODO add a test that at each time step it should give accurate (degrade should happen throuoght time)
+            return self.get_accurate_locations(env) # TODO add a test that at each time step it should give accurate (degrade should happen throuoght time)
         else:
             real_current_location = self.get_accurate_locations(env)
 
@@ -602,7 +602,9 @@ class RealPointNavSensor(Sensor):
     def get_agent_localizations(self, env):
 
         if self.noise == 0:
-            return self.get_accurate_locations(env)
+            self.real_prev_location = self.get_accurate_locations(env)
+            self.belief_prev_location = self.get_accurate_locations(env)
+            return self.real_prev_location
         else:
             real_current_location = self.get_accurate_locations(env)
 
@@ -641,6 +643,7 @@ class RealPointNavSensor(Sensor):
         real_agent_state = self.real_prev_location
         belief_agent_state = self.belief_prev_location
 
+
         relative_goal_obj = convert_world_to_agent_coordinate(
             real_object_info, belief_agent_state
         )
@@ -653,7 +656,7 @@ class RealPointNavSensor(Sensor):
         return result
 
 
-#TODO gimbal lock still :(
+# gimbal lock
 class AgentRelativeLocationSensor(Sensor):
 
     def __init__(self, noise = 0, uuid: str = "agent_relative_location", **kwargs: Any):
@@ -776,7 +779,7 @@ class MisDetectionNoisyObjectMask(Sensor):
                 agent_location = env.get_agent_location()
                 object_location = env.get_object_by_id(target_object_id)['position']
                 current_agent_distance_to_obj = sum([(object_location[k] - agent_location[k])**2 for k in ['x', 'z']]) ** 0.5
-                if current_agent_distance_to_obj > self.distance_thr or mask_frame.sum() < 20: #TODO objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
+                if current_agent_distance_to_obj > self.distance_thr or mask_frame.sum() < 20: # objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
                     mask_frame[:] = 0
 
         else:
@@ -836,7 +839,7 @@ class MaskCutoffNoisyObjectMask(Sensor):
                 agent_location = env.get_agent_location()
                 object_location = env.get_object_by_id(target_object_id)['position']
                 current_agent_distance_to_obj = sum([(object_location[k] - agent_location[k])**2 for k in ['x', 'z']]) ** 0.5
-                if current_agent_distance_to_obj > self.distance_thr or mask_frame.sum() < 20: #TODO objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
+                if current_agent_distance_to_obj > self.distance_thr or mask_frame.sum() < 20: # objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
                     mask_frame[:] = 0
 
         else:

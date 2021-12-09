@@ -70,7 +70,7 @@ class PointNavNewModelAndHandZeroShot(
 
     NUM_PROCESSES = 20
 
-    OBJECT_TYPES = TRAIN_OBJECTS #TODO make sure you add for test + TEST_OBJECTS
+    OBJECT_TYPES = TRAIN_OBJECTS #
 
     # remove
     #

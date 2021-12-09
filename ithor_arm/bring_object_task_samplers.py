@@ -190,7 +190,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
             self.sampler_index = 0
             self.all_test_tasks = []
 
-            #TODO we need to fix this later
+            # TODO we need to fix this later
             small_objects = ['Spatula', 'Egg']
 
             for scene in self.scenes:

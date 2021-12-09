@@ -220,8 +220,9 @@ class FakeMaskDetectorLoss(AbstractActorCriticLoss):
             self.criterion = torch.nn.CrossEntropyLoss(self.weights.to(is_real_mask_pred.device))
 
         total_loss = self.criterion(is_real_mask_pred, is_real_mask_gt)
+        ForkedPdb().set_trace()
 
-        #TODO do we want to take care of cases where there is no mask and it's all zero? if yes should we change the weight?
+        #LATER_TODO do we want to take care of cases where there is no mask and it's all zero? if yes should we change the weight?
 
         return (
             total_loss,

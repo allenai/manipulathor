@@ -37,7 +37,7 @@ class RelativeArmDistanceToGoal(Sensor):
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
         is_object_picked_up = task.object_picked_up
-        if not is_object_picked_up: #TODO is this the updated one or one step before?
+        if not is_object_picked_up: # is this the updated one or one step before?
             distance = task.arm_distance_from_obj()
         else:
             distance = task.obj_distance_from_goal()
@@ -177,7 +177,7 @@ class NoisyObjectMask(Sensor):
                 agent_location = env.get_agent_location()
                 object_location = env.get_object_by_id(target_object_id)['position']
                 current_agent_distance_to_obj = sum([(object_location[k] - agent_location[k])**2 for k in ['x', 'z']]) ** 0.5
-                if current_agent_distance_to_obj > self.distance_thr or mask_frame.sum() < 20: #TODO objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
+                if current_agent_distance_to_obj > self.distance_thr or mask_frame.sum() < 20: # objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
                     mask_frame[:] = 0
 
         else:
@@ -247,10 +247,13 @@ def add_mask_noise(real_mask, fake_mask, noise):
     result = real_mask.copy()
 
     random_prob = random.random()
+    if noise > 0:
+        print('remove todo')
+        ForkedPdb().set_trace()
     if random_prob < REMOVE_RATE:
         result[:] = 0.
         is_real_mask = False
-    elif random_prob < REMOVE_RATE + REPLACE_WITH_FAKE: #TODO I think this is too much, think of all the frames that we don't actually see the object but this is true
+    elif random_prob < REMOVE_RATE + REPLACE_WITH_FAKE: #LATER_TODO I think this is too much, think of all the frames that we don't actually see the object but this is true
         result = fake_mask
         is_real_mask = False
     elif random_prob < REMOVE_RATE + REPLACE_WITH_FAKE + TURN_OFF_RATE:
