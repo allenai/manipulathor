@@ -1,6 +1,6 @@
-open3d
 absl-py==0.12.0
-ai2thor==3.3.4
+addict==2.4.0
+ai2thor==4.0.0
 allenact==0.4.1a0
 allenact-plugins==0.4.1a0
 antlr4-python3-runtime==4.8
@@ -20,18 +20,20 @@ certifi==2020.12.5
 cffi==1.14.5
 chardet==4.0.0
 click==7.1.2
+clip @ git+https://github.com/openai/CLIP.git@04f4dc2ca1ed0acc9893bd1a3b526a7e02c4bb10
 cloudpickle==1.6.0
 cmake==3.18.4.post1
 colour==0.1.5
 cycler==0.10.0
 Cython==0.29.23
-dataclasses==0.6
+dataclasses==0.8
 decorator==4.4.2
 defusedxml==0.7.1
 entrypoints==0.3
 filelock==3.0.12
 Flask==1.1.2
 flatbuffers==1.12
+ftfy==6.0.3
 future==0.18.2
 fvcore==0.1.5.post20210609
 gast==0.3.3
@@ -58,6 +60,7 @@ itsdangerous==1.1.0
 jedi==0.17.0
 Jinja2==2.11.3
 jmespath==0.10.0
+joblib==1.1.0
 jsonschema==3.2.0
 jupyter==1.0.0
 jupyter-client==6.1.12
@@ -86,9 +89,11 @@ numpy==1.19.5
 numpy-quaternion==2021.4.5.14.42.35
 oauthlib==3.1.0
 omegaconf==2.1.0
+open3d==0.13.0
 opencv-python==4.5.1.48
 opt-einsum==3.3.0
 packaging==20.9
+pandas==1.1.5
 pandocfilters==1.4.3
 parso==0.8.2
 pathspec==0.8.1
@@ -115,7 +120,9 @@ pyrsistent==0.17.3
 python-dateutil==2.8.1
 python-utils==2.5.6
 python-xlib==0.29
-PyYAML==5.1
+pytz==2021.3
+PyWavelets==1.1.1
+PyYAML==5.4.1
 pyzmq==22.0.3
 qtconsole==5.1.0
 QtPy==1.9.0
@@ -123,6 +130,8 @@ regex==2021.4.4
 requests==2.25.1
 requests-oauthlib==1.3.0
 rsa==4.7.2
+scikit-image==0.17.2
+scikit-learn==0.24.2
 scipy==1.5.4
 Send2Trash==1.5.0
 setproctitle==1.2.2
@@ -137,6 +146,8 @@ tensorflow-estimator==2.4.0
 termcolor==1.1.0
 terminado==0.9.4
 testpath==0.4.4
+threadpoolctl==3.0.0
+tifffile==2020.9.3
 toml==0.10.2
 torch==1.8.1
 torchaudio==0.8.1
@@ -154,4 +165,3 @@ widgetsnbextension==3.5.1
 wrapt==1.12.1
 yacs==0.1.8
 zipp==3.4.1
-detectron2 @ git+https://github.com/facebookresearch/detectron2.git@d285dea0a58675217b061f48182dc031d2e3b677

@@ -1,5 +1,8 @@
 """Task Samplers for the task of ArmPointNav"""
+import json
 import random
+
+from torch.distributions.utils import lazy_property
 
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -138,27 +141,24 @@ class StretchDiverseBringObjectTaskSampler(DiverseBringObjectTaskSampler):
 
         return self._last_sampled_task
 
+    @lazy_property
+    def stretch_reachable_positions(self):
+        with open('datasets/apnd-dataset/stretch_init_location.json') as f:
+            return json.load(f)
+
     def get_source_target_indices(self):
         data_point = super().get_source_target_indices()
 
+        #TODO this needs to be fixed for test
+        reachable_positions = self.stretch_reachable_positions[data_point['scene_name']]
+        agent_pose = random.choice(reachable_positions)
 
-        # data_point['initial_agent_pose']['position']['y'] += 0.02 #TODO is this really a good idea? or just a quick hack?
-        # return data_point
 
-        #TODO this is a quick hack we need to find a better solution DEFNITELY won't work for test
-        self.env.reset(
-            scene_name=data_point['scene_name'], agentMode="stretch", agentControllerType="mid-level"
-        ) #TODO this is happening twice!!1
-        reachable_positions = get_reachable_positions( self.env.controller)
-        chosen_position = random.choice(reachable_positions)
-        chosen_rotation = {'x':0, 'y':random.choice([i * 30 for i in range(120)]), 'z':0}
-        # reachable_positions = self.env.reachable_points_with_rotations_and_horizons() #TODO maybe this function is not working
 
-        # random_point = random.choice(reachable_positions)
         data_point['initial_agent_pose'] = {
             "name": "agent",
-            "rotation": chosen_rotation,
-            "position": chosen_position,
+            "position": dict(x=agent_pose['x'], y=agent_pose['y'], z=agent_pose['z']),
+            "rotation": dict(x=0, y=agent_pose['rotation'], z=0),
             "cameraHorizon": data_point['initial_agent_pose']['cameraHorizon'],
             "isStanding": True,
         }

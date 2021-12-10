@@ -64,7 +64,7 @@ class StretchRealBringObjectTask(BringObjectTask):
         action_str = self.class_action_names()[action]
         print('Model Said', action_str)
 
-        self.manual_action = False #TODO
+        self.manual_action = False
         if self.manual_action:
             list_of_actions = [MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, PICKUP, DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, GRASP_O, GRASP_C]
             corespond = ['hp', 'hm', 'xp', 'xm', 'yp', 'ym', 'zp', 'zm', 'm', 'r', 'l', 'p', 'd', 'b', 'wp', 'wm', 'go', 'gc']

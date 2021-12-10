@@ -19,6 +19,8 @@ ADITIONAL_ARM_ARGS = {
 
 ARM_MOVE_CONSTANT = 0.05
 WRIST_ROTATION = 10 #TODO we might have to make this smalelr tbh
+AGENT_ROTATION_DEG = 30
+AGENT_MOVEMENT_CONSTANT = 0.2 #TODO replace with constant equal to real world stuff
 
 SCENE_INDICES = [i + 1 for i in range(30)] +[i + 1 for i in range(200,230)] +[i + 1 for i in range(300,330)] +[i + 1 for i in range(400,430)]
 SCENE_NAMES = ['FloorPlan{}_physics'.format(i) for i in SCENE_INDICES]
@@ -161,22 +163,22 @@ def execute_command(controller, command,action_dict_addition):
         action_details = dict(action='ReleaseObject')
     elif command == 'm':
         action_dict_addition = copy.deepcopy(action_dict_addition)
-        event = controller.step(action='MoveAgent', ahead=0.2,**action_dict_addition)
-        action_details = dict(action='MoveAgent', ahead=0.2,**action_dict_addition)
+        event = controller.step(action='MoveAgent', ahead=AGENT_MOVEMENT_CONSTANT,**action_dict_addition)
+        action_details = dict(action='MoveAgent', ahead=AGENT_MOVEMENT_CONSTANT,**action_dict_addition)
 
     elif command == 'b':
         action_dict_addition = copy.deepcopy(action_dict_addition)
-        event = controller.step(action='MoveAgent', ahead=-0.2,**action_dict_addition)
-        action_details = dict(action='MoveAgent', ahead=-0.2,**action_dict_addition)
+        event = controller.step(action='MoveAgent', ahead=-AGENT_MOVEMENT_CONSTANT,**action_dict_addition)
+        action_details = dict(action='MoveAgent', ahead=-AGENT_MOVEMENT_CONSTANT,**action_dict_addition)
 
     elif command == 'r':
         action_dict_addition = copy.deepcopy(action_dict_addition)
-        event = controller.step(action='RotateAgent', degrees = 45,**action_dict_addition)
-        action_details = dict(action='RotateAgent', degrees = 45,**action_dict_addition)
+        event = controller.step(action='RotateAgent', degrees = AGENT_ROTATION_DEG,**action_dict_addition)
+        action_details = dict(action='RotateAgent', degrees = AGENT_ROTATION_DEG,**action_dict_addition)
     elif command == 'l':
         action_dict_addition = copy.deepcopy(action_dict_addition)
-        event = controller.step(action='RotateAgent', degrees = -45,**action_dict_addition)
-        action_details = dict(action='RotateAgent', degrees = -45,**action_dict_addition)
+        event = controller.step(action='RotateAgent', degrees = -AGENT_ROTATION_DEG,**action_dict_addition)
+        action_details = dict(action='RotateAgent', degrees = -AGENT_ROTATION_DEG,**action_dict_addition)
     elif command == 'p':
         event = controller.step(action='PickupObject')
         action_details = dict(action='PickupObject')

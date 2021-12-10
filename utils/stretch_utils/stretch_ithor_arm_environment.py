@@ -8,6 +8,8 @@ from typing import Dict, Union, Optional
 import ai2thor.server
 import numpy as np
 from ai2thor.controller import Controller
+from allenact_plugins.ithor_plugin.ithor_constants import VISIBILITY_DISTANCE, FOV
+from torch.distributions.utils import lazy_property
 
 from ithor_arm.ithor_arm_constants import (
     ADITIONAL_ARM_ARGS,
@@ -16,7 +18,7 @@ from ithor_arm.ithor_arm_constants import (
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.jupyter_helper import ARM_MOVE_CONSTANT
-from scripts.stretch_jupyter_helper import get_current_arm_state, WRIST_ROTATION, reset_environment_and_additional_commands
+from scripts.stretch_jupyter_helper import get_current_arm_state, WRIST_ROTATION, reset_environment_and_additional_commands, AGENT_ROTATION_DEG, AGENT_MOVEMENT_CONSTANT
 from utils.stretch_utils.stretch_constants import STRETCH_MANIPULATHOR_COMMIT_ID
 
 
@@ -31,6 +33,128 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
 
     controller : The ai2thor controller.
     """
+    def __init__(
+            self,
+            x_display: Optional[str] = None,
+            docker_enabled: bool = False,
+            local_thor_build: Optional[str] = None,
+            visibility_distance: float = VISIBILITY_DISTANCE,
+            fov: float = FOV,
+            player_screen_width: int = 224,
+            player_screen_height: int = 224,
+            quality: str = "Very Low",
+            restrict_to_initially_reachable_points: bool = False,
+            make_agents_visible: bool = True,
+            object_open_speed: float = 1.0,
+            simplify_physics: bool = False,
+            verbose: bool = False,
+            env_args=None,
+    ) -> None:
+        """Initializer.
+
+        # Parameters
+
+        x_display : The x display into which to launch ai2thor (possibly necessarily if you are running on a server
+            without an attached display).
+        docker_enabled : Whether or not to run thor in a docker container (useful on a server without an attached
+            display so that you don't have to start an x display).
+        local_thor_build : The path to a local build of ai2thor. This is probably not necessary for your use case
+            and can be safely ignored.
+        visibility_distance : The distance (in meters) at which objects, in the viewport of the agent,
+            are considered visible by ai2thor and will have their "visible" flag be set to `True` in the metadata.
+        fov : The agent's camera's field of view.
+        width : The width resolution (in pixels) of the images returned by ai2thor.
+        height : The height resolution (in pixels) of the images returned by ai2thor.
+        quality : The quality at which to render. Possible quality settings can be found in
+            `ai2thor._quality_settings.QUALITY_SETTINGS`.
+        restrict_to_initially_reachable_points : Whether or not to restrict the agent to locations in ai2thor
+            that were found to be (initially) reachable by the agent (i.e. reachable by the agent after resetting
+            the scene). This can be useful if you want to ensure there are only a fixed set of locations where the
+            agent can go.
+        make_agents_visible : Whether or not the agent should be visible. Most noticable when there are multiple agents
+            or when quality settings are high so that the agent casts a shadow.
+        object_open_speed : How quickly objects should be opened. High speeds mean faster simulation but also mean
+            that opening objects have a lot of kinetic energy and can, possibly, knock other objects away.
+        simplify_physics : Whether or not to simplify physics when applicable. Currently this only simplies object
+            interactions when opening drawers (when simplified, objects within a drawer do not slide around on
+            their own when the drawer is opened or closed, instead they are effectively glued down).
+        """
+
+        self._start_player_screen_width = player_screen_width
+        self._start_player_screen_height = player_screen_height
+        self._local_thor_build = local_thor_build
+        self.x_display = x_display
+        # self.controller: Optional[Controller] = None
+        self._started = False
+        self._quality = quality
+        self._verbose = verbose
+        self.env_args = env_args
+
+        self._initially_reachable_points: Optional[typing.List[Dict]] = None
+        self._initially_reachable_points_set: Optional[typing.Set[typing.Tuple[float, float]]] = None
+        self._move_mag: Optional[float] = None
+        self._grid_size: Optional[float] = None
+        self._visibility_distance = visibility_distance
+
+        self._fov = fov
+
+        self.restrict_to_initially_reachable_points = (
+            restrict_to_initially_reachable_points
+        )
+        self.make_agents_visible = make_agents_visible
+        self.object_open_speed = object_open_speed
+        self._always_return_visible_range = False
+        self.simplify_physics = simplify_physics
+
+        # self.start(None)
+
+
+        # noinspection PyTypeHints
+        self.docker_enabled = docker_enabled
+
+
+        self.MEMORY_SIZE = 5
+        # self.memory_frames = []
+
+    def start(
+            self,
+            scene_name: Optional[str],
+            move_mag: float = 0.25,
+            **kwargs,
+    ) -> None:
+
+        raise Exception('SHOULD NOT CALL')
+        # """Starts the ai2thor controller if it was previously stopped.
+        #
+        # After starting, `reset` will be called with the scene name and move magnitude.
+        #
+        # # Parameters
+        #
+        # scene_name : The scene to load.
+        # move_mag : The amount of distance the agent moves in a single `MoveAhead` step.
+        # kwargs : additional kwargs, passed to reset.
+        # """
+        # if self._started:
+        #     raise RuntimeError(
+        #         "Trying to start the environment but it is already started."
+        #     )
+        #
+        # self.controller = self.create_controller()
+        #
+        # if (
+        #         self._start_player_screen_height,
+        #         self._start_player_screen_width,
+        # ) != self.current_frame.shape[:2]:
+        #     self.controller.step(
+        #         {
+        #             "action": "ChangeResolution",
+        #             "x": self._start_player_screen_width,
+        #             "y": self._start_player_screen_height,
+        #         }
+        #     )
+        #
+        # self._started = True
+        # self.reset(scene_name=scene_name, move_mag=move_mag, **kwargs)
     def reset(
             self,
             scene_name: Optional[str],
@@ -73,19 +197,29 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
         self.list_of_actions_so_far = []
 
 
-    def check_controller_version(self):
+    def check_controller_version(self, controller=None):
+        controller_to_check = controller
+        if controller_to_check is None:
+            controller_to_check = self.controller
         if STRETCH_MANIPULATHOR_COMMIT_ID is not None:
             assert (
-                STRETCH_MANIPULATHOR_COMMIT_ID in self.controller._build.url
+                STRETCH_MANIPULATHOR_COMMIT_ID in controller_to_check._build.url
             ), "Build number is not right, {} vs {}, use  pip3 install -e git+https://github.com/allenai/ai2thor.git@{}#egg=ai2thor".format(
-                self.controller._build.url,
+                controller_to_check._build.url,
                 STRETCH_MANIPULATHOR_COMMIT_ID,
                 STRETCH_MANIPULATHOR_COMMIT_ID,
             )
 
     def create_controller(self):
         controller = Controller(**self.env_args, commit_id=STRETCH_MANIPULATHOR_COMMIT_ID)
+        return controller
 
+    @lazy_property
+    def controller(self):
+        self._started = True
+        controller = self.create_controller()
+        self.check_controller_version(controller)
+        controller.docker_enabled = self.docker_enabled  # type: ignore
         return controller
 
     @property
@@ -158,17 +292,17 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
             action_dict = {**action_dict, **copy_aditions}
             if action == MOVE_AHEAD:
                 action_dict["action"] = "MoveAgent"
-                action_dict["ahead"] = 0.2 #TODO replace with constant equal to real world stuff
+                action_dict["ahead"] = AGENT_MOVEMENT_CONSTANT
             elif action == MOVE_BACK:
                 action_dict["action"] = "MoveAgent"
-                action_dict["ahead"] = -0.2 #TODO we might have to mess with this and arm constant as well
+                action_dict["ahead"] = -AGENT_MOVEMENT_CONSTANT
             elif action == ROTATE_RIGHT:
                 action_dict["action"] = "RotateAgent"
-                action_dict["degrees"] = 45 #TODO we might have to make this smaller.
+                action_dict["degrees"] = AGENT_ROTATION_DEG
 
             elif action == ROTATE_LEFT:
                 action_dict["action"] = "RotateAgent"
-                action_dict["degrees"] = -45
+                action_dict["degrees"] = -AGENT_ROTATION_DEG
         elif action in [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,]:
             base_position = get_current_arm_state(self.controller)
             change_value = ARM_MOVE_CONSTANT

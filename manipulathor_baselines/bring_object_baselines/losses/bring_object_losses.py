@@ -114,9 +114,9 @@ class BinaryArmDistanceLoss(AbstractActorCriticLoss):
 
 
 
-
+        ForkedPdb().set_trace()
         observations = cast(Dict[str, torch.Tensor], batch["observations"])
-        #TODO double check this
+        #LATER_TODO double check this
 
         is_object_visible = observations['is_goal_object_visible']
         binary_arm_distance = actor_critic_output.extras['binary_arm_distance']
@@ -144,7 +144,7 @@ class BinaryArmDistanceLoss(AbstractActorCriticLoss):
         # masked_arm_dis = binary_arm_distance[mask_over_actions]
 
 
-        #TODO weights?
+        #LATER_TODO weights?
         if not torch.any(action_exist):
             total_loss = torch.tensor(0)
         else:

@@ -49,8 +49,7 @@ class RGBSensorRealStretch(
     def frame_from_env(
             self, env: IThorEnvironment, task: Task[IThorEnvironment]
     ) -> np.ndarray:  # type:ignore
-        #TODO this is weird that the server returns bgr
-        # return env.current_frame[:,:, ::-1].copy()
+
         return env.current_frame.copy()
 
 class DepthSensorRealStretch(
@@ -63,7 +62,6 @@ class DepthSensorRealStretch(
 def normalize_intel_image(image):
     rotated = cv2.rotate(image, cv2.cv2.ROTATE_90_CLOCKWISE)
     if len(image.shape) == 3:
-        #TODO this is really important, image is in bgr initially
         rotated = rotated[:,:,::-1]
         #TODO why only rgb is flipped?
         rotated = cv2.flip(rotated,1)
@@ -149,12 +147,12 @@ class StretchDetectronObjectMask(Sensor):
         elif self.source_camera == 'intel':
             im = env.controller.last_event.third_party_camera_frames[0].copy()
             im = normalize_intel_image(im)
-        #TODO VERYYYYYY IMPORTANT
+        # TODO VERYYYYYY IMPORTANT
         im = im[:,:,::-1]
-        #TODO the detection requires BGR???
+        # the detection requires BGR???
 
         outputs = self.predictor(im)
-        #TODO should I normalize the image?
+        #
         def visualize_detections(im, outputs ):
             v = Visualizer(im[:, :, ::-1], MetadataCatalog.get(self.cfg.DATASETS.TRAIN[0]), scale=1.2)
             out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
@@ -165,8 +163,8 @@ class StretchDetectronObjectMask(Sensor):
             plt.imsave(os.path.join(dir, timestamp), out.get_image()[:, :, ::-1])
         # ForkedPdb().set_trace()
 
-        #TODO remove
-        visualize_detections(im, outputs)
+        # TODO remove
+        # visualize_detections(im, outputs)
         # ForkedPdb().set_trace()
 
         if self.type == 'source':
@@ -208,8 +206,8 @@ class StretchObjectMask(Sensor):
         if env.last_image_changed is False and self.cache is not None:
             return self.cache
 
-        #TODO remove
-        mask = np.zeros((224, 224, 1))
+        # TODO remove
+        # mask = np.zeros((224, 224, 1))
         return mask
 
 

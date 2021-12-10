@@ -116,8 +116,14 @@ import pdb
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0'
 
-command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/zero_shot_complex_reward_no_pu_w_agent_location_distrib -c ~/exp_ComplexRewardNoPUwAgentLocationZeroShotDistrib__stage_00__steps_000018553490.pt\
- --distributed_ip_and_port IP_ADR:6060 \
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/zero_shot_complex_reward_no_pu_w_agent_location_distrib -c ~/exp_ComplexRewardNoPUwAgentLocationZeroShotDistrib__stage_00__steps_000018553490.pt\
+#  --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0'
+
+
+command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/real_point_nav_stretch_distrib \
+--distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
  --seed 10 --machine_id 0'
 
@@ -126,7 +132,7 @@ command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTH
 # list_of_servers = ['aws1', 'aws2', 'aws3', 'aws4', ]
 server_set1 = {
     'servers':[f'aws{i}' for i in range(1,5)],
-    'ip_adr': '34.220.30.46',
+    'ip_adr': '18.237.24.199',
 }
 server_set2 = {
     'servers':[f'aws{i}' for i in range(5, 9)],

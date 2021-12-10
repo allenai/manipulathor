@@ -46,7 +46,7 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
         )
         self.log_queue = put_action_on_image(self.log_queue, self.action_queue[1:])
         concat_all_images = np.expand_dims(np.stack(self.arm_frame_queue, axis=0), axis=1)
-        arm_frames = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)#TODO add this to the model
+        arm_frames = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
         concat_all_images = np.concatenate([concat_all_images, arm_frames], axis=3)
         save_image_list_to_gif(concat_all_images, gif_name, self.log_dir)
         this_controller = environment.controller

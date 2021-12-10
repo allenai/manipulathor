@@ -25,14 +25,7 @@ screen_size=224
 STRETCH_ENV_ARGS['width'] = screen_size
 STRETCH_ENV_ARGS['height'] = screen_size
 STRETCH_ENV_ARGS['agentMode']='stretch'
-# STRETCH_ENV_ARGS['commit_id']='69d9140a27a03c7313cf7d55e3fa681ae4a56219'
-# STRETCH_ENV_ARGS['commit_id']='b25593b766d47d4b53d1b6e03ab5ba5d152bf775' #before new camera
-# STRETCH_ENV_ARGS['commit_id']='482d1ce0ad48a85200aa4bd08c0c82770e072a9a' #after new camera
-# STRETCH_ENV_ARGS['commit_id']='31f60f097085b7cea8bc327d8a4a18c482f7c2b3' #after new camera
-# STRETCH_ENV_ARGS['commit_id']='879ad7c373420b7465de74576cda54e0a18a9718'
 STRETCH_ENV_ARGS['commit_id']='03b26e96a43c83f955386b8cac925d4d2b550837'
-
-
 STRETCH_ENV_ARGS['renderDepthImage'] = True
 
 if platform.system() == "Darwin":

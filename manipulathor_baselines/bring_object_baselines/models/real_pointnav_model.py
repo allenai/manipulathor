@@ -192,6 +192,10 @@ class RealPointNavModel(ActorCriticModel[CategoricalDistr]):
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
+        if self.visualize:
+            hacky_visualization(observations, object_mask=observations['depth_lowres_arm'], query_objects=observations['rgb_lowres_arm'].permute(0,1,4,2,3), base_directory_to_right_images=self.starting_time)
+
+
 
 
         return (

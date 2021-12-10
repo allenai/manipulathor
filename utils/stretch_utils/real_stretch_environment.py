@@ -45,7 +45,7 @@ class StretchRealEnvironment(ManipulaTHOREnvironment):
 
     def create_controller(self):
         controller = ai2thor.robot_controller.Controller(host="stretch1.corp.ai2", port=9000, width=1280, height=720) #TODO frame width and height?
-        # controller.step('Initialize') #TODO should i put this back?>
+        # controller.step('Initialize') # TODO should i put this back?>
         return controller
 
     def start(
@@ -97,7 +97,7 @@ class StretchRealEnvironment(ManipulaTHOREnvironment):
         self._move_mag = move_mag
         self._grid_size = self._move_mag
 
-        #TODO is this good?
+        # TODO is this good?
         self.controller = self.create_controller()
         self.controller.step('Initialize')
 
