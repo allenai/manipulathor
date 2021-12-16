@@ -391,8 +391,8 @@ class StretchObjectNavTask(BringObjectTask):
         MOVE_BACK,
         ROTATE_RIGHT,
         ROTATE_LEFT,
-        ROTATE_RIGHT_SMALL,
-        ROTATE_LEFT_SMALL,
+        # ROTATE_RIGHT_SMALL,
+        # ROTATE_LEFT_SMALL,
         # PICKUP,
         # DONE,
     )

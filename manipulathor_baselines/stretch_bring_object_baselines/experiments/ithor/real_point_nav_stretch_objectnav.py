@@ -24,11 +24,11 @@ from manipulathor_baselines.bring_object_baselines.models.real_pointnav_model im
 from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.stretch_bring_object_tasks import StretchObjectNavTask
 from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
-from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, RGBSensorStretchKinect, DepthSensorStretchKinect
+from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, RGBSensorStretchKinect, DepthSensorStretchKinect, RGBSensorStretchKinectZero, DepthSensorStretchKinectZero
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
-class RealPointNavStretch(
+class RealPointNavStretchObjectNav(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -51,13 +51,13 @@ class RealPointNavStretch(
             use_normalization=True,
             uuid="depth_lowres",
         ),
-        RGBSensorStretchKinect(
+        RGBSensorStretchKinectZero( #TODO
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=True,
             uuid="rgb_lowres_arm",
         ),
-        DepthSensorStretchKinect(
+        DepthSensorStretchKinectZero( #TODO
             height=desired_screen_size,
             width=desired_screen_size,
             use_normalization=True,
@@ -88,7 +88,7 @@ class RealPointNavStretch(
         self.REWARD_CONFIG['exploration_reward'] = 0#0.1 # is this too big?
         self.REWARD_CONFIG['object_found'] = 0#1 # is this too big?
         self.ENV_ARGS = STRETCH_ENV_ARGS
-        self.ENV_ARGS['visibilityDistance'] = 0.5
+        self.ENV_ARGS['visibilityDistance'] = 1
         self.ENV_ARGS['renderInstanceSegmentation'] = False
 
 

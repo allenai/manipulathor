@@ -69,6 +69,22 @@ class DepthSensorStretchKinect(
         depth = env.controller.last_event.third_party_depth_frames[0].copy()
         return depth
 
+
+class DepthSensorStretchKinectZero(
+    DepthSensorThor
+):
+    """Sensor for Depth images in THOR.
+
+    Returns from a running IThorEnvironment instance, the current RGB
+    frame corresponding to the agent's egocentric view.
+    """
+
+    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+
+        depth = env.controller.last_event.third_party_depth_frames[0].copy()
+        depth[:] = 0
+        return depth
+
 class RGBSensorStretchKinect(
     RGBSensorThor
 ):
@@ -83,6 +99,21 @@ class RGBSensorStretchKinect(
         rgb = env.controller.last_event.third_party_camera_frames[0].copy()
         return rgb
 
+
+class RGBSensorStretchKinectZero(
+    RGBSensorThor
+):
+    """Sensor for RGB images in THOR.
+
+    Returns from a running IThorEnvironment instance, the current RGB
+    frame corresponding to the agent's egocentric view.
+    """
+
+    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+
+        rgb = env.controller.last_event.third_party_camera_frames[0].copy()
+        rgb[:] = 0
+        return rgb
 
 class RGBSensorStretchIntel(
     RGBSensorThor
