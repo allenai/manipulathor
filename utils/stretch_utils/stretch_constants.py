@@ -4,7 +4,7 @@ import ai2thor.fifo_server
 # INTEL_CAMERA_WIDTH = int(720/3)
 # INTEL_CAMERA_HEIGHT = int(1280/3)
 INTEL_CAMERA_WIDTH, INTEL_CAMERA_HEIGHT = 224,224 #TODO just for the beginning you have to chngfe this and have different values for differnt cameras
-STRETCH_MANIPULATHOR_COMMIT_ID = '03b26e96a43c83f955386b8cac925d4d2b550837'
+STRETCH_MANIPULATHOR_COMMIT_ID = '7184aa455bc21cc38406487a3d8e2d65ceba2571'
 STRETCH_ENV_ARGS = dict(
     gridSize=0.25,
     width=INTEL_CAMERA_WIDTH,

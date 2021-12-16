@@ -52,7 +52,7 @@ class StretchDiverseBringObjectTaskSampler(DiverseBringObjectTaskSampler):
 
         self.reset_scene(scene_name)
 
-        this_controller = self.env.controller
+        this_controller = self.env
 
 
 

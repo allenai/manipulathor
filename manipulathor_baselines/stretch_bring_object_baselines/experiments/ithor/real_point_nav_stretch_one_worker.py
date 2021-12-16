@@ -74,19 +74,20 @@ class RealPointNavStretch(
     TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
     TASK_TYPE = StretchExploreWiseRewardTask
 
-    NUM_PROCESSES = 40
+    NUM_PROCESSES = 1
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
+    VISUALIZE = True
 
     POTENTIAL_VISUALIZERS = [StretchBringObjImageVisualizer, TestMetricLogger]
 
-    # if platform.system() == "Darwin":
-    #     MAX_STEPS = 200
+    if platform.system() == "Darwin":
+        MAX_STEPS = 20
 
     def __init__(self):
         super().__init__()
-        self.REWARD_CONFIG['exploration_reward'] = 0#0.1 # is this too big?
-        self.REWARD_CONFIG['object_found'] = 0#1 # is this too big?
+        self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
+        self.REWARD_CONFIG['object_found'] = 1 # is this too big?
         self.ENV_ARGS = STRETCH_ENV_ARGS
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['renderInstanceSegmentation'] = False

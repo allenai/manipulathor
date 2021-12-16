@@ -22,7 +22,7 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 from manipulathor_baselines.bring_object_baselines.models.real_pointnav_model import RealPointNavModel
 from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
-from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask
+from utils.stretch_utils.stretch_bring_object_tasks import StretchObjectNavTask
 from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, RGBSensorStretchKinect, DepthSensorStretchKinect
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
@@ -72,7 +72,7 @@ class RealPointNavStretch(
     MAX_STEPS = 200
 
     TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
-    TASK_TYPE = StretchExploreWiseRewardTask
+    TASK_TYPE = StretchObjectNavTask
 
     NUM_PROCESSES = 40
 
@@ -88,7 +88,7 @@ class RealPointNavStretch(
         self.REWARD_CONFIG['exploration_reward'] = 0#0.1 # is this too big?
         self.REWARD_CONFIG['object_found'] = 0#1 # is this too big?
         self.ENV_ARGS = STRETCH_ENV_ARGS
-        self.ENV_ARGS['visibilityDistance'] = self.distance_thr
+        self.ENV_ARGS['visibilityDistance'] = 0.5
         self.ENV_ARGS['renderInstanceSegmentation'] = False
 
 

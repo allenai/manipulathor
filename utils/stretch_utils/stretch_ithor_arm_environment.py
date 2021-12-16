@@ -1,6 +1,7 @@
 """A wrapper for engaging with the ManipulaTHOR environment."""
 
 import copy
+import datetime
 import typing
 import warnings
 from typing import Dict, Union, Optional
@@ -13,7 +14,7 @@ from torch.distributions.utils import lazy_property
 
 from ithor_arm.ithor_arm_constants import (
     ADITIONAL_ARM_ARGS,
-    PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_BACK, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_WRIST_P, MOVE_WRIST_M,
+    PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_BACK, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_WRIST_P, MOVE_WRIST_M, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL,
 )
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -116,6 +117,14 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
         self.MEMORY_SIZE = 5
         # self.memory_frames = []
 
+        #TODO remove
+        directory_to_save = "experiment_output/logging_debugging"
+        import os
+        os.makedirs(directory_to_save, exist_ok=True)
+        timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f.txt")
+
+        # self.file_to_write = open(os.path.join(directory_to_save, timestamp), 'w') #TODO remove
+
     def start(
             self,
             scene_name: Optional[str],
@@ -171,6 +180,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
 
         # to solve the crash issue
         # why do we still have this crashing problem?
+        # self.file_to_write.write('reset scene' + scene_name + '\n') #TODO remove
         try:
             reset_environment_and_additional_commands(self.controller, scene_name)
         except Exception as e:
@@ -320,7 +330,18 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
                 action_dict = dict(action='RotateWristRelative', yaw=-WRIST_ROTATION)
             elif action == MOVE_WRIST_M:
                 action_dict = dict(action='RotateWristRelative', yaw=WRIST_ROTATION)
+        elif action == MOVE_WRIST_P_SMALL:
+            action_dict = dict(action='RotateWristRelative', yaw=-WRIST_ROTATION / 5)
+        elif action == MOVE_WRIST_M_SMALL:
+            action_dict = dict(action='RotateWristRelative', yaw=WRIST_ROTATION / 5)
+        elif action == ROTATE_LEFT_SMALL:
+            action_dict["action"] = "RotateAgent"
+            action_dict["degrees"] = -AGENT_ROTATION_DEG / 5
+        elif action == ROTATE_RIGHT_SMALL:
+            action_dict["action"] = "RotateAgent"
+            action_dict["degrees"] = AGENT_ROTATION_DEG / 5
 
+        # self.file_to_write.write(str(action_dict) + '\n') #TODO remove
         sr = self.controller.step(action_dict)
         self.list_of_actions_so_far.append(action_dict)
 

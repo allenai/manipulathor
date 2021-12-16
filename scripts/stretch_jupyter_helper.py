@@ -99,12 +99,17 @@ def only_reset_scene(controller, scene_name):
 def transport_wrapper(controller, target_object, target_location):
     action_detail_list = []
     transport_detail = dict(action = 'PlaceObjectAtPoint', objectId=target_object, position=target_location, forceKinematic=True)
-    event = controller.step(**transport_detail)
     action_detail_list.append(transport_detail)
     # controller.step('PhysicsSyncTransforms')
     advance_detail = dict(action='AdvancePhysicsStep', simSeconds=1.0)
-    controller.step(**advance_detail)
     action_detail_list.append(advance_detail)
+
+    if type(controller) == (ai2thor.controller.Controller):
+        event = controller.step(**transport_detail)
+        controller.step(**advance_detail)
+    else:
+        event = controller.step(transport_detail)
+        controller.step(advance_detail)
     return event, action_detail_list
 
 def get_parent_receptacles(event, target_obj):
