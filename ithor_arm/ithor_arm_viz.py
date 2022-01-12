@@ -416,3 +416,22 @@ def put_action_on_image(images, actions):
 
     all_images.append(images[-1]) # No action needs to be written here
     return all_images
+
+
+def put_additional_text_on_image(images, added_texts):
+    all_images = []
+    for i in range(len(images) - 1):
+        img = images[i]
+        text = added_texts[i]
+
+        position = (10,200)
+
+        from PIL import Image, ImageFont, ImageDraw
+        pil_img = Image.fromarray(img)
+        draw = ImageDraw.Draw(pil_img)
+        draw.text(position, text, (0,0,0))
+        all_images.append(np.array(pil_img))
+
+
+    all_images.append(images[-1]) # No action needs to be written here
+    return all_images

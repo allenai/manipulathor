@@ -9,7 +9,7 @@ from allenact.base_abstractions.misc import RLStepResult
 from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import Task
 
-from ithor_arm.bring_object_tasks import BringObjectTask
+from ithor_arm.bring_object_tasks import BringObjectTask, position_distance
 from ithor_arm.ithor_arm_constants import (
     MOVE_ARM_CONSTANT,
     MOVE_ARM_HEIGHT_P,
@@ -52,6 +52,7 @@ class ExploreWiseRewardTaskObjNav(BringObjectTask):
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1)) # do something about rotation here
         self.source_observed_reward = False
         self.goal_observed_reward = False
+
 
 
 
@@ -403,6 +404,8 @@ class StretchObjectNavTask(BringObjectTask):
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
         self.source_observed_reward = False
         self.goal_observed_reward = False
+        self.last_body_to_obj_distance = None
+        self.agent_body_dist_to_obj = []
 
 
     def metrics(self) -> Dict[str, Any]:
@@ -439,6 +442,7 @@ class StretchObjectNavTask(BringObjectTask):
         last_action_name = self._last_action_str
         last_action_success = float(self.last_action_success)
         self.action_sequence_and_success.append((last_action_name, last_action_success))
+        self.agent_body_dist_to_obj.append(self.body_distance_from_obj())
         self.visualize(last_action_name)
 
         object_visible = self.env.get_object_by_id(object_id)['visible']
@@ -455,7 +459,11 @@ class StretchObjectNavTask(BringObjectTask):
             info={"last_action_success": self.last_action_success},
         )
         return step_result
-
+    def body_distance_from_obj(self):
+        source_object_id = self.task_info["source_object_id"]
+        object_info = self.env.get_object_by_id(source_object_id)
+        agent_state = dict(position={k:v for (k,v) in self.env.get_agent_location().items() if k in ['x','y', 'z']})
+        return position_distance(object_info, agent_state)
     def judge(self) -> float:
         """Compute the reward after having taken a step."""
         reward = self.reward_configs["step_penalty"]
@@ -506,25 +514,37 @@ class StretchObjectNavTask(BringObjectTask):
             self.got_reward_for_pickup = True
         #
 
-        current_obj_to_arm_distance = self.arm_distance_from_obj()
-        if self.last_arm_to_obj_distance is None or self.last_arm_to_obj_distance > ARM_LENGTH * 2: # is this good?
-            delta_arm_to_obj_distance_reward = 0
-        else:
-            delta_arm_to_obj_distance_reward = (
-                    self.last_arm_to_obj_distance - current_obj_to_arm_distance
-            )
-        self.last_arm_to_obj_distance = current_obj_to_arm_distance
-        reward += delta_arm_to_obj_distance_reward * self.reward_configs["arm_dist_multiplier"]
+        #TODO this needs to be changed. We might need two separate ones for this
+        # current_obj_to_arm_distance = self.arm_distance_from_obj()
+        # if self.last_arm_to_obj_distance is None or self.last_arm_to_obj_distance > ARM_LENGTH * 2: # is this good?
+        #     delta_arm_to_obj_distance_reward = 0
+        # else:
+        #     delta_arm_to_obj_distance_reward = (
+        #             self.last_arm_to_obj_distance - current_obj_to_arm_distance
+        #     )
+        # self.last_arm_to_obj_distance = current_obj_to_arm_distance
+        # reward += delta_arm_to_obj_distance_reward * self.reward_configs["arm_dist_multiplier"]
+        # current_obj_to_goal_distance = self.obj_distance_from_goal()
+        # if self.last_obj_to_goal_distance is None or self.last_obj_to_goal_distance > ARM_LENGTH * 2:
+        #     delta_obj_to_goal_distance_reward = 0
+        # else:
+        #     delta_obj_to_goal_distance_reward = (
+        #             self.last_obj_to_goal_distance - current_obj_to_goal_distance
+        #     )
+        # self.last_obj_to_goal_distance = current_obj_to_goal_distance * self.reward_configs["arm_dist_multiplier"]
+        # reward += delta_obj_to_goal_distance_reward
 
-        current_obj_to_goal_distance = self.obj_distance_from_goal()
-        if self.last_obj_to_goal_distance is None or self.last_obj_to_goal_distance > ARM_LENGTH * 2:
-            delta_obj_to_goal_distance_reward = 0
+
+        current_obj_to_body_distance = self.body_distance_from_obj()
+        if self.last_body_to_obj_distance is None: # is this good?
+            delta_body_to_obj_distance_reward = 0
         else:
-            delta_obj_to_goal_distance_reward = (
-                    self.last_obj_to_goal_distance - current_obj_to_goal_distance
+            delta_body_to_obj_distance_reward = (
+                    self.last_body_to_obj_distance - current_obj_to_body_distance
             )
-        self.last_obj_to_goal_distance = current_obj_to_goal_distance * self.reward_configs["arm_dist_multiplier"]
-        reward += delta_obj_to_goal_distance_reward
+        self.last_body_to_obj_distance = current_obj_to_body_distance
+        reward += delta_body_to_obj_distance_reward * self.reward_configs["arm_dist_multiplier"]
+
 
         # add collision cost, maybe distance to goal objective,...
 

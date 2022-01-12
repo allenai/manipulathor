@@ -5,7 +5,7 @@ import cv2
 from torch.distributions.utils import lazy_property
 
 from ithor_arm.ithor_arm_constants import reset_environment_and_additional_commands
-from ithor_arm.ithor_arm_viz import save_image_list_to_gif, LoggerVisualizer, put_action_on_image
+from ithor_arm.ithor_arm_viz import save_image_list_to_gif, LoggerVisualizer, put_action_on_image, put_additional_text_on_image
 import numpy as np
 
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -45,6 +45,8 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
                 + ".gif"
         )
         self.log_queue = put_action_on_image(self.log_queue, self.action_queue[1:])
+        addition_texts = [str(x) for x in episode_info.agent_body_dist_to_obj]
+        self.log_queue = put_additional_text_on_image(self.log_queue, addition_texts)
         concat_all_images = np.expand_dims(np.stack(self.arm_frame_queue, axis=0), axis=1)
         arm_frames = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
         concat_all_images = np.concatenate([concat_all_images, arm_frames], axis=3)

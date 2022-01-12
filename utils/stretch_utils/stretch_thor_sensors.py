@@ -1,3 +1,5 @@
+import copy
+
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 from typing import Any, Union, Optional
 
@@ -188,3 +190,37 @@ def set_mask_frames(w, h):
         mask = cv2.drawContours(mask, [triangle_cnt], 0, (0), -1)
     global MASK_FRAMES
     MASK_FRAMES = cv2.resize(mask, (h, w))
+
+
+
+class AgentBodyPointNavSensor(Sensor):
+
+    def __init__(self, type: str, noise=0, uuid: str = "point_nav_real", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        self.noise = noise
+        assert self.noise == 0
+        uuid = '{}_{}'.format(uuid, type)
+
+        super().__init__(**prepare_locals_for_super(locals()))
+
+    def get_accurate_locations(self, env):
+        metadata = copy.deepcopy(env.controller.last_event.metadata['agent'])
+        return metadata
+
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        if self.type == 'source':
+            info_to_search = 'source_object_id'
+        elif self.type == 'destination':
+            info_to_search = 'goal_object_id'
+        goal_obj_id = task.task_info[info_to_search]
+        real_object_info = env.get_object_by_id(goal_obj_id)
+        real_agent_state = self.get_accurate_locations(env)
+        relative_goal_obj = convert_world_to_agent_coordinate(real_object_info, real_agent_state)
+        result = convert_state_to_tensor(dict(position=relative_goal_obj['position'])) #TODO double check this again
+        return result

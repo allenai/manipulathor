@@ -40,6 +40,7 @@ def main(args):
              --exclude datasets/apnd-dataset/weights/  \
              --exclude pretrained_models/  \
              --exclude *.ipynb_checkpoints/*  \
+             --exclude *.ipynb  \
              --exclude trained_weights/do_not_sync_weights/  \
              ../manipulathor {}:~/'.format(server)
         if args.sync_weights:
