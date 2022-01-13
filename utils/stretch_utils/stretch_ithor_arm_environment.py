@@ -117,13 +117,11 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
         self.MEMORY_SIZE = 5
         # self.memory_frames = []
 
-        #TODO remove
-        directory_to_save = "experiment_output/logging_debugging"
-        import os
-        os.makedirs(directory_to_save, exist_ok=True)
-        timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f.txt")
+        # directory_to_save = "experiment_output/logging_debugging"
+        # import os
+        # os.makedirs(directory_to_save, exist_ok=True)
+        # timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f.txt")
 
-        # self.file_to_write = open(os.path.join(directory_to_save, timestamp), 'w') #TODO remove
 
     def start(
             self,
@@ -180,7 +178,6 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
 
         # to solve the crash issue
         # why do we still have this crashing problem?
-        # self.file_to_write.write('reset scene' + scene_name + '\n') #TODO remove
         try:
             reset_environment_and_additional_commands(self.controller, scene_name)
         except Exception as e:
@@ -341,7 +338,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
             action_dict["action"] = "RotateAgent"
             action_dict["degrees"] = AGENT_ROTATION_DEG / 5
 
-        # self.file_to_write.write(str(action_dict) + '\n') #TODO remove
+
         sr = self.controller.step(action_dict)
         self.list_of_actions_so_far.append(action_dict)
 

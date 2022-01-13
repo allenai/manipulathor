@@ -80,7 +80,7 @@ class RealPointNavModel(ActorCriticModel[CategoricalDistr]):
         )
 
         self.state_encoder = RNNStateEncoder(
-            512 * 3,
+            512 * 4, #TODO this might be too big, maybe combine visual encodings and pointnav encodings first
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -163,16 +163,39 @@ class RealPointNavModel(ActorCriticModel[CategoricalDistr]):
         visual_observation_arm = torch.cat([observations['depth_lowres_arm'], observations['rgb_lowres_arm']], dim=-1).float()
         visual_observation_encoding_arm = compute_cnn_output(self.full_visual_encoder_arm, visual_observation_arm)
 
+        # arm_distance_to_obj_source = observations['point_nav_real_source'].copy()
+        # arm_distance_to_obj_destination = observations['point_nav_real_destination'].copy()
+        # arm_distance_to_obj_source_embedding = self.pointnav_embedding(arm_distance_to_obj_source)
+        # arm_distance_to_obj_destination_embedding = self.pointnav_embedding(arm_distance_to_obj_destination)
+        # pointnav_embedding = arm_distance_to_obj_source_embedding
+        # pointnav_embedding[after_pickup] = arm_distance_to_obj_destination_embedding[after_pickup]
 
-        arm_distance_to_obj_source = observations['point_nav_real_source']
-        arm_distance_to_obj_destination = observations['point_nav_real_destination']
 
-        arm_distance_to_obj_source_embedding = self.pointnav_embedding(arm_distance_to_obj_source)
-        arm_distance_to_obj_destination_embedding = self.pointnav_embedding(arm_distance_to_obj_destination)
-        pointnav_embedding = arm_distance_to_obj_source_embedding
-        pointnav_embedding[after_pickup] = arm_distance_to_obj_destination_embedding[after_pickup]
+        agent_distance_to_obj_source = observations['point_nav_real_source'].clone()
+        agent_distance_to_obj_destination = observations['point_nav_real_destination'].clone()
+        #TODO eventually change this and the following to only calculate embedding for the ones we want
+        agent_distance_to_obj_embedding_source = self.pointnav_embedding(agent_distance_to_obj_source)
+        agent_distance_to_obj_embedding_destination = self.pointnav_embedding(agent_distance_to_obj_destination)
+        agent_distance_to_obj_embedding = agent_distance_to_obj_embedding_source
+        agent_distance_to_obj_embedding[after_pickup] = agent_distance_to_obj_embedding_destination[after_pickup]
+        # agent_distance_to_obj = agent_distance_to_obj_source.clone()
+        # agent_distance_to_obj[after_pickup] = agent_distance_to_obj_destination[after_pickup].clone()
+        # agent_distance_to_obj_embedding = self.pointnav_embedding(agent_distance_to_obj)
 
-        visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, pointnav_embedding], dim=-1)
+
+        arm_distance_to_obj_source = observations['arm_point_nav_source'].clone()
+        arm_distance_to_obj_destination = observations['arm_point_nav_destination'].clone()
+        arm_distance_to_obj_embedding_source = self.pointnav_embedding(arm_distance_to_obj_source)
+        arm_distance_to_obj_embedding_destination = self.pointnav_embedding(arm_distance_to_obj_destination)
+        arm_distance_to_obj_embedding = arm_distance_to_obj_embedding_source
+        arm_distance_to_obj_embedding[after_pickup] = arm_distance_to_obj_embedding_destination[after_pickup]
+        # arm_distance_to_obj = arm_distance_to_obj_source.clone()
+        # arm_distance_to_obj[after_pickup] = arm_distance_to_obj_destination[after_pickup].clone()
+        # arm_distance_to_obj_embedding = self.pointnav_embedding(arm_distance_to_obj)
+
+
+        # visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, pointnav_embedding], dim=-1)
+        visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, agent_distance_to_obj_embedding, arm_distance_to_obj_embedding], dim=-1)
 
 
         x_out, rnn_hidden_states = self.state_encoder(

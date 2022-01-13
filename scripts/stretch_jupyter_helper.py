@@ -18,7 +18,7 @@ ADITIONAL_ARM_ARGS = {
 }
 
 ARM_MOVE_CONSTANT = 0.05
-WRIST_ROTATION = 10 #TODO we might have to make this smalelr tbh
+WRIST_ROTATION = 10
 AGENT_ROTATION_DEG = 30
 AGENT_MOVEMENT_CONSTANT = 0.2 #TODO replace with constant equal to real world stuff
 

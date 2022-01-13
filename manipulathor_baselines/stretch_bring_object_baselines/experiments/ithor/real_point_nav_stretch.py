@@ -14,7 +14,7 @@ from manipulathor_baselines.stretch_bring_object_baselines.models.real_pointnav_
 from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask
 from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
-from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, RGBSensorStretchKinect, DepthSensorStretchKinect
+from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, RGBSensorStretchKinect, DepthSensorStretchKinect, AgentBodyPointNavSensor
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
@@ -54,8 +54,10 @@ class RealPointNavStretch(
             uuid="depth_lowres_arm",
         ),
         PickedUpObjSensor(),
-        RealPointNavSensor(type='source'),
-        RealPointNavSensor(type='destination'),
+        AgentBodyPointNavSensor(type='source'),
+        AgentBodyPointNavSensor(type='destination'),
+        RealPointNavSensor(type='source', uuid='arm_point_nav'),
+        RealPointNavSensor(type='destination', uuid='arm_point_nav'),
 
     ]
 

@@ -24,7 +24,7 @@ from gym.spaces.dict import Dict as SpaceDict
 
 from ithor_arm.ithor_arm_constants import DONT_USE_ALL_POSSIBLE_OBJECTS_EVER
 from manipulathor_utils.debugger_util import ForkedPdb
-from utils.model_utils import LinearActorHeadNoCategory #TODO why do we have this?
+from utils.model_utils import LinearActorHeadNoCategory
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from utils.hacky_viz_utils import hacky_visualization, calc_dict_average
 
