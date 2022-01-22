@@ -12,7 +12,7 @@ from ithor_arm.near_deadline_sensors import RealPointNavSensor
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
-from manipulathor_baselines.stretch_bring_object_baselines.models.real_pointnav_model import RealPointNavModel
+from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_real_pointnav_model import StretchRealPointNavModel
 
 
 class ComplexRewardNoPUWRealPointNav(
@@ -65,7 +65,7 @@ class ComplexRewardNoPUWRealPointNav(
 
     @classmethod
     def create_model(cls, **kwargs) -> nn.Module:
-        return RealPointNavModel(
+        return StretchRealPointNavModel(
             action_space=gym.spaces.Discrete(
                 len(cls.TASK_TYPE.class_action_names())
             ),

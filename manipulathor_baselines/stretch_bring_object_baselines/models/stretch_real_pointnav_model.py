@@ -29,7 +29,7 @@ from utils.model_utils import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization
 
 
-class RealPointNavModel(ActorCriticModel[CategoricalDistr]):
+class StretchRealPointNavModel(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes

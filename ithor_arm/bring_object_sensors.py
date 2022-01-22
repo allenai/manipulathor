@@ -177,8 +177,9 @@ class NoisyObjectMask(Sensor):
                 agent_location = env.get_agent_location()
                 object_location = env.get_object_by_id(target_object_id)['position']
                 current_agent_distance_to_obj = sum([(object_location[k] - agent_location[k])**2 for k in ['x', 'z']]) ** 0.5
-                if current_agent_distance_to_obj > self.distance_thr or mask_frame.sum() < 20: # objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
-                    mask_frame[:] = 0
+                #TODO remove this or put back?
+                # if current_agent_distance_to_obj > self.distance_thr or mask_frame.sum() < 20: # objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
+                #     mask_frame[:] = 0
 
         else:
             mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
