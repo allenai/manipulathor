@@ -278,6 +278,7 @@ class PointNavEmulatorSensor(Sensor):
             # draw_points(self.real_relative_object_location, 'g'); draw_points(self.fake_relative_object_location, 'b'); plt.show()
             ForkedPdb().set_trace()
 
+
         return self.average_so_far(camera_xyz, camera_rotation, arm_state)
 
 
