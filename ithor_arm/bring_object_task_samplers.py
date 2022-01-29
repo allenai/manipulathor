@@ -232,6 +232,15 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         if self.env is None:
             self.env = self._create_environment()
 
+            #TODO
+            all_visibles = []
+            while(True):
+                task_info = self.next_task(force_advance_scene)
+                obj_name = task_info['source_object_id']
+                visible = int(self.env.get_object_by_id(obj_name)['visible'])
+                all_visibles.append(visible)
+                print(len(all_visibles), 'averagfe', sum(all_visibles) / len(all_visibles))
+
         if self.max_tasks is not None and self.max_tasks <= 0:
             return None
 
@@ -348,18 +357,19 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
         if len(should_visualize_goal_start) > 0:
             task_info["visualization_source"] = init_object
             task_info["visualization_target"] = goal_object
-
-        self._last_sampled_task = self.TASK_TYPE(
-            env=self.env,
-            sensors=self.sensors,
-            task_info=task_info,
-            max_steps=self.max_steps,
-            action_space=self._action_space,
-            visualizers=self.visualizers,
-            reward_configs=self.rewards_config,
-        )
-
-        return self._last_sampled_task
+        return task_info
+        # self._last_sampled_task = self.TASK_TYPE(
+        #     env=self.env,
+        #     sensors=self.sensors,
+        #     task_info=task_info,
+        #     max_steps=self.max_steps,
+        #     action_space=self._action_space,
+        #     visualizers=self.visualizers,
+        #     reward_configs=self.rewards_config,
+        # )
+        #
+        #
+        # return self._last_sampled_task
 
     @property
     def total_unique(self) -> Optional[Union[int, float]]:
