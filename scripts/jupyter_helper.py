@@ -24,13 +24,14 @@ SCENE_INDICES = [i + 1 for i in range(30)] +[i + 1 for i in range(200,230)] +[i 
 SCENE_NAMES = ['FloorPlan{}_physics'.format(i) for i in SCENE_INDICES]
 
 
-# ENV_ARGS = dict(gridSize=0.25,
-#                 width=224, height=224, agentMode='arm', fieldOfView=100,
-#                 agentControllerType='mid-level',
-#                 server_class=ai2thor.fifo_server.FifoServer,
-#                 useMassThreshold = True, massThreshold = 10,
-#                 autoSimulation=False, autoSyncTransforms=True,
-#                 )
+ENV_ARGS = dict(gridSize=0.25,
+                width=224, height=224, agentMode='arm', fieldOfView=100,
+                agentControllerType='mid-level',
+                server_class=ai2thor.fifo_server.FifoServer,
+                useMassThreshold = True, massThreshold = 10,
+                autoSimulation=False, autoSyncTransforms=True,
+                commit_id='2f8dd9f95e4016db60155a0cc18b834a6339c8e1',
+                )
 
 #Functions
 
