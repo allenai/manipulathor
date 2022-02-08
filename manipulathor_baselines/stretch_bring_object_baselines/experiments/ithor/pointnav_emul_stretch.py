@@ -22,7 +22,8 @@ from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRew
 from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, \
     RGBSensorStretchKinect, DepthSensorStretchKinect, AgentBodyPointNavSensor, AgentBodyPointNavEmulSensor, \
-    AgentGTLocationSensor, ObjectRelativeAgentCoordinateSensor
+    AgentGTLocationSensor, ObjectRelativeAgentCoordinateSensor, RGBSensorStretchKinectZero, \
+    DepthSensorStretchKinectZero, IntelRawDepthSensor
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
@@ -38,8 +39,9 @@ class PointNavEmulStretch(
     distance_thr = 1.5 # is this a good number?
     #TODO cache the mask sensor so we can be more efficient
 
-    source_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='source', distance_thr=distance_thr)
-    destination_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='destination', distance_thr=distance_thr)
+    source_mask_sensor_intel = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='source', distance_thr=distance_thr)
+    destination_mask_sensor_intel = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='destination', distance_thr=distance_thr)
+    depth_sensor_intel = IntelRawDepthSensor()
 
 
 
@@ -57,6 +59,7 @@ class PointNavEmulStretch(
     # object_mask_source = ObjectRelativeAgentCoordinateSensor(type='source')
     # object_mask_destination = ObjectRelativeAgentCoordinateSensor(type='destination')
     agent_loc_sensor = AgentGTLocationSensor()
+
     SENSORS = [
         RGBSensorStretchIntel(
             height=desired_screen_size,
@@ -64,31 +67,39 @@ class PointNavEmulStretch(
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
-        DepthSensorStretchIntel(
-            height=desired_screen_size,
-            width=desired_screen_size,
-            use_normalization=True,
-            uuid="depth_lowres",
-        ),
-        RGBSensorStretchKinect(
+        DepthSensorStretchIntel(height=desired_screen_size,width=desired_screen_size,use_normalization=True,uuid="depth_lowres",),
+        #TODO put these back
+        RGBSensorStretchKinectZero(
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=True,
             uuid="rgb_lowres_arm",
         ),
-        DepthSensorStretchKinect(
+        DepthSensorStretchKinectZero(
             height=desired_screen_size,
             width=desired_screen_size,
             use_normalization=True,
             uuid="depth_lowres_arm",
         ),
+        # RGBSensorStretchKinect(
+        #     height=desired_screen_size,
+        #     width=desired_screen_size,
+        #     use_resnet_normalization=True,
+        #     uuid="rgb_lowres_arm",
+        # ),
+        # DepthSensorStretchKinect(
+        #     height=desired_screen_size,
+        #     width=desired_screen_size,
+        #     use_normalization=True,
+        #     uuid="depth_lowres_arm",
+        # ),
         PickedUpObjSensor(),
-        # AgentBodyPointNavEmulSensor(type='source', agent_location_sensor=agent_loc_sensor, object_mask_sensor=object_mask_source),
-        # AgentBodyPointNavEmulSensor(type='destination', agent_location_sensor=agent_loc_sensor, object_mask_sensor=object_mask_destination),
-        AgentBodyPointNavEmulSensor(type='source', mask_sensor=source_mask_sensor),
-        AgentBodyPointNavEmulSensor(type='destination', mask_sensor=destination_mask_sensor),
-        source_mask_sensor,
-        destination_mask_sensor,
+        # AgentBodyPointNavEmulSensor(type='source', agent_location_sensor=agent_loc_sensor, object_mask_sensor_intel=object_mask_source),
+        # AgentBodyPointNavEmulSensor(type='destination', agent_location_sensor=agent_loc_sensor, object_mask_sensor_intel=object_mask_destination),
+        AgentBodyPointNavEmulSensor(type='source', mask_sensor=source_mask_sensor_intel, depth_sensor=depth_sensor_intel),
+        AgentBodyPointNavEmulSensor(type='destination', mask_sensor=destination_mask_sensor_intel, depth_sensor=depth_sensor_intel),
+        source_mask_sensor_intel,
+        destination_mask_sensor_intel,
 
         #TODO add the followings too
         # PointNavEmulSensor(type='source', uuid='arm_point_nav'),
@@ -115,8 +126,11 @@ class PointNavEmulStretch(
 
     def __init__(self):
         super().__init__()
-        self.REWARD_CONFIG['exploration_reward'] = 0.1
-        self.REWARD_CONFIG['object_found'] = 1
+        #TODO put these back
+        # self.REWARD_CONFIG['exploration_reward'] = 0.1
+        # self.REWARD_CONFIG['object_found'] = 1
+        self.REWARD_CONFIG['exploration_reward'] = 0.
+        self.REWARD_CONFIG['object_found'] = 0
         self.ENV_ARGS = STRETCH_ENV_ARGS
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['renderInstanceSegmentation'] = True

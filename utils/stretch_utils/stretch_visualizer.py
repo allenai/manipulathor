@@ -45,7 +45,7 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
                 + ".gif"
         )
         self.log_queue = put_action_on_image(self.log_queue, self.action_queue[1:])
-        addition_texts = [str(x) for x in episode_info.agent_body_dist_to_obj]
+        addition_texts = ['xxx'] + [str(x) for x in episode_info.agent_body_dist_to_obj]
         self.log_queue = put_additional_text_on_image(self.log_queue, addition_texts)
         concat_all_images = np.expand_dims(np.stack(self.arm_frame_queue, axis=0), axis=1)
         arm_frames = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)

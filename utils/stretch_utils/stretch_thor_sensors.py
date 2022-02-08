@@ -231,12 +231,13 @@ class AgentBodyPointNavSensor(Sensor):
 
 class AgentBodyPointNavEmulSensor(Sensor):
 
-    def __init__(self, type: str, mask_sensor:Sensor, uuid: str = "point_nav_emul", **kwargs: Any):
+    def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, uuid: str = "point_nav_emul", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
         self.type = type
         self.mask_sensor = mask_sensor
+        self.depth_sensor = depth_sensor
         uuid = '{}_{}'.format(uuid, type)
 
         self.min_xyz = np.zeros((3))
@@ -260,16 +261,15 @@ class AgentBodyPointNavEmulSensor(Sensor):
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
-
         mask = squeeze_bool_mask(self.mask_sensor.get_observation(env, task, *args, **kwargs))
-        depth_frame = env.controller.last_event.depth_frame.copy()
+        depth_frame = self.depth_sensor.get_observation(env, task, *args, **kwargs)#env.controller.last_event.depth_frame.copy()
         depth_frame[~mask] = -1
         if task.num_steps_taken() == 0:
             self.pointnav_history_aggr = []
             self.real_prev_location = None
             self.belief_prev_location = None
 
-        agent_locations = self.get_accurate_locations(env)
+        agent_locations = self.get_accurate_locations(env) #TODO this is using camera coordinate be aware of that
         camera_xyz = agent_locations['camera_xyz']
         camera_rotation = agent_locations['camera_rotation']
         camera_horizon = agent_locations['camera_horizon']
@@ -277,14 +277,21 @@ class AgentBodyPointNavEmulSensor(Sensor):
 
         fov = env.controller.last_event.metadata['fov']
 
+        #TODO we have to rewrite this such that it rotates the object not the agent
+
+
+        #TODO remove
+        self.env = env
+        self.task = task
+
         if mask.sum() != 0:
             world_space_point_cloud = calc_world_coordinates(self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device, depth_frame)
             valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
             point_in_world = world_space_point_cloud[valid_points]
             middle_of_object = point_in_world.mean(dim=0)
-            self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world)))
+            self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world), task.num_steps_taken()))
 
-        return self.average_so_far(camera_xyz, camera_rotation, arm_state)
+        return self.average_so_far(camera_xyz, camera_rotation, arm_state, task.num_steps_taken())
         #
         # real_agent_state = self.agent_location_sensor.get_observation(env, task, *args, **kwargs)
         # object_in_agent_coordinate = self.object_mask_sensor.get_observation(env, task, *args, **kwargs) #TODO remember for the other one this needs to be rotated 90 degrees
@@ -297,30 +304,51 @@ class AgentBodyPointNavEmulSensor(Sensor):
         # # result = convert_state_to_tensor(dict(position=relative_goal_obj['position']))
         # return result
     
-    def average_so_far(self, camera_xyz, camera_rotation, arm_state):
+    def average_so_far(self, camera_xyz, camera_rotation, arm_state, current_step_number):
         if len(self.pointnav_history_aggr) == 0:
             return self.dummy_answer
         else:
-            total_sum = [k * v for k,v in self.pointnav_history_aggr]
+
+
+            # TODO do the averaging with number of pixels as well
+            weights = [1. / (current_step_number + 1 - num_steps) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
+            total_weights = sum(weights)
+            total_sum = [mid * (1. / (current_step_number + 1 - num_steps)) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
             total_sum = sum(total_sum)
-            total_count = sum([v for k,v in self.pointnav_history_aggr])
-            midpoint = total_sum / total_count
-            self.pointnav_history_aggr = [(midpoint.cpu(), total_count)]
+            midpoint = total_sum / total_weights
+            # self.pointnav_history_aggr = [(midpoint.cpu(), total_count)]
             # agent_centric_middle_of_object = rotate_to_agent(midpoint, self.device, camera_xyz, camera_rotation)
             agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
             midpoint_position_rotation = dict(position=dict(x=midpoint[0], y=midpoint[1], z=midpoint[2]), rotation=dict(x=0,y=0,z=0))
             midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
 
-            arm_state_agent_coord = convert_world_to_agent_coordinate(arm_state, agent_state)
-            distance_in_agent_coord = dict(x=arm_state_agent_coord['position']['x'] - midpoint_agent_coord['position']['x'],y=arm_state_agent_coord['position']['y'] - midpoint_agent_coord['position']['y'],z=arm_state_agent_coord['position']['z'] - midpoint_agent_coord['position']['z'])
+            #TODO we only need this for the arm camera
+            # arm_state_agent_coord = convert_world_to_agent_coordinate(arm_state, agent_state)
+            # distance_in_agent_coord = dict(x=arm_state_agent_coord['position']['x'] - midpoint_agent_coord['position']['x'],y=arm_state_agent_coord['position']['y'] - midpoint_agent_coord['position']['y'],z=arm_state_agent_coord['position']['z'] - midpoint_agent_coord['position']['z']) #TODO why is reversed?
+
+            distance_in_agent_coord = dict(x=midpoint_agent_coord['position']['x'], y=midpoint_agent_coord['position']['y'], z=midpoint_agent_coord['position']['z'])
 
             agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
 
             # Removing this hurts the performance
-            agent_centric_middle_of_object = agent_centric_middle_of_object.abs()
+            # agent_centric_middle_of_object = agent_centric_middle_of_object.abs() #TODO investigate removing this again
+            agent_centric_middle_of_object = agent_centric_middle_of_object #TODO investigate removing this again
+
+
+            # #TODO remove
+            # if self.type == 'source':
+            #     obj_real_location = self.env.get_object_by_id('Mug|+01.10|+00.90|+00.11')
+            #     obj_real_relative = convert_world_to_agent_coordinate(obj_real_location, agent_state)
+            #     real_distance_in_world_coord = torch.Tensor([obj_real_location['position']['x'] - agent_state['position']['x'],obj_real_location['position']['y'] - agent_state['position']['y'],obj_real_location['position']['z'] - agent_state['position']['z']])
+            #     obj_real_relative = torch.Tensor([obj_real_relative['position']['x'],obj_real_relative['position']['y'],obj_real_relative['position']['z']])
+            #     print('real distance', real_distance_in_world_coord, real_distance_in_world_coord.norm())
+            #     print('real relative', obj_real_relative, obj_real_relative.norm())
+            #     print('pred distance', agent_centric_middle_of_object,agent_centric_middle_of_object.norm() )
+            #     ForkedPdb().set_trace()
+
             return agent_centric_middle_of_object
 
-
+#TODO we have to rewrite the noisy movement experiment ones?
 class AgentGTLocationSensor(Sensor):
 
     def __init__(self, uuid: str = "agent_gt_loc", **kwargs: Any):
@@ -335,6 +363,19 @@ class AgentGTLocationSensor(Sensor):
         metadata = copy.deepcopy(env.controller.last_event.metadata['agent'])
         return metadata
 
+
+class IntelRawDepthSensor(Sensor):
+
+    def __init__(self, uuid: str = "intel_raw_depth", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        super().__init__(**prepare_locals_for_super(locals()))
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        return env.controller.last_event.depth_frame.copy()
 
 class ObjectRelativeAgentCoordinateSensor(Sensor):
 

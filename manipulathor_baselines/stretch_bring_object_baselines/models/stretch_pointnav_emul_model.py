@@ -159,6 +159,8 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres']], dim=-1).float()
         visual_observation_encoding_body = compute_cnn_output(self.full_visual_encoder, visual_observation)
 
+        #TODO we need to input mask as well
+
 
         visual_observation_arm = torch.cat([observations['depth_lowres_arm'], observations['rgb_lowres_arm']], dim=-1).float()
         visual_observation_encoding_arm = compute_cnn_output(self.full_visual_encoder_arm, visual_observation_arm)
@@ -228,7 +230,7 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
             gt_mask = source_object_mask
             gt_mask[after_pickup] = destination_object_mask[after_pickup]
 
-            hacky_visualization(observations, object_mask=gt_mask, query_objects=observations['rgb_lowres_arm'].permute(0,1,4,2,3), base_directory_to_right_images=self.starting_time)
+            hacky_visualization(observations, object_mask=gt_mask, query_objects=observations['rgb_lowres_arm'].permute(0,1,4,2,3), base_directory_to_right_images=self.starting_time, text_to_write=observations['point_nav_emul_source'])
 
 
 

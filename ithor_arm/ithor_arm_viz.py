@@ -418,20 +418,33 @@ def put_action_on_image(images, actions):
     return all_images
 
 
-def put_additional_text_on_image(images, added_texts):
+def put_additional_text_on_image(images, added_texts, color = (0,0,0)):
     all_images = []
-    for i in range(len(images) - 1):
+    length_of_list = len(images)
+
+    for i in range(length_of_list):
+        if i == length_of_list - 1 and len(added_texts) < length_of_list:
+            assert len(added_texts) == length_of_list - 1
+            all_images.append(images[i]) # No action needs to be written here
+            continue
+
+        original_image = images[i]
+        if type(original_image) == torch.Tensor:
+            images[i] = (original_image* 255.).int().cpu().numpy().astype(np.uint8)
         img = images[i]
         text = added_texts[i]
 
         position = (10,200)
-
         from PIL import Image, ImageFont, ImageDraw
         pil_img = Image.fromarray(img)
         draw = ImageDraw.Draw(pil_img)
-        draw.text(position, text, (0,0,0))
-        all_images.append(np.array(pil_img))
+        draw.text(position, text, color)
+        numpy_image = np.array(pil_img)
+
+        if type(original_image) == torch.Tensor:
+            numpy_image = torch.Tensor(numpy_image).float() / 255.
+        all_images.append(numpy_image)
 
 
-    all_images.append(images[-1]) # No action needs to be written here
+
     return all_images

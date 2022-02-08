@@ -27,8 +27,9 @@ STRETCH_ENV_ARGS['height'] = screen_size
 STRETCH_ENV_ARGS['agentMode']='stretch'
 # STRETCH_ENV_ARGS['commit_id']='03b26e96a43c83f955386b8cac925d4d2b550837'
 STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
+STRETCH_ENV_ARGS['commit_id'] = 'f698c1c27a39536858c854cae413fd31987cdf2a' #TODO jsut a test for speed segmentation
 STRETCH_ENV_ARGS['renderDepthImage'] = True
-STRETCH_ENV_ARGS['renderInstanceSegmentation'] = True
+STRETCH_ENV_ARGS['renderInstanceSegmentation'] = True #TODO try out some real segmentation
 
 if platform.system() == "Darwin":
     saved_image_folder = '/Users/kianae/Desktop/saved_stretch_images'
@@ -290,8 +291,8 @@ if __name__ == '__main__':
     #TODO add pickup and drop tests
 
     # # all the following tests need to pass
-    # print('Test 1')
-    # test_arm_scene_generalizations(controller)
+    print('Test 1')
+    test_arm_scene_generalizations(controller)
 
     print('Test 2')
     print('Testing arm stuck in all scenes')

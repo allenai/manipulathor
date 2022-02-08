@@ -3,7 +3,11 @@ import os
 from datetime import datetime
 import cv2
 
-def hacky_visualization(observations, object_mask, query_objects, base_directory_to_right_images, gt_mask=None):
+from ithor_arm.ithor_arm_viz import put_additional_text_on_image
+from manipulathor_utils.debugger_util import ForkedPdb
+
+
+def hacky_visualization(observations, object_mask, query_objects, base_directory_to_right_images, gt_mask=None, text_to_write=None):
     def unnormalize_image(img):
         mean=torch.Tensor([0.485, 0.456, 0.406]).to(img.device)
         std=torch.Tensor([0.229, 0.224, 0.225]).to(img.device)
@@ -24,8 +28,17 @@ def hacky_visualization(observations, object_mask, query_objects, base_directory
         depth = depth.squeeze(0).squeeze(0)
         depth = depth.clamp(0,10) / 10
         depth = depth.repeat(1, 1, 3)
+
         viz_query_obj = query_objects.squeeze(0).squeeze(0).permute(1,2,0) #TO make it channel last
         viz_mask = predicted_masks.squeeze(0).squeeze(0).repeat(1,1, 3)
+        if text_to_write is not None:
+
+            text_to_write = text_to_write.squeeze(0).squeeze(0)
+            text_to_write = text_to_write * 100
+            text_to_write = text_to_write.int()
+            text_to_write = str(text_to_write.tolist()) + '=' + str(text_to_write.float().norm().item())
+            viz_mask = put_additional_text_on_image([viz_mask], [text_to_write], color=(255,255,255))[0]
+
         viz_image = unnormalize_image(viz_image)
         viz_query_obj = unnormalize_image(viz_query_obj)
         list_of_visualizations = [viz_image, depth, viz_query_obj, viz_mask]
