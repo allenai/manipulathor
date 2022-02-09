@@ -34,7 +34,7 @@ def hacky_visualization(observations, object_mask, query_objects, base_directory
         if text_to_write is not None:
 
             text_to_write = text_to_write.squeeze(0).squeeze(0)
-            text_to_write = text_to_write * 100
+            text_to_write = text_to_write * 10
             text_to_write = text_to_write.int()
             text_to_write = str(text_to_write.tolist()) + '=' + str(text_to_write.float().norm().item())
             viz_mask = put_additional_text_on_image([viz_mask], [text_to_write], color=(255,255,255))[0]

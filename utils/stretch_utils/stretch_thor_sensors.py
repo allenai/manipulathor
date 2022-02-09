@@ -241,11 +241,9 @@ class AgentBodyPointNavEmulSensor(Sensor):
         uuid = '{}_{}'.format(uuid, type)
 
         self.min_xyz = np.zeros((3))
-
         self.dummy_answer = torch.zeros(3)
         self.dummy_answer[:] = 4 # is this good enough?
         self.device = torch.device("cpu")
-
 
 
         super().__init__(**prepare_locals_for_super(locals()))
@@ -255,7 +253,8 @@ class AgentBodyPointNavEmulSensor(Sensor):
         camera_rotation=metadata["agent"]["rotation"]["y"]
         camera_horizon=metadata["agent"]["cameraHorizon"]
         arm_state = env.get_absolute_hand_state()
-        return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state)
+        fov = env.controller.last_event.metadata['fov']
+        return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state, fov=fov)
 
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
@@ -269,21 +268,14 @@ class AgentBodyPointNavEmulSensor(Sensor):
             self.real_prev_location = None
             self.belief_prev_location = None
 
-        agent_locations = self.get_accurate_locations(env) #TODO this is using camera coordinate be aware of that
+        agent_locations = self.get_accurate_locations(env)
         camera_xyz = agent_locations['camera_xyz']
         camera_rotation = agent_locations['camera_rotation']
         camera_horizon = agent_locations['camera_horizon']
         arm_state = agent_locations['arm_state']
-
-        fov = env.controller.last_event.metadata['fov']
+        fov = agent_locations['fov']
 
         #TODO we have to rewrite this such that it rotates the object not the agent
-
-
-        #TODO remove
-        self.env = env
-        self.task = task
-
         if mask.sum() != 0:
             world_space_point_cloud = calc_world_coordinates(self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device, depth_frame)
             valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
@@ -292,76 +284,145 @@ class AgentBodyPointNavEmulSensor(Sensor):
             self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world), task.num_steps_taken()))
 
         return self.average_so_far(camera_xyz, camera_rotation, arm_state, task.num_steps_taken())
-        #
-        # real_agent_state = self.agent_location_sensor.get_observation(env, task, *args, **kwargs)
-        # object_in_agent_coordinate = self.object_mask_sensor.get_observation(env, task, *args, **kwargs) #TODO remember for the other one this needs to be rotated 90 degrees
-        #
-        # ForkedPdb().set_trace()
-        # # goal_obj_id = task.task_info[info_to_search]
-        # # real_object_info = env.get_object_by_id(goal_obj_id)
-        # # real_agent_state = self.get_accurate_locations(env)
-        # # relative_goal_obj = convert_world_to_agent_coordinate(real_object_info, real_agent_state)
-        # # result = convert_state_to_tensor(dict(position=relative_goal_obj['position']))
-        # return result
-    
+
     def average_so_far(self, camera_xyz, camera_rotation, arm_state, current_step_number):
         if len(self.pointnav_history_aggr) == 0:
             return self.dummy_answer
         else:
-
-
             # TODO do the averaging with number of pixels as well
             weights = [1. / (current_step_number + 1 - num_steps) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
             total_weights = sum(weights)
             total_sum = [mid * (1. / (current_step_number + 1 - num_steps)) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
             total_sum = sum(total_sum)
             midpoint = total_sum / total_weights
-            # self.pointnav_history_aggr = [(midpoint.cpu(), total_count)]
-            # agent_centric_middle_of_object = rotate_to_agent(midpoint, self.device, camera_xyz, camera_rotation)
             agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
             midpoint_position_rotation = dict(position=dict(x=midpoint[0], y=midpoint[1], z=midpoint[2]), rotation=dict(x=0,y=0,z=0))
             midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
-
-            #TODO we only need this for the arm camera
-            # arm_state_agent_coord = convert_world_to_agent_coordinate(arm_state, agent_state)
-            # distance_in_agent_coord = dict(x=arm_state_agent_coord['position']['x'] - midpoint_agent_coord['position']['x'],y=arm_state_agent_coord['position']['y'] - midpoint_agent_coord['position']['y'],z=arm_state_agent_coord['position']['z'] - midpoint_agent_coord['position']['z']) #TODO why is reversed?
 
             distance_in_agent_coord = dict(x=midpoint_agent_coord['position']['x'], y=midpoint_agent_coord['position']['y'], z=midpoint_agent_coord['position']['z'])
 
             agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
 
-            # Removing this hurts the performance
-            # agent_centric_middle_of_object = agent_centric_middle_of_object.abs() #TODO investigate removing this again
-            agent_centric_middle_of_object = agent_centric_middle_of_object #TODO investigate removing this again
-
-
-            # #TODO remove
-            # if self.type == 'source':
-            #     obj_real_location = self.env.get_object_by_id('Mug|+01.10|+00.90|+00.11')
-            #     obj_real_relative = convert_world_to_agent_coordinate(obj_real_location, agent_state)
-            #     real_distance_in_world_coord = torch.Tensor([obj_real_location['position']['x'] - agent_state['position']['x'],obj_real_location['position']['y'] - agent_state['position']['y'],obj_real_location['position']['z'] - agent_state['position']['z']])
-            #     obj_real_relative = torch.Tensor([obj_real_relative['position']['x'],obj_real_relative['position']['y'],obj_real_relative['position']['z']])
-            #     print('real distance', real_distance_in_world_coord, real_distance_in_world_coord.norm())
-            #     print('real relative', obj_real_relative, obj_real_relative.norm())
-            #     print('pred distance', agent_centric_middle_of_object,agent_centric_middle_of_object.norm() )
-            #     ForkedPdb().set_trace()
-
+            agent_centric_middle_of_object = agent_centric_middle_of_object
             return agent_centric_middle_of_object
 
-#TODO we have to rewrite the noisy movement experiment ones?
-class AgentGTLocationSensor(Sensor):
 
-    def __init__(self, uuid: str = "agent_gt_loc", **kwargs: Any):
+class ArmPointNavEmulSensor(Sensor):
+
+    def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, uuid: str = "arm_point_nav_emul", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        self.mask_sensor = mask_sensor
+        self.depth_sensor = depth_sensor
+        uuid = '{}_{}'.format(uuid, type)
+
+        self.min_xyz = np.zeros((3))
+
+        self.dummy_answer = torch.zeros(3)
+        self.dummy_answer[:] = 4 # is this good enough?
+        self.device = torch.device("cpu")
         super().__init__(**prepare_locals_for_super(locals()))
+
+    def get_accurate_locations(self, env): #TODO this is using camera coordinate be aware of that
+        assert len(env.controller.last_event.metadata['thirdPartyCameras']) == 1
+        metadata = copy.deepcopy(env.controller.last_event.metadata['thirdPartyCameras'][0])
+        camera_xyz = np.array([metadata["position"][k] for k in ["x", "y", "z"]])
+        # camera_rotation = np.array([metadata["rotation"][k] for k in ["x", "y", "z"]])
+        #TODO this is very hacky and needs to be verified
+        camera_rotation = (env.controller.last_event.metadata['agent']['rotation']['y'] + 90) % 360
+        camera_horizon = 45 #TODO needs to be updated if we decide to move the camera
+        arm_state = env.get_absolute_hand_state()
+        fov = metadata['fieldOfView']
+        return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state, fov=fov)
 
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        metadata = copy.deepcopy(env.controller.last_event.metadata['agent'])
-        return metadata
+
+        mask = squeeze_bool_mask(self.mask_sensor.get_observation(env, task, *args, **kwargs))
+        depth_frame = self.depth_sensor.get_observation(env, task, *args, **kwargs)#env.controller.last_event.depth_frame.copy()
+        depth_frame[~mask] = -1
+        if task.num_steps_taken() == 0:
+            self.pointnav_history_aggr = []
+            self.real_prev_location = None
+            self.belief_prev_location = None
+
+        agent_locations = self.get_accurate_locations(env)
+        camera_xyz = agent_locations['camera_xyz']
+        camera_rotation = agent_locations['camera_rotation']
+        camera_horizon = agent_locations['camera_horizon']
+        arm_state = agent_locations['arm_state']
+        fov = agent_locations['fov']
+
+        #TODO we have to rewrite this such that it rotates the object not the agent
+        if mask.sum() != 0:
+            world_space_point_cloud = calc_world_coordinates(self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device, depth_frame)
+            valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
+            point_in_world = world_space_point_cloud[valid_points]
+            middle_of_object = point_in_world.mean(dim=0)
+            self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world), task.num_steps_taken()))
+
+        return self.average_so_far(camera_xyz, camera_rotation, arm_state, task.num_steps_taken())
+
+    def average_so_far(self, camera_xyz, camera_rotation, arm_state, current_step_number):
+        if len(self.pointnav_history_aggr) == 0:
+            return self.dummy_answer
+        else:
+            weights = [1. / (current_step_number + 1 - num_steps) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
+            total_weights = sum(weights)
+            total_sum = [mid * (1. / (current_step_number + 1 - num_steps)) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
+            total_sum = sum(total_sum)
+            midpoint = total_sum / total_weights
+            agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
+            midpoint_position_rotation = dict(position=dict(x=midpoint[0], y=midpoint[1], z=midpoint[2]), rotation=dict(x=0,y=0,z=0))
+            midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
+
+            arm_state_agent_coord = convert_world_to_agent_coordinate(arm_state, agent_state)
+            distance_in_agent_coord = dict(x=midpoint_agent_coord['position']['x'] - arm_state_agent_coord['position']['x'],y=midpoint_agent_coord['position']['y'] - arm_state_agent_coord['position']['y'],z=midpoint_agent_coord['position']['z'] - arm_state_agent_coord['position']['z'])
+
+            # distance_in_agent_coord = dict(x=midpoint_agent_coord['position']['x'], y=midpoint_agent_coord['position']['y'], z=midpoint_agent_coord['position']['z'])
+
+            agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
+
+            # Removing this hurts the performance
+            agent_centric_middle_of_object = agent_centric_middle_of_object #.abs() #TODO investigate removing this again
+
+
+            # # remove
+            # TODO remove
+            # if self.type == 'source':
+            #
+            #     obj_id = self.task.task_info['source_object_id']
+            #     obj_real_location = self.env.get_object_by_id(obj_id)
+            #     obj_real_relative = convert_world_to_agent_coordinate(obj_real_location, agent_state)
+            #     arm_real_relative = arm_state_agent_coord
+            #     real_distance_in_world_coord = torch.Tensor([obj_real_location['position']['x'] - arm_state['position']['x'],obj_real_location['position']['y'] - arm_state['position']['y'],obj_real_location['position']['z'] - arm_state['position']['z']])
+            #     real_distance_in_agent_coord = torch.Tensor([obj_real_relative['position']['x'] - arm_real_relative['position']['x'],obj_real_relative['position']['y'] - arm_real_relative['position']['y'],obj_real_relative['position']['z'] - arm_real_relative['position']['z']])
+            #     pred_distance_in_agent_coord = agent_centric_middle_of_object
+            #
+            #     print('real_distance_in_world_coord', real_distance_in_world_coord, real_distance_in_world_coord.norm())
+            #     print('real_distance_in_agent_coord', real_distance_in_agent_coord, real_distance_in_agent_coord.norm())
+            #     print('pred_distance_in_agent_coord', pred_distance_in_agent_coord, pred_distance_in_agent_coord.norm())
+            #     # ForkedPdb().set_trace()
+
+            return agent_centric_middle_of_object
+
+# TODO we have to rewrite the noisy movement experiment ones?
+# class AgentGTLocationSensor(Sensor):
+#
+#     def __init__(self, uuid: str = "agent_gt_loc", **kwargs: Any):
+#         observation_space = gym.spaces.Box(
+#             low=0, high=1, shape=(1,), dtype=np.float32
+#         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+#         super().__init__(**prepare_locals_for_super(locals()))
+#
+#     def get_observation(
+#             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+#     ) -> Any:
+#         metadata = copy.deepcopy(env.controller.last_event.metadata['agent'])
+#         return metadata
 
 
 class IntelRawDepthSensor(Sensor):
@@ -377,21 +438,69 @@ class IntelRawDepthSensor(Sensor):
     ) -> Any:
         return env.controller.last_event.depth_frame.copy()
 
-class ObjectRelativeAgentCoordinateSensor(Sensor):
+class KinectRawDepthSensor(Sensor):
 
-    def __init__(self, type: str, mask_sensor:Sensor, uuid: str = "object_relative_agent_coord", **kwargs: Any):
+    def __init__(self, uuid: str = "kinect_raw_depth", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
-        uuid = '{}_{}'.format(uuid, type)
-        self.mask_sensor = mask_sensor
-        self.type = type
         super().__init__(**prepare_locals_for_super(locals()))
 
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        ForkedPdb().setup()
-        mask = self.mask_sensor.get_observation(env, task, *args, **kwargs)
-        #TODO use both cameras
-        # return metadata
+        return env.controller.last_event.third_party_depth_frames[0].copy()
+
+
+class KinectNoisyObjectMask(Sensor):
+    def __init__(self, type: str,noise, height, width,  uuid: str = "object_mask_kinect", distance_thr: float = -1, **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        self.height = height
+        self.width = width
+        uuid = '{}_{}'.format(uuid, type)
+        self.noise = noise
+        self.distance_thr = distance_thr
+        super().__init__(**prepare_locals_for_super(locals()))
+        assert self.noise == 0
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+
+        if self.type == 'source':
+            info_to_search = 'source_object_id'
+        elif self.type == 'destination':
+            info_to_search = 'goal_object_id'
+        else:
+            raise Exception('Not implemented', self.type)
+
+        target_object_id = task.task_info[info_to_search]
+        all_visible_masks = env.controller.last_event.third_party_instance_masks[0]
+        assert len(env.controller.last_event.third_party_instance_masks) == 1
+        if target_object_id in all_visible_masks:
+            mask_frame = all_visible_masks[target_object_id]
+
+            if self.distance_thr > 0:
+
+                agent_location = env.get_agent_location()
+                object_location = env.get_object_by_id(target_object_id)['position']
+                current_agent_distance_to_obj = sum([(object_location[k] - agent_location[k])**2 for k in ['x', 'z']]) ** 0.5
+                #TODO remove this or put back?
+                # if current_agent_distance_to_obj > self.distance_thr or mask_frame.sum() < 20: # objects that are smaller than this many pixels should be removed. High chance all spatulas will be removed
+                #     mask_frame[:] = 0
+
+        else:
+            mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
+
+        mask_frame = (np.expand_dims(mask_frame.astype(np.float),axis=-1))
+
+        current_shape = mask_frame.shape
+        if (current_shape[0], current_shape[1]) == (self.width, self.height):
+            resized_mask = mask_frame
+        else:
+            resized_mask = cv2.resize(mask_frame, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
+
+        return resized_mask

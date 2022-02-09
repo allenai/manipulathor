@@ -29,7 +29,7 @@ from utils.model_utils import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization
 
 
-class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
+class OldSimpleObjectNavStretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -69,16 +69,8 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         self.full_visual_encoder = make_cnn(**network_args)
         network_args = {'input_channels': 4, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder_arm = make_cnn(**network_args)
-
         # self.detection_model = ConditionalDetectionModel()
-        self.body_pointnav_embedding = nn.Sequential(
-            nn.Linear(3, 32),
-            nn.LeakyReLU(),
-            nn.Linear(32, 128),
-            nn.LeakyReLU(),
-            nn.Linear(128, 512),
-        )
-        self.arm_pointnav_embedding = nn.Sequential(
+        self.pointnav_embedding = nn.Sequential(
             nn.Linear(3, 32),
             nn.LeakyReLU(),
             nn.Linear(32, 128),
@@ -87,7 +79,7 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         )
 
         self.state_encoder = RNNStateEncoder(
-            512 * 4, #TODO this might be too big, maybe combine visual encodings and pointnav encodings first
+            512 * 4,
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -161,15 +153,18 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         pickup_bool = observations["pickedup_object"]
         after_pickup = pickup_bool == 1
 
-        #TODO we need to input mask as well
 
-
+        # visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres']], dim=-1).float()
         visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres']], dim=-1).float()
         visual_observation_encoding_body = compute_cnn_output(self.full_visual_encoder, visual_observation)
 
+        # TODO we need to input mask as well
+
+        # TODO add arm pointnav emul too
+
+
         visual_observation_arm = torch.cat([observations['depth_lowres_arm'], observations['rgb_lowres_arm']], dim=-1).float()
         visual_observation_encoding_arm = compute_cnn_output(self.full_visual_encoder_arm, visual_observation_arm)
-
 
         # arm_distance_to_obj_source = observations['point_nav_real_source'].copy()
         # arm_distance_to_obj_destination = observations['point_nav_real_destination'].copy()
@@ -181,23 +176,32 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
 
         agent_distance_to_obj_source = observations['point_nav_emul_source'].clone()
         agent_distance_to_obj_destination = observations['point_nav_emul_destination'].clone()
-        #TODO eventually change this and the following to only calculate embedding for the ones we want
-        agent_distance_to_obj_embedding_source = self.body_pointnav_embedding(agent_distance_to_obj_source)
-        agent_distance_to_obj_embedding_destination = self.body_pointnav_embedding(agent_distance_to_obj_destination)
+        # TODO eventually change this and the following to only calculate embedding for the ones we want
+        agent_distance_to_obj_embedding_source = self.pointnav_embedding(agent_distance_to_obj_source)
+        agent_distance_to_obj_embedding_destination = self.pointnav_embedding(agent_distance_to_obj_destination)
         agent_distance_to_obj_embedding = agent_distance_to_obj_embedding_source
         agent_distance_to_obj_embedding[after_pickup] = agent_distance_to_obj_embedding_destination[after_pickup]
+        # agent_distance_to_obj = agent_distance_to_obj_source.clone()
+        # agent_distance_to_obj[after_pickup] = agent_distance_to_obj_destination[after_pickup].clone()
+        # agent_distance_to_obj_embedding = self.pointnav_embedding(agent_distance_to_obj)
+
+        # TODO put back
+        # arm_distance_to_obj_source = observations['arm_point_nav_source'].clone()
+        # arm_distance_to_obj_destination = observations['arm_point_nav_destination'].clone()
+        # arm_distance_to_obj_embedding_source = self.pointnav_embedding(arm_distance_to_obj_source)
+        # arm_distance_to_obj_embedding_destination = self.pointnav_embedding(arm_distance_to_obj_destination)
+        # arm_distance_to_obj_embedding = arm_distance_to_obj_embedding_source
+        # arm_distance_to_obj_embedding[after_pickup] = arm_distance_to_obj_embedding_destination[after_pickup]
+        # # arm_distance_to_obj = arm_distance_to_obj_source.clone()
+        # # arm_distance_to_obj[after_pickup] = arm_distance_to_obj_destination[after_pickup].clone()
+        # # arm_distance_to_obj_embedding = self.pointnav_embedding(arm_distance_to_obj)
 
 
-        arm_distance_to_obj_source = observations['arm_point_nav_emul_source'].clone()
-        arm_distance_to_obj_destination = observations['arm_point_nav_emul_destination'].clone()
-        #TODO eventually change this and the following to only calculate embedding for the ones we want
-        arm_distance_to_obj_embedding_source = self.body_pointnav_embedding(arm_distance_to_obj_source)
-        arm_distance_to_obj_embedding_destination = self.body_pointnav_embedding(arm_distance_to_obj_destination)
-        arm_distance_to_obj_embedding = arm_distance_to_obj_embedding_source
-        arm_distance_to_obj_embedding[after_pickup] = arm_distance_to_obj_embedding_destination[after_pickup]
+        # visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, pointnav_embedding], dim=-1)
+        visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, agent_distance_to_obj_embedding, agent_distance_to_obj_embedding], dim=-1) #  TODO remove this and add back the one below
 
+        # visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, agent_distance_to_obj_embedding, arm_distance_to_obj_embedding], dim=-1)
 
-        visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, agent_distance_to_obj_embedding, arm_distance_to_obj_embedding], dim=-1)
 
         x_out, rnn_hidden_states = self.state_encoder(
             visual_observation_encoding, memory.tensor("rnn"), masks
@@ -224,19 +228,10 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         if self.visualize:
             source_object_mask = observations['object_mask_source']
             destination_object_mask = observations['object_mask_destination']
-            intel_mask = source_object_mask
-            intel_mask[after_pickup] = destination_object_mask[after_pickup]
+            gt_mask = source_object_mask
+            gt_mask[after_pickup] = destination_object_mask[after_pickup]
 
-
-            source_object_mask_kinect = observations['object_mask_kinect_source']
-            destination_object_mask_kinect = observations['object_mask_kinect_destination']
-            kinect_mask = source_object_mask_kinect
-            kinect_mask[after_pickup] = destination_object_mask_kinect[after_pickup]
-
-            distances = torch.cat([observations['point_nav_emul_source'],observations['arm_point_nav_emul_source']], dim=-1)
-            # distances = observations['point_nav_emul_source']
-
-            hacky_visualization(observations, object_mask=intel_mask, gt_mask=kinect_mask, query_objects=observations['rgb_lowres_arm'].permute(0,1,4,2,3), base_directory_to_right_images=self.starting_time, text_to_write=distances)
+            hacky_visualization(observations, object_mask=gt_mask, query_objects=observations['rgb_lowres_arm'].permute(0,1,4,2,3), base_directory_to_right_images=self.starting_time, text_to_write=observations['point_nav_emul_source'])
 
 
 

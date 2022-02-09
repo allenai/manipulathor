@@ -526,7 +526,7 @@ class StretchObjectNavTask(StretchExploreWiseRewardTask):
         self.visualize(last_action_name)
 
         object_visible = self.env.get_object_by_id(object_id)['visible']
-        if object_visible and self.body_distance_from_obj() < 1: #TODO important?
+        if object_visible and self.body_distance_from_obj() < 1: # TODO important?
             self._took_end_action = True
             self.last_action_success = True
             self._success = True
@@ -589,7 +589,7 @@ class StretchObjectNavTask(StretchExploreWiseRewardTask):
             self.got_reward_for_pickup = True
         #
 
-        if self.source_observed_reward: #TODO do this for both arm and agent relative location and also set this for before pickup and after pickup
+        if self.source_observed_reward: # TODO do this for both arm and agent relative location and also set this for before pickup and after pickup
             current_obj_to_body_distance = self.body_distance_from_obj()
             if self.last_body_to_obj_distance is None: # is this good?
                 delta_body_to_obj_distance_reward = 0

@@ -27,7 +27,7 @@ from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, Dept
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
-class PointNavEmulStretch(
+class PointNavEmulStretchPickUp(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -98,7 +98,7 @@ class PointNavEmulStretch(
     MAX_STEPS = 200
 
     TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
-    TASK_TYPE = StretchExploreWiseRewardTask # TODO change
+    TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp # TODO change
 
     NUM_PROCESSES = 40
 
@@ -118,7 +118,7 @@ class PointNavEmulStretch(
         self.ENV_ARGS['renderInstanceSegmentation'] = True
 
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretch, self).test_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchPickUp, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -133,7 +133,7 @@ class PointNavEmulStretch(
         return sampler_args
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretch, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchPickUp, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
