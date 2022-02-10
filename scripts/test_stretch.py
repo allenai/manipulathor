@@ -46,7 +46,12 @@ living_rooms = [f"FloorPlan{200 + i}" for i in range(1, 31)]
 bedrooms = [f"FloorPlan{300 + i}" for i in range(1, 31)]
 bathrooms = [f"FloorPlan{400 + i}" for i in range(1, 31)]
 
-all_scenes = kitchens + living_rooms + bedrooms + bathrooms
+THOR_SCENE_NAMES = kitchens + living_rooms + bedrooms + bathrooms
+
+
+robothor_train= [f"FloorPlan_Train{i}_{j}" for i in range(1, 13) for j in range(1,6)]
+robothor_val= [f"FloorPlan_Val{i}_{j}" for i in range(1, 4) for j in range(1,6)]
+ROBOTHOR_SCENE_NAMES = robothor_train + robothor_val
 NUM_TESTS = 100
 EPS_LEN = 500
 
@@ -144,7 +149,7 @@ def print_locations(controller):
     visualize(controller, save=True)
 
 
-def test_arm_movements(controller, scenes= all_scenes, num_tests=NUM_TESTS, episode_len=EPS_LEN, visualize_tests=False, one_by_one=False):
+def test_arm_movements(controller, scenes, num_tests=NUM_TESTS, episode_len=EPS_LEN, visualize_tests=False, one_by_one=False):
     #TODO add p and d
     ALL_POSSIBLE_ACTIONS = ['hu', 'hd', 'ao', 'ai'] + ['m', 'r', 'l', 'b'] + ['wp', 'wn']
     times = [1]
@@ -243,7 +248,7 @@ def test_arm_movements(controller, scenes= all_scenes, num_tests=NUM_TESTS, epis
         # else:
         #     pdb.set_trace()
 
-def test_arm_scene_generalizations(controller):
+def test_arm_scene_generalizations(controller, all_scenes):
     print('test arm openning all scenes')
     for scene in all_scenes:
         try:
@@ -253,7 +258,7 @@ def test_arm_scene_generalizations(controller):
             controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
     print('finished test arm openning all scenes')
 
-def test_teleport_agent(controller, scenes=all_scenes):
+def test_teleport_agent(controller, scenes):
     for scene in scenes:
         controller.reset(scene)
         reachable_positions = get_reachable_positions(controller)
@@ -283,44 +288,69 @@ def test_fov(controller):
 
 
 # In[26]:
-
-if __name__ == '__main__':
-
+def test_stretch_in_THOR():
     controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)#, renderInstanceSegmentation=True)
 
     #TODO add pickup and drop tests
 
     # # all the following tests need to pass
     print('Test 1')
-    test_arm_scene_generalizations(controller)
+    test_arm_scene_generalizations(controller, THOR_SCENE_NAMES)
 
     print('Test 2')
     print('Testing arm stuck in all scenes')
-    test_arm_movements(controller, scenes=all_scenes, num_tests=len(all_scenes), episode_len = 30, visualize_tests=False, one_by_one=True)
+    test_arm_movements(controller, scenes=THOR_SCENE_NAMES, num_tests=len(THOR_SCENE_NAMES), episode_len = 30, visualize_tests=False, one_by_one=True)
     print('Finished Testing arm stuck in all scenes')
     #
     print('Test 3')
     print('Random tests')
-    test_arm_movements(controller, scenes=all_scenes, num_tests=1000, visualize_tests=False)
+    test_arm_movements(controller, scenes=THOR_SCENE_NAMES, num_tests=1000, visualize_tests=False)
     # test_arm_movements(controller, scenes=all_scenes, num_tests=1000, visualize_tests=True)
     print('Finished')
 
     print('Test 4')
-    test_teleport_agent(controller)
+    test_teleport_agent(controller, THOR_SCENE_NAMES)
     test_fov(controller)
 
+def test_stretch_in_robothor():
+    # # all the following tests need to pass
+    global STRETCH_ENV_ARGS
+    controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
+    STRETCH_ENV_ARGS['commit_id'] = 'bdcefe04c17bef073ecfe3d90786e84740f7addf'
+    #TODO do we need to define any of these?
+    #     controller = Controller(
+    #     agentMode="locobot",
+    #     visibilityDistance=1.5,
+    #     scene="FloorPlan_Train1_3",
+    #     gridSize=0.25,
+    #     movementGaussianSigma=0.005,
+    #     rotateStepDegrees=90,
+    #     rotateGaussianSigma=0.5,
+    #     renderDepthImage=False,
+    #     renderInstanceSegmentation=False,
+    #     width=300,
+    #     height=300,
+    #     fieldOfView=60
+    # )
 
-    # manual_task(controller, 'FloorPlan2', logger_number =0, final=False, save_frames=True)
 
-    # manual_task('FloorPlan15', logger_number =0, final=False, save_frames=True, init_sequence=['m', 'r', 'hd', 'wp', 'ai', 'm', 'hu', 'b', 'wn', 'l', 'ao'], verbose = True)
-    # manual_task('FloorPlan15', logger_number =0, final=False, save_frames=True, init_sequence=[], verbose = True)
-    # manual_task('FloorPlan4', logger_number =0, final=False, save_frames=True, init_sequence=['wp', 'm', 'hd', 'hu', 'wp', 'ai', 'r', 'ao', 'l', 'wn', 'b'])
+    # print('Test 1')
+    # test_arm_scene_generalizations(controller, ROBOTHOR_SCENE_NAMES)
 
-    # test_arm_movements(controller, scenes=['FloorPlan2'], num_tests=100, visualize_tests=True)
-    # controller.reset('FloorPlan2')
-    # controller.step(action='MoveArm', position=dict(x=0, y=1, z=1),)
-    # print_locations(controller)
-    # controller.step(action='RotateWristRelative', yaw=90)
-    # print_locations(controller)
-# before=get_current_wrist_state(controller);before; controller.step(action='RotateWristRelative', yaw=10);visualize(controller, save_frames); after=get_current_wrist_state(controller);after; Quaternion.sym_distance(before, after)
+    # print('Test 2')
+    # print('Testing arm stuck in all scenes')
+    # test_arm_movements(controller, scenes=ROBOTHOR_SCENE_NAMES, num_tests=len(ROBOTHOR_SCENE_NAMES), episode_len = 30, visualize_tests=True, one_by_one=True)
+    # print('Finished Testing arm stuck in all scenes')
+
+    print('Test 3')
+    print('Random tests')
+    test_arm_movements(controller, scenes=ROBOTHOR_SCENE_NAMES, num_tests=1000, visualize_tests=True)
+    # test_arm_movements(controller, scenes=all_scenes, num_tests=1000, visualize_tests=True)
+    print('Finished')
+
+
+if __name__ == '__main__':
+    # test_stretch_in_THOR()
+    test_stretch_in_robothor()
+
 
