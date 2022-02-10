@@ -150,8 +150,7 @@ def print_locations(controller):
 
 
 def test_arm_movements(controller, scenes, num_tests=NUM_TESTS, episode_len=EPS_LEN, visualize_tests=False, one_by_one=False):
-    #TODO add p and d
-    ALL_POSSIBLE_ACTIONS = ['hu', 'hd', 'ao', 'ai'] + ['m', 'r', 'l', 'b'] + ['wp', 'wn']
+    ALL_POSSIBLE_ACTIONS = ['hu', 'hd', 'ao', 'ai'] + ['m', 'r', 'l', 'b'] + ['wp', 'wn'] # p and d are added below
     times = [1]
     for i in range(num_tests):
         if one_by_one:
@@ -179,6 +178,15 @@ def test_arm_movements(controller, scenes, num_tests=NUM_TESTS, episode_len=EPS_
                 free_motion+=1
             #
 
+            pickupable = controller.last_event.metadata['arm']['pickupableObjects']
+            if len(pickupable) > 0 and len(controller.last_event.metadata['arm']["heldObjects"]) == 0:
+                action = 'p'
+            if len(controller.last_event.metadata['arm']["heldObjects"]) > 0:
+                if random.random() > 0.3:
+                    action = 'd'
+
+
+
 
             all_seq.append(action)
             def get_all_states(controller):
@@ -197,6 +205,11 @@ def test_arm_movements(controller, scenes, num_tests=NUM_TESTS, episode_len=EPS_
             expected_arm_after_action = copy.deepcopy(arm_before_action)
             expected_wrist_after_action = copy.deepcopy(wrist_before_action)
             if controller.last_event.metadata['lastActionSuccess']:
+                if action == 'p':
+                    #  we are doing an additional pass here, label is not right and if we fail we will do it twice
+                    object_inventory = controller.last_event.metadata["arm"]["heldObjects"]
+                    if len(object_inventory) == 0:
+                        print('Pickup Failed', scene, all_seq, detailed_actions)
                 if action in ['m', 'b']: #TODO this is not super accurate but just for now
                     distances = [agent_before_action['position'][k] - agent_after_action['position'][k] for k in ['x', 'y', 'z']]
                     sum_distances = sum([abs(k) for k in distances])
@@ -291,7 +304,6 @@ def test_fov(controller):
 def test_stretch_in_THOR():
     controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)#, renderInstanceSegmentation=True)
 
-    #TODO add pickup and drop tests
 
     # # all the following tests need to pass
     print('Test 1')
@@ -315,8 +327,9 @@ def test_stretch_in_THOR():
 def test_stretch_in_robothor():
     # # all the following tests need to pass
     global STRETCH_ENV_ARGS
+    STRETCH_ENV_ARGS['commit_id'] = 'bda5253efefea03df62c0230c6280c32daf13887'
     controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
-    STRETCH_ENV_ARGS['commit_id'] = 'bdcefe04c17bef073ecfe3d90786e84740f7addf'
+    print('Testing ', controller._build.url)
     #TODO do we need to define any of these?
     #     controller = Controller(
     #     agentMode="locobot",
@@ -333,18 +346,17 @@ def test_stretch_in_robothor():
     #     fieldOfView=60
     # )
 
+    print('Test 1')
+    test_arm_scene_generalizations(controller, ROBOTHOR_SCENE_NAMES)
 
-    # print('Test 1')
-    # test_arm_scene_generalizations(controller, ROBOTHOR_SCENE_NAMES)
-
-    # print('Test 2')
-    # print('Testing arm stuck in all scenes')
-    # test_arm_movements(controller, scenes=ROBOTHOR_SCENE_NAMES, num_tests=len(ROBOTHOR_SCENE_NAMES), episode_len = 30, visualize_tests=True, one_by_one=True)
-    # print('Finished Testing arm stuck in all scenes')
+    print('Test 2')
+    print('Testing arm stuck in all scenes')
+    test_arm_movements(controller, scenes=ROBOTHOR_SCENE_NAMES, num_tests=len(ROBOTHOR_SCENE_NAMES), episode_len = 30, visualize_tests=False, one_by_one=True)
+    print('Finished Testing arm stuck in all scenes')
 
     print('Test 3')
     print('Random tests')
-    test_arm_movements(controller, scenes=ROBOTHOR_SCENE_NAMES, num_tests=1000, visualize_tests=True)
+    test_arm_movements(controller, scenes=ROBOTHOR_SCENE_NAMES, num_tests=1000, episode_len=1000, visualize_tests=False)
     # test_arm_movements(controller, scenes=all_scenes, num_tests=1000, visualize_tests=True)
     print('Finished')
 
