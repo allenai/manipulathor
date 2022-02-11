@@ -210,7 +210,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
             controller_to_check = self.controller
         if STRETCH_MANIPULATHOR_COMMIT_ID is not None:
             assert (
-                STRETCH_MANIPULATHOR_COMMIT_ID in controller_to_check._build.url
+                self.env_args['commit_id'] in controller_to_check._build.url
             ), "Build number is not right, {} vs {}, use  pip3 install -e git+https://github.com/allenai/ai2thor.git@{}#egg=ai2thor".format(
                 controller_to_check._build.url,
                 STRETCH_MANIPULATHOR_COMMIT_ID,
@@ -218,7 +218,8 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
             )
 
     def create_controller(self):
-        controller = Controller(**self.env_args, commit_id=STRETCH_MANIPULATHOR_COMMIT_ID)
+        assert 'commit_id' in self.env_args
+        controller = Controller(**self.env_args)#, commit_id=STRETCH_MANIPULATHOR_COMMIT_ID)
         return controller
 
     @lazy_property

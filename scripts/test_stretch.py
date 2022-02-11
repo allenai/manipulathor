@@ -18,7 +18,7 @@ from pyquaternion import Quaternion
 
 from scripts.jupyter_helper import get_reachable_positions
 from scripts.stretch_jupyter_helper import two_dict_equal, ARM_MOVE_CONSTANT, get_current_arm_state, only_reset_scene, transport_wrapper, ADITIONAL_ARM_ARGS, execute_command, WRIST_ROTATION, get_current_wrist_state
-from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, STRETCH_MANIPULATHOR_COMMIT_ID
+from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, STRETCH_MANIPULATHOR_COMMIT_ID, ROBOTHOR_SCENE_NAMES
 
 screen_size=224
 
@@ -49,9 +49,7 @@ bathrooms = [f"FloorPlan{400 + i}" for i in range(1, 31)]
 THOR_SCENE_NAMES = kitchens + living_rooms + bedrooms + bathrooms
 
 
-robothor_train= [f"FloorPlan_Train{i}_{j}" for i in range(1, 13) for j in range(1,6)]
-robothor_val= [f"FloorPlan_Val{i}_{j}" for i in range(1, 4) for j in range(1,6)]
-ROBOTHOR_SCENE_NAMES = robothor_train + robothor_val
+
 NUM_TESTS = 100
 EPS_LEN = 500
 
@@ -327,7 +325,7 @@ def test_stretch_in_THOR():
 def test_stretch_in_robothor():
     # # all the following tests need to pass
     global STRETCH_ENV_ARGS
-    STRETCH_ENV_ARGS['commit_id'] = 'bda5253efefea03df62c0230c6280c32daf13887'
+    STRETCH_ENV_ARGS['commit_id'] = 'fe005524939307669392dab264a22da8ab6ed53a'
     controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
     print('Testing ', controller._build.url)
     #TODO do we need to define any of these?
@@ -359,6 +357,13 @@ def test_stretch_in_robothor():
     test_arm_movements(controller, scenes=ROBOTHOR_SCENE_NAMES, num_tests=1000, episode_len=1000, visualize_tests=False)
     # test_arm_movements(controller, scenes=all_scenes, num_tests=1000, visualize_tests=True)
     print('Finished')
+
+
+    # print('Test 3 Visual')
+    # print('Random tests')
+    # test_arm_movements(controller, scenes=ROBOTHOR_SCENE_NAMES, num_tests=1000, episode_len=1000, visualize_tests=True)
+    # # test_arm_movements(controller, scenes=all_scenes, num_tests=1000, visualize_tests=True)
+    # print('Finished')
 
 
 if __name__ == '__main__':

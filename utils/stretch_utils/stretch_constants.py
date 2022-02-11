@@ -24,6 +24,10 @@ STRETCH_ENV_ARGS = dict(
     agentMode='stretch',
     renderDepthImage=True,
 )
+ROBOTHOR_TRAIN= [f"FloorPlan_Train{i}_{j}" for i in range(1, 13) for j in range(1,6)]
+ROBOTHOR_VAL= [f"FloorPlan_Val{i}_{j}" for i in range(1, 4) for j in range(1,6)]
+ROBOTHOR_SCENE_NAMES = ROBOTHOR_TRAIN + ROBOTHOR_VAL
+
 
 # and as far as your earlier question regarding (H fov vs V fov)
 # the field of view that gets set through the API corresponds to the vertical field of view (https://docs.unity3d.com/ScriptReference/Camera-fieldOfView.html)
