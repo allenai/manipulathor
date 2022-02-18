@@ -29,6 +29,7 @@ from ithor_arm.ithor_arm_constants import (
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
+from scripts.dataset_generation.find_categories_to_use import get_room_type_from_id
 from scripts.jupyter_helper import get_reachable_positions
 
 
@@ -241,9 +242,16 @@ class StretchExploreWiseRewardTask(BringObjectTask):
 
     def metrics(self) -> Dict[str, Any]:
         result = super(StretchExploreWiseRewardTask, self).metrics()
+
         if self.is_done():
             result['percent_room_visited'] = self.has_visited.mean().item()
+            room_type = get_room_type_from_id(self.task_info['init_location']['scene_name'])
+            metric_by_room_type = {}
+            for k, v in result.items():
+                if k in ['ep_length', 'reward', 'success', 'metric/average/success_wo_disturb', 'metric/average/final_obj_pickup/total']:
+                    metric_by_room_type[f'by_room/{room_type}/{k}'] = v
 
+            result = {**result, **metric_by_room_type}
         return result
     def _step(self, action: int) -> RLStepResult:
 

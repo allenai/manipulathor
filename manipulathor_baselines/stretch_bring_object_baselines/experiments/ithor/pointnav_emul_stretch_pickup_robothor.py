@@ -16,10 +16,14 @@ from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixi
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
 from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_pointnav_emul_model import StretchPointNavEmulModel
 from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_real_pointnav_model import StretchRealPointNavModel
-from utils.stretch_utils.stretch_bring_object_task_samplers import RoboTHORStretchDiverseBringObjectTaskSampler
+from manipulathor_utils.debugger_util import ForkedPdb
+from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJECTS, KITCHEN_TRAIN, LIVING_ROOM_TRAIN, \
+    BEDROOM_TRAIN, ROBOTHOR_TRAIN, ROBOTHOR_VAL, BATHROOM_TEST, BATHROOM_TRAIN, BEDROOM_TEST, LIVING_ROOM_TEST, \
+    KITCHEN_TEST
+from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask, \
     StretchExploreWiseRewardTaskOnlyPickUp, StretchObjectNavTask
-from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, ROBOTHOR_TRAIN, ROBOTHOR_VAL
+from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, STRETCH_MANIPULATHOR_COMMIT_ID
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, \
     RGBSensorStretchKinect, DepthSensorStretchKinect, AgentBodyPointNavSensor, AgentBodyPointNavEmulSensor, RGBSensorStretchKinectZero, \
     DepthSensorStretchKinectZero, IntelRawDepthSensor, ArmPointNavEmulSensor, KinectRawDepthSensor, \
@@ -27,7 +31,7 @@ from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, Dept
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
-class PointNavEmulStretchRoboThor(
+class PointNavEmulStretchRobothorPickUP(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -95,24 +99,24 @@ class PointNavEmulStretchRoboThor(
 
     ]
 
-    MAX_STEPS = 200# 500 #TODO really?
+    MAX_STEPS = 200
 
-    TASK_SAMPLER = RoboTHORStretchDiverseBringObjectTaskSampler
-    TASK_TYPE = StretchExploreWiseRewardTask
+    TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
+    # TASK_TYPE = StretchExploreWiseRewardTask
+    TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp
 
-    NUM_PROCESSES = 40
+    NUM_PROCESSES = 20
 
-    # OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
+    OBJECT_TYPES = list(set([v for obj_list in FULL_LIST_OF_OBJECTS.values() for v in obj_list]))
+    TRAIN_SCENES = ROBOTHOR_TRAIN
+    TEST_SCENES = ROBOTHOR_VAL
 
-    #TODO put back
-    # TRAIN_SCENES = ROBOTHOR_TRAIN
-    # TEST_SCENES = ROBOTHOR_VAL
-    OBJECT_TYPES = ['Mug', 'Apple'] #TODO very lim ited
 
     POTENTIAL_VISUALIZERS = [StretchBringObjImageVisualizer, TestMetricLogger]
 
-    # if platform.system() == "Darwin":
-    #     MAX_STEPS = 200
+    if platform.system() == "Darwin": #TODO remove
+        MAX_STEPS = 10
+        TRAIN_SCENES = KITCHEN_TRAIN[:2] + LIVING_ROOM_TRAIN[:2]  + BEDROOM_TRAIN[:2]  + BATHROOM_TRAIN[:2]  + ROBOTHOR_TRAIN[:2]
 
     def __init__(self):
         super().__init__()
@@ -120,11 +124,11 @@ class PointNavEmulStretchRoboThor(
         self.REWARD_CONFIG['object_found'] = 1
         self.ENV_ARGS = STRETCH_ENV_ARGS
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
+        self.ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
         self.ENV_ARGS['renderInstanceSegmentation'] = True
-        self.ENV_ARGS['commit_id'] = 'fe005524939307669392dab264a22da8ab6ed53a' #TODO use this for all?
 
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchRoboThor, self).test_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchRobothorPickUP, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -139,10 +143,11 @@ class PointNavEmulStretchRoboThor(
         return sampler_args
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchRoboThor, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchRobothorPickUP, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
+
             for sensor_type in sampler_args['sensors']:
                 if isinstance(sensor_type, AgentBodyPointNavEmulSensor):
                     sensor_type.device = torch.device(kwargs["devices"][0])

@@ -63,9 +63,35 @@ def test_stretch_in_robothor():
     # overlap_with_ithor = [k for k in exists_uniquely_in_every_room if k in ]
     pdb.set_trace()
 
+def test_interactable_obj_in_robothor():
+    # # all the following tests need to pass
+    global STRETCH_ENV_ARGS
+    STRETCH_ENV_ARGS['commit_id'] = 'fe005524939307669392dab264a22da8ab6ed53a' #TODO should we put this everywhere?
+    controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
+    print('Testing ', controller._build.url)
+    list_of_all_objects = {}
+    exact_total_number = {}
+    for scene in ROBOTHOR_SCENE_NAMES:
+        controller.reset(scene)
+        all_object_types = [o['objectType'] for o in controller.last_event.metadata['objects'] if o['pickupable']]
+        object_names = set(all_object_types)
+        object_counts = {k:all_object_types.count(k) for k in object_names}
+        print('scene', scene, ':', object_counts)
+        for k in object_names:
+            list_of_all_objects.setdefault(k, 0)
+            list_of_all_objects[k] += 1
+            exact_total_number.setdefault(k, 0)
+            exact_total_number[k] += object_counts[k]
+    print(list_of_all_objects)
+    exists_in_every_room = [k for (k,v) in list_of_all_objects.items() if v == 75]
+    exists_uniquely_in_every_room = [k for (k,v) in exact_total_number.items() if v == 75]
+    # overlap_with_ithor = [k for k in exists_uniquely_in_every_room if k in ]
+    pdb.set_trace()
+
 
 if __name__ == '__main__':
     # test_stretch_in_THOR()
-    test_stretch_in_robothor()
+    # test_stretch_in_robothor()
+    test_interactable_obj_in_robothor()
 
 

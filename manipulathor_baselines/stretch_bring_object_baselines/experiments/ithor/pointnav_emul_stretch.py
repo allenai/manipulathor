@@ -16,6 +16,10 @@ from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixi
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
 from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_pointnav_emul_model import StretchPointNavEmulModel
 from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_real_pointnav_model import StretchRealPointNavModel
+from manipulathor_utils.debugger_util import ForkedPdb
+from scripts.dataset_generation.find_categories_to_use import KITCHEN_TRAIN, LIVING_ROOM_TRAIN, BEDROOM_TRAIN, \
+    BATHROOM_TRAIN, ROBOTHOR_TRAIN, KITCHEN_TEST, LIVING_ROOM_TEST, BEDROOM_TEST, BATHROOM_TEST, ROBOTHOR_VAL, \
+    FULL_LIST_OF_OBJECTS
 from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask, \
     StretchExploreWiseRewardTaskOnlyPickUp, StretchObjectNavTask
@@ -103,6 +107,7 @@ class PointNavEmulStretch(
     NUM_PROCESSES = 40
 
     OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
+
 
     POTENTIAL_VISUALIZERS = [StretchBringObjImageVisualizer, TestMetricLogger]
 

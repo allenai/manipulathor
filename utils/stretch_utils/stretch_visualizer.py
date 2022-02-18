@@ -9,6 +9,7 @@ from ithor_arm.ithor_arm_viz import save_image_list_to_gif, LoggerVisualizer, pu
 import numpy as np
 
 from manipulathor_utils.debugger_util import ForkedPdb
+from scripts.stretch_jupyter_helper import transport_wrapper
 
 
 class StretchBringObjImageVisualizer(LoggerVisualizer):
@@ -64,22 +65,22 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
         if 'target_location_mask' in episode_info.get_observations():
             additional_observation_goal.append('target_location_mask')
 
-        # self.log_start_goal(
-        #     environment,
-        #     task_info["visualization_source"],
-        #     tag="start",
-        #     img_adr=os.path.join(self.log_dir, time_to_write),
-        #     additional_observations=additional_observation_start,
-        #     episode_info=episode_info
-        # )
-        # self.log_start_goal(
-        #     environment,
-        #     task_info["visualization_target"],
-        #     tag="goal",
-        #     img_adr=os.path.join(self.log_dir, time_to_write),
-        #     additional_observations=additional_observation_goal,
-        #     episode_info=episode_info
-        # )
+        self.log_start_goal(
+            environment,
+            task_info["visualization_source"],
+            tag="start",
+            img_adr=os.path.join(self.log_dir, time_to_write),
+            additional_observations=additional_observation_start,
+            episode_info=episode_info
+        )
+        self.log_start_goal(
+            environment,
+            task_info["visualization_target"],
+            tag="goal",
+            img_adr=os.path.join(self.log_dir, time_to_write),
+            additional_observations=additional_observation_goal,
+            episode_info=episode_info
+        )
 
         self.log_queue = []
         self.action_queue = []
@@ -97,6 +98,7 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
     def arm_frame_queue(self):
         return []
 
+
     def log_start_goal(self, env, task_info, tag, img_adr, additional_observations=[], episode_info=None):
         object_location = task_info["object_location"]
         object_id = task_info["object_id"]
@@ -107,6 +109,10 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
         ]  # maybe we need to reset env actually]
         #We should not reset here
         # for start arm from high up as a cheating, this block is very important. never remov
+
+        event, details = transport_wrapper(this_controller, object_id, object_location)
+        if event.metadata["lastActionSuccess"] == False:
+            print("ERROR: oh no could not transport in logging", event)
 
         event = this_controller.step(
             dict(
@@ -142,3 +148,4 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
                         img_adr + "_obj_" + object_id.split("|")[0] + "_pickup_" + tag + "_{}.png".format(sensor_name)
                 )
                 cv2.imwrite(mask_dir, mask_frame.astype(float)*255.)
+
