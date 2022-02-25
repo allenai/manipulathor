@@ -27,7 +27,6 @@ STRETCH_ENV_ARGS['height'] = screen_size
 STRETCH_ENV_ARGS['agentMode']='stretch'
 # STRETCH_ENV_ARGS['commit_id']='03b26e96a43c83f955386b8cac925d4d2b550837'
 STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
-STRETCH_ENV_ARGS['commit_id'] = 'f698c1c27a39536858c854cae413fd31987cdf2a' #TODO jsut a test for speed segmentation
 STRETCH_ENV_ARGS['renderDepthImage'] = True
 STRETCH_ENV_ARGS['renderInstanceSegmentation'] = True #TODO try out some real segmentation
 
@@ -41,7 +40,7 @@ if platform.system() == "Darwin":
 def test_stretch_in_robothor():
     # # all the following tests need to pass
     global STRETCH_ENV_ARGS
-    STRETCH_ENV_ARGS['commit_id'] = 'fe005524939307669392dab264a22da8ab6ed53a' #TODO should we put this everywhere?
+    STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
     controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
     print('Testing ', controller._build.url)
     list_of_all_objects = {}
@@ -66,7 +65,7 @@ def test_stretch_in_robothor():
 def test_interactable_obj_in_robothor():
     # # all the following tests need to pass
     global STRETCH_ENV_ARGS
-    STRETCH_ENV_ARGS['commit_id'] = 'fe005524939307669392dab264a22da8ab6ed53a' #TODO should we put this everywhere?
+    STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
     controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
     print('Testing ', controller._build.url)
     list_of_all_objects = {}

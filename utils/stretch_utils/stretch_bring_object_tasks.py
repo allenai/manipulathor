@@ -3,6 +3,7 @@ import datetime
 from typing import Dict, Tuple, List, Any, Optional
 
 import gym
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from allenact.base_abstractions.misc import RLStepResult
@@ -31,6 +32,7 @@ from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.dataset_generation.find_categories_to_use import get_room_type_from_id
 from scripts.jupyter_helper import get_reachable_positions
+from utils.hacky_viz_utils import save_quick_frame
 
 
 class ExploreWiseRewardTaskObjNav(BringObjectTask):
@@ -417,17 +419,26 @@ class StretchExploreWiseRewardTaskOnlyPickUp(StretchExploreWiseRewardTask):
     def _step(self, action: int) -> RLStepResult:
         action_str = self.class_action_names()[action]
 
-        self.manual = False
+        self.manual = False #TODO
         if self.manual:
             # actions = ()
             # actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l')
             ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_WRIST_P,MOVE_WRIST_M,MOVE_AHEAD,MOVE_BACK,ROTATE_RIGHT,ROTATE_LEFT,]
             ARM_SHORTENED_ACTIONS_ORDERED = ['hp','hm','zp','zm','wp','wm','m', 'b','r','l']
-            action = 'm'
+            try:
+                self.last_action_manual
+            except Exception:
+                self.last_action_manual = 'm'
+            action = self.last_action_manual
             self.env.controller.step('Pass')
             print(self.task_info['source_object_id'], self.task_info['goal_object_id'], 'pickup', self.object_picked_up)
+            save_quick_frame(self.env.controller, 'experiment_output/current_frame.png')
             ForkedPdb().set_trace()
-            action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
+            self.last_action_manual = action
+            if action == 'c':
+                pass #Keep model's prediction
+            else:
+                action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
 
 
         self._last_action_str = action_str
@@ -516,6 +527,9 @@ class StretchObjectNavTask(StretchExploreWiseRewardTask):
             print(self.task_info['source_object_id'], self.task_info['goal_object_id'], 'pickup', self.object_picked_up)
             print('agent body from obj', self.body_distance_from_obj())
             ForkedPdb().set_trace()
+            if action not in ARM_SHORTENED_ACTIONS_ORDERED:
+                print('action not found', action)
+                action = 'm'
             action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
 
 

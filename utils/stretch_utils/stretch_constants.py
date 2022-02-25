@@ -5,8 +5,10 @@ import ai2thor.fifo_server
 # INTEL_CAMERA_HEIGHT = int(1280/3)
 INTEL_CAMERA_WIDTH, INTEL_CAMERA_HEIGHT = 224,224 #TODO just for the beginning you have to chngfe this and have different values for differnt cameras
 # STRETCH_MANIPULATHOR_COMMIT_ID = '7184aa455bc21cc38406487a3d8e2d65ceba2571'
-STRETCH_MANIPULATHOR_COMMIT_ID = 'fe005524939307669392dab264a22da8ab6ed53a' #TODO are we sure about this?
-# STRETCH_MANIPULATHOR_COMMIT_ID = 'f698c1c27a39536858c854cae413fd31987cdf2a' #TODO we need a new dataset for this
+# STRETCH_MANIPULATHOR_COMMIT_ID = 'f698c1c27a39536858c854cae413fd31987cdf2a'
+# STRETCH_MANIPULATHOR_COMMIT_ID = 'fe005524939307669392dab264a22da8ab6ed53a' #This one was rotated
+# STRETCH_MANIPULATHOR_COMMIT_ID = '546c50bfa7cfbcec7d5224527e48e6ccb7ed26c2' #TODO just for the segmentation sanity check
+STRETCH_MANIPULATHOR_COMMIT_ID = 'cf23e657aa4738324d09cc79d5f78ea741bf20bf' #TODO eriic commit?
 STRETCH_ENV_ARGS = dict(
     gridSize=0.25,
     width=INTEL_CAMERA_WIDTH,

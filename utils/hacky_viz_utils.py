@@ -2,7 +2,8 @@ import torch
 import os
 from datetime import datetime
 import cv2
-
+import numpy as np
+import matplotlib.pyplot as plt
 from ithor_arm.ithor_arm_viz import put_additional_text_on_image
 from manipulathor_utils.debugger_util import ForkedPdb
 
@@ -62,3 +63,9 @@ def calc_dict_average(nested_dict):
             total_str += f'{key}:{calc_dict_average(val)},'
         total_str += '}'
     return total_str
+
+def save_quick_frame(controller, image_adr):
+    first_camera = controller.last_event.frame
+    arm_camera = controller.last_event.third_party_camera_frames[0]
+    combined_camera = np.concatenate([first_camera, arm_camera], axis=1)
+    plt.imsave(image_adr, combined_camera)

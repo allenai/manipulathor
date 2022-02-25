@@ -178,7 +178,7 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
             print("Not all scenes appear")
             print([s for s in self.scenes if s not in scene_names])
 
-        # #TODO just stats
+        # TODO just stats
         # for obj in self.objects:
         #     scene_names_for_obj = set([x[0] for x in self.all_possible_points.keys() if x[1] == obj])
         #     print(obj, ':', len(scene_names_for_obj))
@@ -230,8 +230,6 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
             self, force_advance_scene: bool = False
     ) :
 
-        #TODO this is too entangled, double check that we have redefined all the functions we use
-
         if self.env is None:
             self.env = self._create_environment()
 
@@ -249,7 +247,7 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
         agent_state = data_point["initial_agent_pose"]
 
         self.reset_scene(scene_name)
-        #TODO just because name of objects are changed
+        # just because name of objects are changed
         def convert_name(env, object_info):
             prev_object_id = object_info['object_id']
             if env.get_object_by_id(prev_object_id) is None:
@@ -466,7 +464,7 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
 #             self, force_advance_scene: bool = False
 #     ) :
 #
-#         #TODO this is too entangled, double check that we have redefined all the functions we use
+#         TODO this is too entangled, double check that we have redefined all the functions we use
 #
 #         if self.env is None:
 #             self.env = self._create_environment()
@@ -566,11 +564,11 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
 #
 #     def get_source_target_indices(self):
 #
-#         #TODO this needs to be fixed for test
+#         TODO this needs to be fixed for test
 #
 #         # super(type(self), self).get_source_target_indices()
 #         data_point = {}
-#         #TODO this can't be more wrong
+#         TODO this can't be more wrong
 #         POSSIBLE_SCENES = ROBOTHOR_TRAIN
 #         data_point['scene_name'] = random.choice(POSSIBLE_SCENES)
 #         self.env.reset(data_point['scene_name'])

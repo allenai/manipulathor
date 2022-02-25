@@ -36,7 +36,7 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
     VALID_GPU_IDS = []
     TEST_GPU_IDS = []
     # VALID_GPU_IDS = [torch.cuda.device_count() - 1]
-    # TEST_GPU_IDS = [torch.cuda.device_count() - 1]
+    # TEST_GPU_IDS = [torch.cuda.device_count() - 1] #
 
     TRAIN_DATASET_DIR: Optional[str] = None
     VAL_DATASET_DIR: Optional[str] = None

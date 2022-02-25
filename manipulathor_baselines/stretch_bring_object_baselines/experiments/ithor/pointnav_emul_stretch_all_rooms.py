@@ -1,4 +1,5 @@
 import platform
+import random
 
 import gym
 import torch
@@ -111,12 +112,23 @@ class PointNavEmulStretchAllRooms(
     TRAIN_SCENES = KITCHEN_TRAIN + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN + ROBOTHOR_TRAIN
     TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST + ROBOTHOR_VAL
 
+    #TODO remove
+    TRAIN_SCENES = KITCHEN_TRAIN + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN
+    TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST
+    random.shuffle(TRAIN_SCENES)
+    OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ != 'robothor']))
+
+
 
     POTENTIAL_VISUALIZERS = [StretchBringObjImageVisualizer, TestMetricLogger]
 
-    if platform.system() == "Darwin": #TODO remove
-        MAX_STEPS = 10
-        TRAIN_SCENES = KITCHEN_TRAIN[:2] + LIVING_ROOM_TRAIN[:2]  + BEDROOM_TRAIN[:2]  + BATHROOM_TRAIN[:2]  + ROBOTHOR_TRAIN[:2]
+    # if platform.system() == "Darwin": TODO remove
+    #     random.shuffle(KITCHEN_TRAIN)
+    #     random.shuffle(LIVING_ROOM_TRAIN)
+    #     random.shuffle(BEDROOM_TRAIN)
+    #     random.shuffle(BATHROOM_TRAIN)
+    #     random.shuffle(ROBOTHOR_TRAIN)
+    #     TRAIN_SCENES = KITCHEN_TRAIN[:10] + LIVING_ROOM_TRAIN[:10]  + BEDROOM_TRAIN[:10]  + BATHROOM_TRAIN[:10]  + ROBOTHOR_TRAIN[:10]
 
     def __init__(self):
         super().__init__()

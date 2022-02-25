@@ -1,4 +1,5 @@
 import platform
+import random
 
 import gym
 import torch
@@ -31,7 +32,7 @@ from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, Dept
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
-class PointNavEmulStretchRobothorPickUP(
+class PointNavEmulStretchAllRooms(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -102,18 +103,30 @@ class PointNavEmulStretchRobothorPickUP(
     MAX_STEPS = 200
 
     TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
-    # TASK_TYPE = StretchExploreWiseRewardTask
-    TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp
+    TASK_TYPE = StretchExploreWiseRewardTask
 
-    NUM_PROCESSES = 20
+    NUM_PROCESSES = 15
 
     OBJECT_TYPES = list(set([v for obj_list in FULL_LIST_OF_OBJECTS.values() for v in obj_list]))
-    TRAIN_SCENES = ROBOTHOR_TRAIN
-    TEST_SCENES = ROBOTHOR_VAL
+    TRAIN_SCENES = KITCHEN_TRAIN + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN + ROBOTHOR_TRAIN
+    TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST + ROBOTHOR_VAL
+
+    #TODO remove
+    TRAIN_SCENES = BEDROOM_TRAIN
+    TEST_SCENES = BEDROOM_TEST
+    OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ != 'robothor']))
+
 
 
     POTENTIAL_VISUALIZERS = [StretchBringObjImageVisualizer, TestMetricLogger]
 
+    # if platform.system() == "Darwin": TODO remove
+    #     random.shuffle(KITCHEN_TRAIN)
+    #     random.shuffle(LIVING_ROOM_TRAIN)
+    #     random.shuffle(BEDROOM_TRAIN)
+    #     random.shuffle(BATHROOM_TRAIN)
+    #     random.shuffle(ROBOTHOR_TRAIN)
+    #     TRAIN_SCENES = KITCHEN_TRAIN[:10] + LIVING_ROOM_TRAIN[:10]  + BEDROOM_TRAIN[:10]  + BATHROOM_TRAIN[:10]  + ROBOTHOR_TRAIN[:10]
 
     def __init__(self):
         super().__init__()
@@ -125,7 +138,7 @@ class PointNavEmulStretchRobothorPickUP(
         self.ENV_ARGS['renderInstanceSegmentation'] = True
 
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchRobothorPickUP, self).test_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchAllRooms, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -140,7 +153,7 @@ class PointNavEmulStretchRobothorPickUP(
         return sampler_args
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchRobothorPickUP, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchAllRooms, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
