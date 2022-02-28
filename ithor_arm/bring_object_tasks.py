@@ -362,6 +362,7 @@ class BringObjectTask(AbstractBringObjectTask):
                 self.last_action_success = goal_achieved
                 self._success = goal_achieved
 
+
         step_result = RLStepResult(
             observation=self.get_observations(),
             reward=self.judge(),
@@ -673,13 +674,29 @@ class ExploreWiseRewardTask(BringObjectTask):
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
         self.source_observed_reward = False
         self.goal_observed_reward = False
+        self.source_obj_visible = []
+        self.goal_obj_visible = []
     def metrics(self) -> Dict[str, Any]:
         result = super(ExploreWiseRewardTask, self).metrics()
         if self.is_done():
+
+            result['percent_source_visible'] = sum(self.source_obj_visible) / (len(self.source_obj_visible) + 1e-9)
+            result['percent_goal_visible'] = sum(self.goal_obj_visible) / (len(self.goal_obj_visible) + 1e-9)
             result['percent_room_visited'] = self.has_visited.mean().item()
+            if self._success:
+                result['successful_percent_source_visible'] = sum(self.source_obj_visible) / (len(self.source_obj_visible) + 1e-9)
+                result['successful_percent_goal_visible'] = sum(self.goal_obj_visible) / (len(self.goal_obj_visible) + 1e-9)
 
         return result
-
+    def _step(self, action: int) -> RLStepResult:
+        result = super(ExploreWiseRewardTask, self)._step(action)
+        source_is_visible = self.env.last_event.get_object(self.task_info['source_object_id'])['visible']
+        goal_is_visible = self.env.last_event.get_object(self.task_info['goal_object_id'])['visible']
+        if self.source_observed_reward and not self.object_picked_up:
+            self.source_obj_visible.append(source_is_visible)
+        if self.goal_observed_reward and self.object_picked_up:
+            self.goal_obj_visible.append(goal_is_visible)
+        return result
     def judge(self) -> float:
         """Compute the reward after having taken a step."""
         reward = self.reward_configs["step_penalty"]

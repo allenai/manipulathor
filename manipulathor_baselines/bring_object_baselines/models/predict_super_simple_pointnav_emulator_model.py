@@ -92,6 +92,8 @@ class PredictSuperSimpleRGBDModelWPointNavEmulator(ActorCriticModel[CategoricalD
 
         self.train()
 
+        self.all_mask_accumulate = []
+
 
 
         self.starting_time = datetime.now().strftime("{}_%m_%d_%Y_%H_%M_%S_%f".format(self.__class__.__name__))
@@ -204,6 +206,18 @@ class PredictSuperSimpleRGBDModelWPointNavEmulator(ActorCriticModel[CategoricalD
         )
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
+
+        num_worker, b_size, h, w, c = predicted_masks.shape
+        if num_worker == b_size == 1:
+            source_object_mask = observations['object_mask_source']
+            destination_object_mask = observations['object_mask_destination']
+            gt_mask = source_object_mask
+            gt_mask[after_pickup] = destination_object_mask[after_pickup]
+            if gt_mask.sum() > 0:
+                intersection = ((gt_mask + predicted_masks) == 2).sum() > 0
+                self.all_mask_accumulate.append(intersection)
+                print('Detection happened:', sum(self.all_mask_accumulate) / (len(self.all_mask_accumulate) + 1e-9), 'len', len(self.all_mask_accumulate))
+
 
         # TODO really bad design
         if self.visualize:
