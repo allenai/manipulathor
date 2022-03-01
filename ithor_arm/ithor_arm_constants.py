@@ -14,7 +14,9 @@ from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 # for exp room luca toggle grasper visibility and potentially a boost in FPS
 # MANIPULATHOR_COMMIT_ID = "58bf22c0b9aa0d3abe5fd8c3b43479ecc8d2a228"
 # MANIPULATHOR_COMMIT_ID = '214bc8036f323f4d8418e0a76c4251c401793bd5'
-MANIPULATHOR_COMMIT_ID = '2f8dd9f95e4016db60155a0cc18b834a6339c8e1' #
+# MANIPULATHOR_COMMIT_ID = '2f8dd9f95e4016db60155a0cc18b834a6339c8e1' #
+
+MANIPULATHOR_COMMIT_ID = '2b5bcec105e30de464f34c4349a40f015b872517' #TODO just for the remove arm visibility
 
 MOVE_THR = 0.01
 ARM_MIN_HEIGHT = 0.450998873

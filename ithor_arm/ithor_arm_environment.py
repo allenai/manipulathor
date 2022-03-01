@@ -216,6 +216,9 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
         self.list_of_actions_so_far = []
 
+        #TODO remove this?
+        # self.env.controller.step(action="ToggleAgentVisibility", isAgentVisible=True,)
+
     def randomize_agent_location(
             self, seed: int = None, partial_position: Optional[Dict[str, float]] = None
     ) -> Dict:

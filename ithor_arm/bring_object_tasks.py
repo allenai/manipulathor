@@ -676,26 +676,48 @@ class ExploreWiseRewardTask(BringObjectTask):
         self.goal_observed_reward = False
         self.source_obj_visible = []
         self.goal_obj_visible = []
+        self.source_obj_invisible_arm = []
+        self.goal_obj_invisible_arm = []
     def metrics(self) -> Dict[str, Any]:
         result = super(ExploreWiseRewardTask, self).metrics()
         if self.is_done():
 
             result['percent_source_visible'] = sum(self.source_obj_visible) / (len(self.source_obj_visible) + 1e-9)
             result['percent_goal_visible'] = sum(self.goal_obj_visible) / (len(self.goal_obj_visible) + 1e-9)
+
+            result['percent_source_invisible_for_arm'] = sum(self.source_obj_invisible_arm) / (len(self.source_obj_invisible_arm) + 1e-9)
+            result['percent_goal_invisible_for_arm'] = sum(self.goal_obj_invisible_arm) / (len(self.goal_obj_invisible_arm) + 1e-9)
+
             result['percent_room_visited'] = self.has_visited.mean().item()
-            if self._success:
-                result['successful_percent_source_visible'] = sum(self.source_obj_visible) / (len(self.source_obj_visible) + 1e-9)
-                result['successful_percent_goal_visible'] = sum(self.goal_obj_visible) / (len(self.goal_obj_visible) + 1e-9)
 
         return result
     def _step(self, action: int) -> RLStepResult:
         result = super(ExploreWiseRewardTask, self)._step(action)
         source_is_visible = self.env.last_event.get_object(self.task_info['source_object_id'])['visible']
         goal_is_visible = self.env.last_event.get_object(self.task_info['goal_object_id'])['visible']
+
+        # self.env.controller.step(action="ToggleAgentVisibility", isAgentVisible=False,) #TODO this is obviously not standard
+
+        source_is_visible_without_arm = self.env.last_event.get_object(self.task_info['source_object_id'])['visible']
+        goal_is_visible_without_arm = self.env.last_event.get_object(self.task_info['goal_object_id'])['visible']
+        # self.env.controller.step(action="ToggleAgentVisibility", isAgentVisible=True,)
+
+
+        # self.env.controller.step(action="ToggleAgentVisibility", isAgentVisible=False,)
         if self.source_observed_reward and not self.object_picked_up:
             self.source_obj_visible.append(source_is_visible)
+            if not source_is_visible:
+                source_invisible_due_to_arm = False
+                if source_is_visible_without_arm:
+                    source_invisible_due_to_arm = True
+                self.source_obj_invisible_arm.append(source_invisible_due_to_arm)
         if self.goal_observed_reward and self.object_picked_up:
             self.goal_obj_visible.append(goal_is_visible)
+            if not goal_is_visible:
+                goal_invisible_due_to_arm = False
+                if goal_is_visible_without_arm:
+                    goal_invisible_due_to_arm = True
+                self.goal_obj_invisible_arm.append(goal_invisible_due_to_arm)
         return result
     def judge(self) -> float:
         """Compute the reward after having taken a step."""
