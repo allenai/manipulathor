@@ -255,22 +255,39 @@ class StretchExploreWiseRewardTask(BringObjectTask):
 
             result = {**result, **metric_by_room_type}
         return result
+
+    def manual_action(self, original_action):
+        ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_WRIST_P,MOVE_WRIST_M,MOVE_AHEAD,MOVE_BACK,ROTATE_RIGHT,ROTATE_LEFT,]
+        ARM_SHORTENED_ACTIONS_ORDERED = ['hp','hm','zp','zm','wp','wm','m', 'b','r','l']
+        try:
+            self.last_action_manual
+        except Exception:
+            self.last_action_manual = 'm'
+        action = self.last_action_manual
+        self.env.controller.step('Pass')
+        source_receptacle = self.env.get_object_by_id(self.task_info['source_object_id'])['parentReceptacles']
+        goal_receptacle = self.env.get_object_by_id(self.task_info['goal_object_id'])['parentReceptacles']
+        print('source_receptacle', source_receptacle,'goal_receptacle', goal_receptacle,)
+        print(self.task_info['source_object_id'], self.task_info['goal_object_id'], 'pickup', self.object_picked_up)
+        save_quick_frame(self.env.controller, '/Users/kianae/Desktop/current_frame.png')
+        ForkedPdb().set_trace()
+        if action not in ARM_SHORTENED_ACTIONS_ORDERED:
+            print('Action not FOUND')
+            action = 'm'
+        self.last_action_manual = action
+        if action == 'c':
+            action_str = self.class_action_names()[original_action] #keep model's prediction
+        else:
+            action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
+        return action_str
+
     def _step(self, action: int) -> RLStepResult:
 
         action_str = self.class_action_names()[action]
 
-        self.manual = False
+        self.manual = True #TODO
         if self.manual:
-            # actions = ()
-            # actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l')
-            ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_WRIST_P,MOVE_WRIST_M,MOVE_AHEAD,MOVE_BACK,ROTATE_RIGHT,ROTATE_LEFT,]
-            ARM_SHORTENED_ACTIONS_ORDERED = ['hp','hm','zp','zm','wp','wm','m', 'b','r','l']
-            action = 'm'
-            self.env.controller.step('Pass')
-            print(self.task_info['source_object_id'], self.task_info['goal_object_id'], 'pickup', self.object_picked_up)
-            ForkedPdb().set_trace()
-            action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
-
+            action_str = self.manual_action(action)
 
         self._last_action_str = action_str
         action_dict = {"action": action_str}
@@ -421,24 +438,7 @@ class StretchExploreWiseRewardTaskOnlyPickUp(StretchExploreWiseRewardTask):
 
         self.manual = False #TODO
         if self.manual:
-            # actions = ()
-            # actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l')
-            ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_WRIST_P,MOVE_WRIST_M,MOVE_AHEAD,MOVE_BACK,ROTATE_RIGHT,ROTATE_LEFT,]
-            ARM_SHORTENED_ACTIONS_ORDERED = ['hp','hm','zp','zm','wp','wm','m', 'b','r','l']
-            try:
-                self.last_action_manual
-            except Exception:
-                self.last_action_manual = 'm'
-            action = self.last_action_manual
-            self.env.controller.step('Pass')
-            print(self.task_info['source_object_id'], self.task_info['goal_object_id'], 'pickup', self.object_picked_up)
-            save_quick_frame(self.env.controller, 'experiment_output/current_frame.png')
-            ForkedPdb().set_trace()
-            self.last_action_manual = action
-            if action == 'c':
-                pass #Keep model's prediction
-            else:
-                action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
+            action_str = self.manual_action(action)
 
 
         self._last_action_str = action_str
@@ -518,19 +518,7 @@ class StretchObjectNavTask(StretchExploreWiseRewardTask):
 
         self.manual = False
         if self.manual:
-            # actions = ()
-            # actions_short  = ('u', 'j', 's', 'a', '3', '4', 'w', 'z', 'm', 'r', 'l')
-            ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_WRIST_P,MOVE_WRIST_M,MOVE_AHEAD,MOVE_BACK,ROTATE_RIGHT,ROTATE_LEFT,]
-            ARM_SHORTENED_ACTIONS_ORDERED = ['hp','hm','zp','zm','wp','wm','m', 'b','r','l']
-            action = 'm'
-            self.env.controller.step('Pass')
-            print(self.task_info['source_object_id'], self.task_info['goal_object_id'], 'pickup', self.object_picked_up)
-            print('agent body from obj', self.body_distance_from_obj())
-            ForkedPdb().set_trace()
-            if action not in ARM_SHORTENED_ACTIONS_ORDERED:
-                print('action not found', action)
-                action = 'm'
-            action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
+            action_str = self.manual_action()
 
 
         self._last_action_str = action_str

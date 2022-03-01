@@ -49,3 +49,6 @@ sudo /media/4TBNVME/home/kianae/some_virtual_env/bin/ai2thor-xorg start
 sudo /media/4TBNVME/home/kianae/manipulathor_env/bin/ai2thor-xorg start
 unset CUDA_VISIBLE_DEVICES
 allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/pointnav_emul_stretch
+
+pip install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+5afa5633597b12898e12eed528c2332a50bc0f79
+#pip install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+5f88945385c2bdcd1fe0a36069e92a48632dbc5b

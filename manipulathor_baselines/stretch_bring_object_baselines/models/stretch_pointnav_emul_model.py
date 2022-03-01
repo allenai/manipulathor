@@ -221,6 +221,14 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
+        #TODO remove
+        if arm_distance_to_obj_source.shape[0] == 1 and arm_distance_to_obj_source.shape[1] == 1:
+            arm_distances = arm_distance_to_obj_source
+            arm_distances[after_pickup] = arm_distance_to_obj_destination
+            agent_distances = agent_distance_to_obj_source
+            agent_distances[after_pickup] = agent_distance_to_obj_destination
+            print('arm_distances', arm_distances, 'agent_distances', agent_distances)
+
         if self.visualize:
             source_object_mask = observations['object_mask_source']
             destination_object_mask = observations['object_mask_destination']

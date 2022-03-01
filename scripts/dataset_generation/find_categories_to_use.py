@@ -32,7 +32,7 @@ STRETCH_ENV_ARGS['agentMode']='stretch'
 # STRETCH_ENV_ARGS['commit_id']='7184aa455bc21cc38406487a3d8e2d65ceba2571'
 # STRETCH_ENV_ARGS['renderDepthImage'] = True
 
-controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
+# controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
 
 kitchens = [f"FloorPlan{i}" for i in range(1, 31)]
 living_rooms = [f"FloorPlan{200 + i}" for i in range(1, 31)]
