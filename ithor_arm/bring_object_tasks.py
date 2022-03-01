@@ -239,7 +239,7 @@ class AbstractBringObjectTask(Task[ManipulaTHOREnvironment]):
 
             self.finish_visualizer_metrics(result)
             self.finish_visualizer(self._success)
-            self.action_sequence_and_success = []
+            # self.action_sequence_and_success = []
             # result['task_info'] = copy.deepcopy(result['task_info'])
             # for remove_feature in ['source_object_query', 'goal_object_query','source_object_query_feature', 'goal_object_query_feature',]:
             #     result['task_info'][remove_feature] = []
@@ -689,6 +689,7 @@ class ExploreWiseRewardTask(BringObjectTask):
             result['percent_goal_invisible_for_arm'] = sum(self.goal_obj_invisible_arm) / (len(self.goal_obj_invisible_arm) + 1e-9)
 
             result['percent_room_visited'] = self.has_visited.mean().item()
+            result['task_info']['full_action_list'] = self.action_sequence_and_success
 
         return result
     def _step(self, action: int) -> RLStepResult:
