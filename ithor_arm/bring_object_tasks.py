@@ -797,6 +797,46 @@ class ExploreWiseRewardTask(BringObjectTask):
 
         return float(reward)
 
+class ExploreWiseRewardTaskReplay(ExploreWiseRewardTask):
+
+    def metrics(self) -> Dict[str, Any]:
+        result = super(ExploreWiseRewardTaskReplay, self).metrics()
+        if self.is_done():
+
+            result['percent_source_visible_without_arm'] = sum(self.source_obj_visible) / (len(self.source_obj_visible) + 1e-9)
+            result['percent_goal_visible_without_arm'] = sum(self.goal_obj_visible) / (len(self.goal_obj_visible) + 1e-9)
+
+            # result['percent_source_invisible_for_arm'] = sum(self.source_obj_invisible_arm) / (len(self.source_obj_invisible_arm) + 1e-9)
+            # result['percent_goal_invisible_for_arm'] = sum(self.goal_obj_invisible_arm) / (len(self.goal_obj_invisible_arm) + 1e-9)
+
+            result['percent_room_visited'] = self.has_visited.mean().item()
+            result['task_info']['full_action_list'] = self.action_sequence_and_success
+
+        return result
+    def _step(self, action: int) -> RLStepResult:
+        try:
+            self.list_of_replay_actions
+        except Exception:
+            self.list_of_replay_actions = self.task_info['list_of_taken_actions']
+        action_name = self.list_of_replay_actions[0][0]
+        self.list_of_replay_actions = self.list_of_replay_actions[1:]
+        action = self.class_action_names().index(action_name)
+
+        result = super(ExploreWiseRewardTaskReplay, self)._step(action)
+        return result
+
+        # source_is_visible_without_arm = self.env.last_event.get_object(self.task_info['source_object_id'])['visible']
+        # goal_is_visible_without_arm = self.env.last_event.get_object(self.task_info['goal_object_id'])['visible']
+        #
+        # # self.env.controller.step(action="ToggleAgentVisibility", isAgentVisible=False,)
+        # if self.source_observed_reward and not self.object_picked_up:
+        #     self.source_obj_visible.append(source_is_visible_without_arm)
+        #
+        # if self.goal_observed_reward and self.object_picked_up:
+        #     self.goal_obj_visible.append(goal_is_visible_without_arm)
+        #
+        # return result
+
 class ExploreWiseRewardTaskWPU(ExploreWiseRewardTask):
     _actions = (
         MOVE_ARM_HEIGHT_P,
