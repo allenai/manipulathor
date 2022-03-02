@@ -435,7 +435,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
 class DiverseBringObjectTaskSamplerReplay(DiverseBringObjectTaskSampler):
     @lazy_property
     def test_tasks(self):
-        file_adr = '~/metrics__test_2022-03-01_12-30-23.json'
+        file_adr = '/home/kianae/metrics__test_2022-03-01_12-30-23.json'
 
         with open(file_adr) as f:
             tasks = json.load(f)[0]['tasks']
