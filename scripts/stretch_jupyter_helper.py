@@ -84,7 +84,7 @@ def reset_environment_and_additional_commands(controller, scene_name):
     controller.step(action="MakeObjectsStaticKinematicMassThreshold")
     make_all_objects_unbreakable(controller)
 
-    event_init_arm = controller.step(dict(action="MoveArmBase", y=0.8, **ADITIONAL_ARM_ARGS))
+    event_init_arm = controller.step(dict(action="MoveArm", position=dict(x=0,y=0.8,z=0), **ADITIONAL_ARM_ARGS))
     if event_init_arm.metadata['lastActionSuccess'] is False:
         print('Initialze arm failed')
     return
@@ -223,13 +223,23 @@ def get_current_wrist_state(controller):
     return quaternion
 
 
-def get_current_arm_state(controller):
+def get_relative_stretch_current_arm_state(controller):
 
     arm = controller.last_event.metadata['arm']['joints'] #TODO is this the right one? how about wrist movements
     z = arm[-1]['rootRelativePosition']['z']
-    x = 0 #arm[-1]['rootRelativePosition']['x']
+    x = arm[-1]['rootRelativePosition']['x']
+    assert abs(x - 0) < 1e-3
     y = arm[0]['rootRelativePosition']['y'] - 0.16297650337219238 #TODO?
-    return dict(x=0,y=y, z=z)
+    return dict(x=x,y=y, z=z)
+
+# def get_current_arm_state(controller): TODO remove this
+#
+#     arm = controller.last_event.metadata['arm']['joints'] TODO is this the right one? how about wrist movements
+#     z = arm[-1]['rootRelativePosition']['z']
+#     # x = arm[-1]['rootRelativePosition']['x']
+#     # assert abs(x - 0) < 1e-3
+#     y = arm[0]['rootRelativePosition']['y'] - 0.16297650337219238 TODO?
+#     return dict(x=0,y=y, z=z)
 
 def two_list_equal(l1, l2):
     dict1 = {i: v for (i,v) in enumerate(l1)}

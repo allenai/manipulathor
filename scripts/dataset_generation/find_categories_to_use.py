@@ -22,7 +22,6 @@ import numpy as np
 from pyquaternion import Quaternion
 
 from scripts.jupyter_helper import get_reachable_positions
-from scripts.stretch_jupyter_helper import two_dict_equal, ARM_MOVE_CONSTANT, get_current_arm_state, only_reset_scene, transport_wrapper, ADITIONAL_ARM_ARGS, execute_command, WRIST_ROTATION, get_current_wrist_state, reset_environment_and_additional_commands
 
 screen_size=224
 

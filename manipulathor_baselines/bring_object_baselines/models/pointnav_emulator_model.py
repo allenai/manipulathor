@@ -163,7 +163,6 @@ class RGBDModelWPointNavEmulator(ActorCriticModel[CategoricalDistr]):
         arm_distance_to_obj_source = observations['point_nav_emul_source']
         arm_distance_to_obj_destination = observations['point_nav_emul_destination']
 
-        #TODO if this is the problem it mighth be the fucking copying the tensor shit.
         arm_distance_to_obj_source_embedding = self.pointnav_embedding(arm_distance_to_obj_source)
         arm_distance_to_obj_destination_embedding = self.pointnav_embedding(arm_distance_to_obj_destination)
         pointnav_embedding = arm_distance_to_obj_source_embedding

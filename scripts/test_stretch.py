@@ -208,7 +208,7 @@ def test_arm_movements(controller, scenes, num_tests=NUM_TESTS, episode_len=EPS_
                     object_inventory = controller.last_event.metadata["arm"]["heldObjects"]
                     if len(object_inventory) == 0:
                         print('Pickup Failed', scene, all_seq, detailed_actions)
-                if action in ['m', 'b']: #TODO this is not super accurate but just for now
+                if action in ['m', 'b']: # TODO this is not super accurate but just for now
                     distances = [agent_before_action['position'][k] - agent_after_action['position'][k] for k in ['x', 'y', 'z']]
                     sum_distances = sum([abs(k) for k in distances])
                     if sum_distances < 0.05:
@@ -328,7 +328,7 @@ def test_stretch_in_robothor():
     STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
     controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
     print('Testing ', controller._build.url)
-    #TODO do we need to define any of these?
+    # TODO do we need to define any of these?
     #     controller = Controller(
     #     agentMode="locobot",
     #     visibilityDistance=1.5,

@@ -103,15 +103,11 @@ class PointNavEmulStretchAllRooms(
     MAX_STEPS = 200
 
     TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
-    TASK_TYPE = StretchExploreWiseRewardTask
+    TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp
 
-    NUM_PROCESSES = 15
+    NUM_PROCESSES = 20
 
-    OBJECT_TYPES = list(set([v for obj_list in FULL_LIST_OF_OBJECTS.values() for v in obj_list]))
-    TRAIN_SCENES = KITCHEN_TRAIN + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN + ROBOTHOR_TRAIN
-    TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST + ROBOTHOR_VAL
 
-    #TODO remove
     TRAIN_SCENES = BEDROOM_TRAIN
     TEST_SCENES = BEDROOM_TEST
     OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ != 'robothor']))

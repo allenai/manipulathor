@@ -19,7 +19,7 @@ from ithor_arm.ithor_arm_constants import (
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.jupyter_helper import ARM_MOVE_CONSTANT
-from scripts.stretch_jupyter_helper import get_current_arm_state, WRIST_ROTATION, reset_environment_and_additional_commands, AGENT_ROTATION_DEG, AGENT_MOVEMENT_CONSTANT
+from scripts.stretch_jupyter_helper import get_relative_stretch_current_arm_state, WRIST_ROTATION, reset_environment_and_additional_commands, AGENT_ROTATION_DEG, AGENT_MOVEMENT_CONSTANT
 from utils.stretch_utils.stretch_constants import STRETCH_MANIPULATHOR_COMMIT_ID
 
 
@@ -234,22 +234,17 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
     def arm_frame(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
         return self.controller.last_event.third_party_camera_frames[0]
-
     def get_current_arm_state(self):
-        arm = self.controller.last_event.metadata['arm']['joints'] #TODO is this the right one? how about wrist movements
-        z = arm[-1]['rootRelativePosition']['z']
-        x = 0 #arm[-1]['rootRelativePosition']['x']
-        y = arm[0]['rootRelativePosition']['y'] - 0.16297650337219238 #TODO?
-        return dict(x=0,y=y, z=z)
+        ForkedPdb().set_trace()
 
 
     def get_absolute_hand_state(self):
-        # event = self.controller.last_event
-        # joints = event.metadata["arm"]["joints"]
-        # arm = copy.deepcopy(joints[-1])
+        event = self.controller.last_event
+        joints = event.metadata["arm"]["joints"]
+        arm = copy.deepcopy(joints[-1])
         # xyz_dict = arm["position"]
-        xyz_dict = get_current_arm_state(self.controller)
-        return dict(position=xyz_dict, rotation={"x": 0, "y": 0, "z": 0})
+        # xyz_dict = get_relative_stretch_current_arm_state(self.controller)
+        return dict(position=arm['position'], rotation={"x": 0, "y": 0, "z": 0})
 
     def get_pickupable_objects(self):
 
@@ -312,7 +307,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
                 action_dict["action"] = "RotateAgent"
                 action_dict["degrees"] = -AGENT_ROTATION_DEG
         elif action in [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,]:
-            base_position = get_current_arm_state(self.controller)
+            base_position = get_relative_stretch_current_arm_state(self.controller)
             change_value = ARM_MOVE_CONSTANT
             if action == MOVE_ARM_HEIGHT_P:
                 base_position['y'] += change_value

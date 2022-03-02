@@ -28,7 +28,7 @@ STRETCH_ENV_ARGS['agentMode']='stretch'
 # STRETCH_ENV_ARGS['commit_id']='03b26e96a43c83f955386b8cac925d4d2b550837'
 STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
 STRETCH_ENV_ARGS['renderDepthImage'] = True
-STRETCH_ENV_ARGS['renderInstanceSegmentation'] = True #TODO try out some real segmentation
+STRETCH_ENV_ARGS['renderInstanceSegmentation'] = True # TODO try out some real segmentation
 
 if platform.system() == "Darwin":
     saved_image_folder = '/Users/kianae/Desktop/saved_stretch_images'

@@ -64,8 +64,31 @@ def calc_dict_average(nested_dict):
         total_str += '}'
     return total_str
 
-def save_quick_frame(controller, image_adr):
+def save_quick_frame(controller, image_adr, top_view=False):
     first_camera = controller.last_event.frame
     arm_camera = controller.last_event.third_party_camera_frames[0]
-    combined_camera = np.concatenate([first_camera, arm_camera], axis=1)
+    if top_view:
+        third_view = get_stretch_top_view(controller)
+        combined_camera = np.concatenate([first_camera, arm_camera, third_view], axis=1)
+    else:
+        combined_camera = np.concatenate([first_camera, arm_camera], axis=1)
     plt.imsave(image_adr, combined_camera)
+
+def get_stretch_top_view(controller): # TODO this might mess up some other things be careful
+    camera_position = {
+        'position': controller.last_event.metadata['cameraPosition'],
+        'rotation': dict(x=90,y=0,z=0)
+    }
+    camera_position['position']['y'] += 0.5
+    if len(controller.last_event.third_party_camera_frames) > 1:
+        controller.step('UpdateThirdPartyCamera',
+            thirdPartyCameraId=1, # id is available in the metadata response
+            rotation=camera_position['rotation'],
+            position=camera_position['position']
+            )
+    else:
+        controller.step('AddThirdPartyCamera',
+            rotation=camera_position['rotation'],
+            position=camera_position['position'],
+            fieldOfView=100)
+    return( controller.last_event.third_party_camera_frames[-1])

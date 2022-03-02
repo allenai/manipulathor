@@ -1,4 +1,5 @@
 """Task Definions for the task of ArmPointNav"""
+import copy
 import datetime
 from typing import Dict, Tuple, List, Any, Optional
 
@@ -264,12 +265,15 @@ class StretchExploreWiseRewardTask(BringObjectTask):
         except Exception:
             self.last_action_manual = 'm'
         action = self.last_action_manual
+        event_before_pass = copy.deepcopy(self.env.controller.last_event)
         self.env.controller.step('Pass')
         source_receptacle = self.env.get_object_by_id(self.task_info['source_object_id'])['parentReceptacles']
         goal_receptacle = self.env.get_object_by_id(self.task_info['goal_object_id'])['parentReceptacles']
         print('source_receptacle', source_receptacle,'goal_receptacle', goal_receptacle,)
         print(self.task_info['source_object_id'], self.task_info['goal_object_id'], 'pickup', self.object_picked_up)
-        save_quick_frame(self.env.controller, '/Users/kianae/Desktop/current_frame.png')
+        save_quick_frame(self.env.controller, '/Users/kianae/Desktop/current_frame.png', top_view=True)
+        if event_before_pass.metadata['lastActionSuccess'] is False:
+            print(event_before_pass)
         ForkedPdb().set_trace()
         if action not in ARM_SHORTENED_ACTIONS_ORDERED:
             print('Action not FOUND')
@@ -285,7 +289,7 @@ class StretchExploreWiseRewardTask(BringObjectTask):
 
         action_str = self.class_action_names()[action]
 
-        self.manual = True #TODO
+        self.manual = False
         if self.manual:
             action_str = self.manual_action(action)
 
@@ -436,7 +440,7 @@ class StretchExploreWiseRewardTaskOnlyPickUp(StretchExploreWiseRewardTask):
     def _step(self, action: int) -> RLStepResult:
         action_str = self.class_action_names()[action]
 
-        self.manual = False #TODO
+        self.manual = False
         if self.manual:
             action_str = self.manual_action(action)
 

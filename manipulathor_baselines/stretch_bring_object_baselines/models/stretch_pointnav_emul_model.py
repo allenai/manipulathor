@@ -65,9 +65,9 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         self.object_type_embedding_size = obj_state_embedding_size
 
         # sensor_names = self.observation_space.spaces.keys()
-        network_args = {'input_channels': 4, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        network_args = {'input_channels': 5, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
-        network_args = {'input_channels': 4, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
+        network_args = {'input_channels': 5, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder_arm = make_cnn(**network_args)
 
         # self.detection_model = ConditionalDetectionModel()
@@ -161,13 +161,16 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         pickup_bool = observations["pickedup_object"]
         after_pickup = pickup_bool == 1
 
-        #TODO we need to input mask as well
+        agent_mask = observations['object_mask_source'].clone()
+        agent_mask[after_pickup] = observations['object_mask_destination'][after_pickup]
 
+        arm_mask = observations['object_mask_kinect_source'].clone()
+        arm_mask[after_pickup] = observations['object_mask_kinect_destination'][after_pickup]
 
-        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres']], dim=-1).float()
+        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'], agent_mask], dim=-1).float()
         visual_observation_encoding_body = compute_cnn_output(self.full_visual_encoder, visual_observation)
 
-        visual_observation_arm = torch.cat([observations['depth_lowres_arm'], observations['rgb_lowres_arm']], dim=-1).float()
+        visual_observation_arm = torch.cat([observations['depth_lowres_arm'], observations['rgb_lowres_arm'], arm_mask], dim=-1).float()
         visual_observation_encoding_arm = compute_cnn_output(self.full_visual_encoder_arm, visual_observation_arm)
 
 
@@ -221,15 +224,16 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
-        #TODO remove
-        if arm_distance_to_obj_source.shape[0] == 1 and arm_distance_to_obj_source.shape[1] == 1:
-            arm_distances = arm_distance_to_obj_source
-            arm_distances[after_pickup] = arm_distance_to_obj_destination
-            agent_distances = agent_distance_to_obj_source
-            agent_distances[after_pickup] = agent_distance_to_obj_destination
-            print('arm_distances', arm_distances, 'agent_distances', agent_distances)
+
 
         if self.visualize:
+            if arm_distance_to_obj_source.shape[0] == 1 and arm_distance_to_obj_source.shape[1] == 1:
+                arm_distances = arm_distance_to_obj_source
+                arm_distances[after_pickup] = arm_distance_to_obj_destination
+                agent_distances = agent_distance_to_obj_source
+                agent_distances[after_pickup] = agent_distance_to_obj_destination
+                print('arm_distances', arm_distances, 'agent_distances', agent_distances)
+
             source_object_mask = observations['object_mask_source']
             destination_object_mask = observations['object_mask_destination']
             intel_mask = source_object_mask

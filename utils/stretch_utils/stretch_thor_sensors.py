@@ -326,15 +326,16 @@ class ArmPointNavEmulSensor(Sensor):
         super().__init__(**prepare_locals_for_super(locals()))
 
     def get_accurate_locations(self, env): #TODO this is using camera coordinate be aware of that
-        assert len(env.controller.last_event.metadata['thirdPartyCameras']) == 1
+        if len(env.controller.last_event.metadata['thirdPartyCameras']) != 1:
+            print('Warning multiple cameras')
         metadata = copy.deepcopy(env.controller.last_event.metadata['thirdPartyCameras'][0])
         camera_xyz = np.array([metadata["position"][k] for k in ["x", "y", "z"]])
         # camera_rotation = np.array([metadata["rotation"][k] for k in ["x", "y", "z"]])
-        #TODO this is very hacky and needs to be verified
-        camera_rotation = (env.controller.last_event.metadata['agent']['rotation']['y'] + 90) % 360
-        camera_horizon = 45 #TODO needs to be updated if we decide to move the camera
+        camera_rotation = metadata['rotation']['y']
+        camera_horizon = metadata['rotation']['x']
+        assert abs(metadata['rotation']['z'] - 0) < 0.1
         arm_state = env.get_absolute_hand_state()
-        fov = metadata['fieldOfView']
+        fov = metadata['fieldOfView'] #TODO this needs to be changed when the cameras have different fov
         return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state, fov=fov)
 
     def get_observation(
@@ -387,7 +388,7 @@ class ArmPointNavEmulSensor(Sensor):
             agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
 
             # Removing this hurts the performance
-            agent_centric_middle_of_object = agent_centric_middle_of_object #.abs() #TODO investigate removing this again
+            agent_centric_middle_of_object = agent_centric_middle_of_object #.abs() TODO investigate removing this again
 
 
             # # remove
@@ -479,7 +480,9 @@ class KinectNoisyObjectMask(Sensor):
 
         target_object_id = task.task_info[info_to_search]
         all_visible_masks = env.controller.last_event.third_party_instance_masks[0]
-        assert len(env.controller.last_event.third_party_instance_masks) == 1
+        if len(env.controller.last_event.third_party_instance_masks) != 1:
+            print('Warning multiple cameras')
+        # assert len(env.controller.last_event.third_party_instance_masks) == 1
         if target_object_id in all_visible_masks:
             mask_frame = all_visible_masks[target_object_id]
 
