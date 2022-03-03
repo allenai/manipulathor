@@ -145,7 +145,7 @@ def get_reachable_positions(controller):
     return reachable_positions
 def execute_command(controller, command,action_dict_addition):
 
-    base_position = get_current_arm_state(controller)
+    base_position = get_relative_stretch_current_arm_state(controller)
     # base_position = dict(x=0, y=0, z=0)
     change_height = ARM_MOVE_CONSTANT
     change_value = change_height

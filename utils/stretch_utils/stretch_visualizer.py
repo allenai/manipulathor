@@ -32,18 +32,11 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
 
         episode_success_offset = "succ" if episode_success else "fail"
         pickup_success_offset = "succ" if pickup_success else "fail"
-
+        source_obj_type = source_object_id.split("|")[0]
+        goal_obj_type = goal_object_id.split("|")[0]
+        room_name = task_info['scene_name']
         gif_name = (
-                time_to_write
-                + "_from_"
-                + source_object_id.split("|")[0]
-                + "_to_"
-                + goal_object_id.split("|")[0]
-                + "_pickup_"
-                + pickup_success_offset
-                + "_episode_"
-                + episode_success_offset
-                + ".gif"
+                f"{time_to_write}_room_{room_name}_from_{source_obj_type}_to_{goal_obj_type}_pickup_{pickup_success_offset}_episode_{episode_success_offset}.gif"
         )
         self.log_queue = put_action_on_image(self.log_queue, self.action_queue[1:])
         addition_texts = ['xxx'] + [str(x) for x in episode_info.agent_body_dist_to_obj]
@@ -133,8 +126,9 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
             print("ERROR: oh no could not teleport in logging")
 
         image_tensor = this_controller.last_event.frame
+        obj_name = object_id.split("|")[0]
         image_dir = (
-                img_adr + "_obj_" + object_id.split("|")[0] + "_pickup_" + tag + ".png"
+                img_adr + f"_init_{tag}_obj_{obj_name}.png"
         )
         cv2.imwrite(image_dir, image_tensor[:, :, [2, 1, 0]])
 
@@ -145,7 +139,8 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
                 assert sensor_name in observations
                 mask_frame = (observations[sensor_name])
                 mask_dir = (
-                        img_adr + "_obj_" + object_id.split("|")[0] + "_pickup_" + tag + "_{}.png".format(sensor_name)
+                        # img_adr + "_obj_" + object_id.split("|")[0] + "_pickup_" + tag + "_{}.png".format(sensor_name)
+                        img_adr + f"_sensor_{tag}_{sensor_name}_obj_{obj_name}.png"
                 )
                 cv2.imwrite(mask_dir, mask_frame.astype(float)*255.)
 

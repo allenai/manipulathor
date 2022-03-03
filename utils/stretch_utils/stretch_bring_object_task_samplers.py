@@ -199,25 +199,30 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
             #TODO we need to fix this later
             # small_objects = ['Spatula', 'Egg']
             small_objects = []
-            ForkedPdb().set_trace() #TODO implement this
 
-            for scene in self.scenes:
-                for from_obj in self.objects:
-                    for to_obj in self.objects:
-                        if from_obj == to_obj:
-                            continue
 
-                        with open(f'datasets/apnd-dataset/bring_object_deterministic_tasks/tasks_obj_{from_obj}_to_{to_obj}_scene_{scene}.json') as f:
-                            tasks = json.load(f)['tasks']
+            #TODO remove
+            self.all_test_tasks = [i for i in range(1000)]
+            if False:
+                ForkedPdb().set_trace() #TODO implement this
 
-                        if from_obj in small_objects or to_obj in small_objects:
-                            NUM_NEEDED = 1
-                        else:
-                            NUM_NEEDED = 2
+                for scene in self.scenes:
+                    for from_obj in self.objects:
+                        for to_obj in self.objects:
+                            if from_obj == to_obj:
+                                continue
 
-                        tasks = tasks[:NUM_NEEDED]
+                            with open(f'datasets/apnd-dataset/bring_object_deterministic_tasks/tasks_obj_{from_obj}_to_{to_obj}_scene_{scene}.json') as f:
+                                tasks = json.load(f)['tasks']
 
-                        self.all_test_tasks += tasks
+                            if from_obj in small_objects or to_obj in small_objects:
+                                NUM_NEEDED = 1
+                            else:
+                                NUM_NEEDED = 2
+
+                            tasks = tasks[:NUM_NEEDED]
+
+                            self.all_test_tasks += tasks
             random.shuffle(self.all_test_tasks)
             self.max_tasks = self.reset_tasks = len(self.all_test_tasks)
 
@@ -338,6 +343,7 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
             # 'source_object_query_file_name' : source_img_adr,
             # 'goal_object_query_file_name' : goal_img_adr,
             'episode_number': random.uniform(0, 10000),
+            'scene_name':scene_name
         }
 
 
@@ -379,7 +385,7 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
         return scene_name_to_locations_dict
 
     def get_source_target_indices(self):
-        if self.sampler_mode == "train":
+        if self.sampler_mode == "train" or True: #TODO remove or TRUE
             all_scenes = [s for (s,o) in self.all_possible_points.keys()]
 
 

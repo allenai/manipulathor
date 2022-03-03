@@ -15,6 +15,8 @@ from ithor_arm.near_deadline_sensors import RealPointNavSensor
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
+from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_pointnav_emul_complex_model import \
+    StretchPointNavEmulComplexModel
 from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_pointnav_emul_model import StretchPointNavEmulModel
 from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_real_pointnav_model import StretchRealPointNavModel
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -32,7 +34,7 @@ from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, Dept
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
-class PointNavEmulStretchAllRooms(
+class PointNavEmulStretchBedroomComplexModel(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -104,34 +106,18 @@ class PointNavEmulStretchAllRooms(
 
     TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
     TASK_TYPE = StretchExploreWiseRewardTask
-    TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp #TODO remove
 
     NUM_PROCESSES = 20
 
-    OBJECT_TYPES = list(set([v for obj_list in FULL_LIST_OF_OBJECTS.values() for v in obj_list]))
-    TRAIN_SCENES = KITCHEN_TRAIN + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN + ROBOTHOR_TRAIN
-    TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST + ROBOTHOR_VAL
 
-    #TODO remove
-    TRAIN_SCENES = KITCHEN_TRAIN + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN
-    TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST
+    TRAIN_SCENES = BEDROOM_TRAIN
+    TEST_SCENES = BEDROOM_TEST
     OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ != 'robothor']))
-
-
-    random.shuffle(TRAIN_SCENES)
-
 
 
 
     POTENTIAL_VISUALIZERS = [StretchBringObjImageVisualizer, TestMetricLogger]
 
-    # if platform.system() == "Darwin": TODO remove
-    #     random.shuffle(KITCHEN_TRAIN)
-    #     random.shuffle(LIVING_ROOM_TRAIN)
-    #     random.shuffle(BEDROOM_TRAIN)
-    #     random.shuffle(BATHROOM_TRAIN)
-    #     random.shuffle(ROBOTHOR_TRAIN)
-    #     TRAIN_SCENES = KITCHEN_TRAIN[:10] + LIVING_ROOM_TRAIN[:10]  + BEDROOM_TRAIN[:10]  + BATHROOM_TRAIN[:10]  + ROBOTHOR_TRAIN[:10]
 
     def __init__(self):
         super().__init__()
@@ -143,7 +129,7 @@ class PointNavEmulStretchAllRooms(
         self.ENV_ARGS['renderInstanceSegmentation'] = True
 
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchAllRooms, self).test_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchBedroomComplexModel, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -158,7 +144,7 @@ class PointNavEmulStretchAllRooms(
         return sampler_args
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchAllRooms, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchBedroomComplexModel, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -174,7 +160,7 @@ class PointNavEmulStretchAllRooms(
 
     @classmethod
     def create_model(cls, **kwargs) -> nn.Module:
-        return StretchPointNavEmulModel(
+        return StretchPointNavEmulComplexModel(
             action_space=gym.spaces.Discrete(
                 len(cls.TASK_TYPE.class_action_names())
             ),

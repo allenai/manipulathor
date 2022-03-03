@@ -29,7 +29,7 @@ from utils.model_utils import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization
 
 
-class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
+class StretchPointNavEmulComplexModel(ActorCriticModel[CategoricalDistr]):
     """Baseline recurrent actor critic model for preddistancenav task.
 
     # Attributes
@@ -72,14 +72,14 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
 
         # self.detection_model = ConditionalDetectionModel()
         self.body_pointnav_embedding = nn.Sequential(
-            nn.Linear(3, 32),
+            nn.Linear(7, 32),
             nn.LeakyReLU(),
             nn.Linear(32, 128),
             nn.LeakyReLU(),
             nn.Linear(128, 512),
         )
         self.arm_pointnav_embedding = nn.Sequential(
-            nn.Linear(3, 32),
+            nn.Linear(7, 32),
             nn.LeakyReLU(),
             nn.Linear(32, 128),
             nn.LeakyReLU(),
@@ -184,20 +184,13 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
 
         agent_distance_to_obj_source = observations['point_nav_emul_source'].clone()
         agent_distance_to_obj_destination = observations['point_nav_emul_destination'].clone()
-        #TODO eventually change this and the following to only calculate embedding for the ones we want
-        agent_distance_to_obj_embedding_source = self.body_pointnav_embedding(agent_distance_to_obj_source)
-        agent_distance_to_obj_embedding_destination = self.body_pointnav_embedding(agent_distance_to_obj_destination)
-        agent_distance_to_obj_embedding = agent_distance_to_obj_embedding_source
-        agent_distance_to_obj_embedding[after_pickup] = agent_distance_to_obj_embedding_destination[after_pickup]
+        full_agent_dist_to_obj = torch.cat([agent_distance_to_obj_source, agent_distance_to_obj_destination, pickup_bool.unsqueeze(-1)], dim=-1)
+        agent_distance_to_obj_embedding = self.body_pointnav_embedding(full_agent_dist_to_obj)
 
-
-        arm_distance_to_obj_source = observations['arm_point_nav_emul_source'].clone()
-        arm_distance_to_obj_destination = observations['arm_point_nav_emul_destination'].clone()
-        #TODO eventually change this and the following to only calculate embedding for the ones we want
-        arm_distance_to_obj_embedding_source = self.arm_pointnav_embedding(arm_distance_to_obj_source)
-        arm_distance_to_obj_embedding_destination = self.arm_pointnav_embedding(arm_distance_to_obj_destination)
-        arm_distance_to_obj_embedding = arm_distance_to_obj_embedding_source
-        arm_distance_to_obj_embedding[after_pickup] = arm_distance_to_obj_embedding_destination[after_pickup]
+        arm_distance_to_obj_source = observations['point_nav_emul_source'].clone()
+        arm_distance_to_obj_destination = observations['point_nav_emul_destination'].clone()
+        full_arm_dist_to_obj = torch.cat([arm_distance_to_obj_source, arm_distance_to_obj_destination, pickup_bool.unsqueeze(-1)], dim=-1)
+        arm_distance_to_obj_embedding = self.arm_pointnav_embedding(full_arm_dist_to_obj)
 
 
         visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, agent_distance_to_obj_embedding, arm_distance_to_obj_embedding], dim=-1)
