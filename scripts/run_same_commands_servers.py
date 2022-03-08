@@ -139,14 +139,21 @@ import pdb
 
 
 
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/pointnav_emul_stretch_all_rooms_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag train_only_pickup_all_ithor_rooms_scratch '
+
+
 command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/pointnav_emul_stretch_all_rooms_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag train_only_pickup_all_ithor_rooms_scratch '
+ --seed 10 --machine_id 0 --extra_tag train_full_task_all_ithor_rooms_from_pickup -c ~/exp_PointNavEmulStretchAllRoomsDistrib_train_only_pickup_all_ithor_rooms_scratch__stage_00__steps_000016639355.pt '
 
 # scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/PointNavEmulStretchDistrib/train_object_nav_with_mask/2022-01-22_00-10-52/exp_PointNavEmulStretchDistrib_train_object_nav_with_mask__stage_00__steps_000002540050.pt ~/
 # pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+5afa5633597b12898e12eed528c2332a50bc0f79
 
+# scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/PointNavEmulStretchAllRoomsDistrib/train_only_pickup_all_ithor_rooms_scratch/2022-03-03_21-40-29/exp_PointNavEmulStretchAllRoomsDistrib_train_only_pickup_all_ithor_rooms_scratch__stage_00__steps_000016639355.pt ~/
 
 # command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/real_point_nav_stretch_objectnav_distrib \
 # --distributed_ip_and_port IP_ADR:6060 \
