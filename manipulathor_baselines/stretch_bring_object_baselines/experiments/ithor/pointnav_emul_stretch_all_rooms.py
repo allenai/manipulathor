@@ -26,9 +26,10 @@ from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRew
     StretchExploreWiseRewardTaskOnlyPickUp, StretchObjectNavTask
 from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, STRETCH_MANIPULATHOR_COMMIT_ID
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, \
-    RGBSensorStretchKinect, DepthSensorStretchKinect, AgentBodyPointNavSensor, AgentBodyPointNavEmulSensor, RGBSensorStretchKinectZero, \
+    RGBSensorStretchKinect, DepthSensorStretchKinect, AgentBodyPointNavSensor, AgentBodyPointNavEmulSensor, \
+    RGBSensorStretchKinectZero, \
     DepthSensorStretchKinectZero, IntelRawDepthSensor, ArmPointNavEmulSensor, KinectRawDepthSensor, \
-    KinectNoisyObjectMask
+    KinectNoisyObjectMask, IntelNoisyObjectMask
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
@@ -43,12 +44,12 @@ class PointNavEmulStretchAllRooms(
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
 
-    source_mask_sensor_intel = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='source', distance_thr=distance_thr)
-    destination_mask_sensor_intel = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='destination', distance_thr=distance_thr)
+    source_mask_sensor_intel = IntelNoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True)
+    destination_mask_sensor_intel = IntelNoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True)
     depth_sensor_intel = IntelRawDepthSensor()
 
-    source_mask_sensor_kinect = KinectNoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='source', distance_thr=distance_thr)
-    destination_mask_sensor_kinect = KinectNoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='destination', distance_thr=distance_thr)
+    source_mask_sensor_kinect = KinectNoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True)
+    destination_mask_sensor_kinect = KinectNoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True)
     depth_sensor_kinect = KinectRawDepthSensor()
 
     # source_object_category_sensor = TempObjectCategorySensor(type='source')
@@ -103,15 +104,14 @@ class PointNavEmulStretchAllRooms(
     MAX_STEPS = 200
 
     TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
-    TASK_TYPE = StretchExploreWiseRewardTask#OnlyPickUp #TODO remove immediate
+    TASK_TYPE = StretchExploreWiseRewardTask#OnlyPickUp  remove immediate
 
     NUM_PROCESSES = 20
 
-    OBJECT_TYPES = list(set([v for obj_list in FULL_LIST_OF_OBJECTS.values() for v in obj_list]))
-    TRAIN_SCENES = KITCHEN_TRAIN + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN + ROBOTHOR_TRAIN
-    TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST + ROBOTHOR_VAL
+    # OBJECT_TYPES = list(set([v for obj_list in FULL_LIST_OF_OBJECTS.values() for v in obj_list]))
+    # TRAIN_SCENES = KITCHEN_TRAIN + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN + ROBOTHOR_TRAIN
+    # TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST + ROBOTHOR_VAL
 
-    #TODO remove
     TRAIN_SCENES = KITCHEN_TRAIN + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN
     TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST
     OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ != 'robothor']))
