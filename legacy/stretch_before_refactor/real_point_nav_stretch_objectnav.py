@@ -10,11 +10,10 @@ from ithor_arm.near_deadline_sensors import RealPointNavSensor
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
-from manipulathor_baselines.stretch_bring_object_baselines.models.temp_bad_old_model_real_pointnav_model import TmpRealPointNavModelOldModel
+from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_real_pointnav_model import StretchRealPointNavModel
 from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.stretch_bring_object_tasks import StretchObjectNavTask
-from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
-from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, RGBSensorStretchKinectZero, DepthSensorStretchKinectZero
+from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, RGBSensorStretchKinect, DepthSensorStretchKinect, AgentBodyPointNavSensor
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
@@ -27,7 +26,7 @@ class RealPointNavStretchObjectNav(
     input."""
     desired_screen_size = 224
     NOISE_LEVEL = 0
-    distance_thr = 1.5 # is this a good number?
+    distance_thr = 1 # is this a good number?
     SENSORS = [
         RGBSensorStretchIntel(
             height=desired_screen_size,
@@ -41,22 +40,33 @@ class RealPointNavStretchObjectNav(
             use_normalization=True,
             uuid="depth_lowres",
         ),
-        RGBSensorStretchKinectZero(
+        # RGBSensorStretchKinectZero(
+        #     height=desired_screen_size,
+        #     width=desired_screen_size,
+        #     use_resnet_normalization=True,
+        #     uuid="rgb_lowres_arm",
+        # ),
+        # DepthSensorStretchKinectZero(
+        #     height=desired_screen_size,
+        #     width=desired_screen_size,
+        #     use_normalization=True,
+        #     uuid="depth_lowres_arm",
+        # ),
+        RGBSensorStretchKinect(
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=True,
             uuid="rgb_lowres_arm",
         ),
-        DepthSensorStretchKinectZero(
+        DepthSensorStretchKinect(
             height=desired_screen_size,
             width=desired_screen_size,
             use_normalization=True,
             uuid="depth_lowres_arm",
         ),
-
         PickedUpObjSensor(),
-        RealPointNavSensor(type='source'),
-        RealPointNavSensor(type='destination'),
+        AgentBodyPointNavSensor(type='source'),
+        AgentBodyPointNavSensor(type='destination'),
 
     ]
 
@@ -78,14 +88,13 @@ class RealPointNavStretchObjectNav(
         super().__init__()
         self.REWARD_CONFIG['exploration_reward'] = 0#0.1 # is this too big?
         self.REWARD_CONFIG['object_found'] = 0#1 # is this too big?
-        self.ENV_ARGS = STRETCH_ENV_ARGS
-        self.ENV_ARGS['visibilityDistance'] = 1
+        self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['renderInstanceSegmentation'] = False
 
 
     @classmethod
     def create_model(cls, **kwargs) -> nn.Module:
-        return TmpRealPointNavModelOldModel(
+        return StretchRealPointNavModel(
             action_space=gym.spaces.Discrete(
                 len(cls.TASK_TYPE.class_action_names())
             ),

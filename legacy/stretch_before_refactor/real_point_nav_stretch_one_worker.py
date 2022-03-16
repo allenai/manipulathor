@@ -15,7 +15,6 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_real_pointnav_model import StretchRealPointNavModel
 from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask
-from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, RGBSensorStretchKinect, DepthSensorStretchKinect
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
@@ -80,7 +79,6 @@ class RealPointNavStretch(
         super().__init__()
         self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
         self.REWARD_CONFIG['object_found'] = 1 # is this too big?
-        self.ENV_ARGS = STRETCH_ENV_ARGS
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['renderInstanceSegmentation'] = False
 

@@ -21,16 +21,22 @@ from ithor_arm.arm_calculation_utils import (
     convert_state_to_tensor,
     diff_position,
 )
-from ithor_arm.bring_object_sensors import NoisyObjectMask, add_mask_noise
-from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
-from ithor_arm.ithor_arm_sensors import DepthSensorThor
-from ithor_arm.near_deadline_sensors import calc_world_coordinates
+# from ithor_arm.bring_object_sensors import NoisyObjectMask, add_mask_noise
+# from ithor_arm.ithor_arm_environment import IThorEnvironment
+# from ithor_arm.ithor_arm_sensors import DepthSensorThor
+# from ithor_arm.near_deadline_sensors import calc_world_coordinates
+from utils.calculation_utils import calc_world_coordinates
+
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.noise_in_motion_util import squeeze_bool_mask
+from utils.stretch_utils.stretch_sim2real_utils import kinect_reshape, intel_reshape
 
 
 class DepthSensorStretch(
-    DepthSensorThor
+    DepthSensor[
+        Union[IThorEnvironment],
+        Union[Task[IThorEnvironment]],
+    ]
 ):
     """Sensor for Depth images in THOR.
 
@@ -39,7 +45,8 @@ class DepthSensorStretch(
     """
 
     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
-
+        print('take care of resizing because of the kinect vs intel')
+        ForkedPdb().set_trace()
         depth = (env.controller.last_event.depth_frame.copy())
         depth = clip_frame(depth)
         #TODO the ratio of image is slightly different in the real stretch tho
@@ -47,7 +54,10 @@ class DepthSensorStretch(
 
 
 class DepthSensorStretchIntel(
-    DepthSensorThor
+    DepthSensor[
+        Union[IThorEnvironment],
+        Union[Task[IThorEnvironment]],
+    ]
 ):
     """Sensor for Depth images in THOR.
 
@@ -58,11 +68,14 @@ class DepthSensorStretchIntel(
     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
 
         depth = (env.controller.last_event.depth_frame.copy())
-        return depth
+        return intel_reshape(depth)
 
 
 class DepthSensorStretchKinect(
-    DepthSensorThor
+    DepthSensor[
+        Union[IThorEnvironment],
+        Union[Task[IThorEnvironment]],
+    ]
 ):
     """Sensor for Depth images in THOR.
 
@@ -73,11 +86,14 @@ class DepthSensorStretchKinect(
     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
 
         depth = env.controller.last_event.third_party_depth_frames[0].copy()
-        return depth
+        return kinect_reshape(depth)
 
 
 class DepthSensorStretchKinectZero(
-    DepthSensorThor
+    DepthSensor[
+        Union[IThorEnvironment],
+        Union[Task[IThorEnvironment]],
+    ]
 ):
     """Sensor for Depth images in THOR.
 
@@ -103,7 +119,7 @@ class RGBSensorStretchKinect(
     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
 
         rgb = env.controller.last_event.third_party_camera_frames[0].copy()
-        return rgb
+        return kinect_reshape(rgb)
 
 
 class RGBSensorStretchKinectZero(
@@ -134,15 +150,17 @@ class RGBSensorStretchIntel(
 
         rgb = (env.controller.last_event.frame.copy())
 
-        return rgb#cv2.resize(rgb, (224,224))
+        return intel_reshape(rgb)#cv2.resize(rgb, (224,224))
 
-class NoisyObjectMaskStretch(NoisyObjectMask): #TODO double check correctness of this
-
-    def get_observation(
-            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
-    ) -> Any:
-        mask = super().get_observation(env, task, *args, **kwargs)
-        return clip_frame(mask)
+# class NoisyObjectMaskStretch(NoisyObjectMask): #TODO double check correctness of this
+#
+#     def get_observation(
+#             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+#     ) -> Any:
+#         print('take care of resizing because of the kinect vs intel')
+#         ForkedPdb().set_trace()
+#         mask = super().get_observation(env, task, *args, **kwargs)
+#         return clip_frame(mask)
 class RGBSensorStretch(
     RGBSensorThor
 ):
@@ -153,6 +171,8 @@ class RGBSensorStretch(
     """
 
     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+        print('take care of resizing because of the kinect vs intel')
+        ForkedPdb().set_trace()
 
         rgb = (env.controller.last_event.frame.copy())
         rgb = clip_frame(rgb) #TODO we should add more noise to this as well
@@ -162,6 +182,8 @@ class RGBSensorStretch(
 MASK_FRAMES = None
 
 def clip_frame(frame):
+    print('take care of resizing because of the kinect vs intel')
+    ForkedPdb().set_trace()
     #TODO should we swap this w and h?
     if len(frame.shape) == 2:
         w, h = frame.shape
@@ -216,7 +238,7 @@ class AgentBodyPointNavSensor(Sensor):
 
 
     def get_observation(
-            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
         if self.type == 'source':
             info_to_search = 'source_object_id'
@@ -258,7 +280,7 @@ class AgentBodyPointNavEmulSensor(Sensor):
         return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state, fov=fov)
 
     def get_observation(
-            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
         mask = squeeze_bool_mask(self.mask_sensor.get_observation(env, task, *args, **kwargs))
@@ -336,11 +358,11 @@ class ArmPointNavEmulSensor(Sensor):
         camera_horizon = metadata['rotation']['x']
         assert abs(metadata['rotation']['z'] - 0) < 0.1
         arm_state = env.get_absolute_hand_state()
-        fov = metadata['fieldOfView'] #TODO this needs to be changed when the cameras have different fov
+        fov = metadata['fieldOfView']
         return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state, fov=fov)
 
     def get_observation(
-            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
         mask = squeeze_bool_mask(self.mask_sensor.get_observation(env, task, *args, **kwargs))
@@ -421,7 +443,7 @@ class ArmPointNavEmulSensor(Sensor):
 #         super().__init__(**prepare_locals_for_super(locals()))
 #
 #     def get_observation(
-#             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+#             self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
 #     ) -> Any:
 #         metadata = copy.deepcopy(env.controller.last_event.metadata['agent'])
 #         return metadata
@@ -436,9 +458,9 @@ class IntelRawDepthSensor(Sensor):
         super().__init__(**prepare_locals_for_super(locals()))
 
     def get_observation(
-            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        return env.controller.last_event.depth_frame.copy()
+        return intel_reshape(env.controller.last_event.depth_frame.copy())
 
 class KinectRawDepthSensor(Sensor):
 
@@ -449,9 +471,9 @@ class KinectRawDepthSensor(Sensor):
         super().__init__(**prepare_locals_for_super(locals()))
 
     def get_observation(
-            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        return env.controller.last_event.third_party_depth_frames[0].copy()
+        return kinect_reshape(env.controller.last_event.third_party_depth_frames[0].copy())
 
 
 class IntelNoisyObjectMask(Sensor):
@@ -470,7 +492,7 @@ class IntelNoisyObjectMask(Sensor):
         assert self.noise == 0
 
     def get_observation(
-            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
         if self.type == 'source':
@@ -505,13 +527,15 @@ class IntelNoisyObjectMask(Sensor):
         else:
             fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
         fake_mask = (np.expand_dims(fake_mask.astype(np.float),axis=-1))
-        fake_mask, is_real_mask = add_mask_noise(result, fake_mask, noise=self.noise)
+        # fake_mask, is_real_mask = add_mask_noise(result, fake_mask, noise=self.noise)
+        assert self.noise == 0
+        is_real_mask = True
         current_shape = fake_mask.shape
         if (current_shape[0], current_shape[1]) == (self.width, self.height):
             resized_mask = fake_mask
         else:
             resized_mask = cv2.resize(fake_mask, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
-        return resized_mask
+        return intel_reshape(resized_mask)
 
 class KinectNoisyObjectMask(Sensor):
     def __init__(self, type: str,noise, height, width,  uuid: str = "object_mask_kinect", distance_thr: float = -1, only_close_big_masks=False, **kwargs: Any):
@@ -529,7 +553,7 @@ class KinectNoisyObjectMask(Sensor):
         assert self.noise == 0
 
     def get_observation(
-            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
         if self.type == 'source':
@@ -568,4 +592,16 @@ class KinectNoisyObjectMask(Sensor):
         else:
             resized_mask = cv2.resize(mask_frame, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
 
-        return resized_mask
+        return kinect_reshape(resized_mask)
+
+class StretchPickedUpObjSensor(Sensor):
+    def __init__(self, uuid: str = "pickedup_object", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        super().__init__(**prepare_locals_for_super(locals()))
+
+    def get_observation(
+        self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        return task.object_picked_up

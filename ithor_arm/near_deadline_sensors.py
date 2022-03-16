@@ -367,22 +367,6 @@ class PointNavEmulatorSensorOnlyAgentLocation(PointNavEmulatorSensor):
 #         self.noise = something
 #         return super(PointNavEmulatorSensorwScheduler, self).get_observation(env, task, *args, **kwargs)
 
-def calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, device, depth_frame):
-    with torch.no_grad():
-        camera_xyz = (
-            torch.from_numpy(camera_xyz - min_xyz).float().to(device)
-        )
-
-        depth_frame = torch.from_numpy(depth_frame).to(device)
-        depth_frame[depth_frame == -1] = np.NaN
-        world_space_point_cloud = depth_frame_to_world_space_xyz(
-            depth_frame=depth_frame,
-            camera_world_xyz=camera_xyz,
-            rotation=camera_rotation,
-            horizon=camera_horizon,
-            fov=fov,
-        )
-        return world_space_point_cloud
 
 
 

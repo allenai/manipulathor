@@ -23,7 +23,6 @@ from allenact.utils.model_utils import make_cnn, compute_cnn_output
 from gym.spaces.dict import Dict as SpaceDict
 from torch import nn
 
-from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.model_utils import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization

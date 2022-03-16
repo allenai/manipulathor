@@ -10,20 +10,21 @@ import ai2thor.server
 import numpy as np
 from ai2thor.controller import Controller
 from allenact_plugins.ithor_plugin.ithor_constants import VISIBILITY_DISTANCE, FOV
+from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 from torch.distributions.utils import lazy_property
 
-from ithor_arm.ithor_arm_constants import (
+from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
+from utils.stretch_utils.stretch_constants import (
     ADITIONAL_ARM_ARGS,
     PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_BACK, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_WRIST_P, MOVE_WRIST_M, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL,
 )
-from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.jupyter_helper import ARM_MOVE_CONSTANT
 from scripts.stretch_jupyter_helper import get_relative_stretch_current_arm_state, WRIST_ROTATION, reset_environment_and_additional_commands, AGENT_ROTATION_DEG, AGENT_MOVEMENT_CONSTANT
 from utils.stretch_utils.stretch_constants import STRETCH_MANIPULATHOR_COMMIT_ID
 
 
-class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment):
+class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes at a big big price!
     """Wrapper for the manipulathor controller providing arm functionality
     and bookkeeping.
 

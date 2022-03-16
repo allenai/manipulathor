@@ -10,6 +10,7 @@ import ai2thor.fifo_server
 from pyquaternion import Quaternion
 
 from manipulathor_utils.debugger_util import ForkedPdb
+from utils.stretch_utils.stretch_constants import INTEL_FOV_W, INTEL_FOV_H, KINECT_FOV_W, KINECT_FOV_H
 
 ADITIONAL_ARM_ARGS = {
     'disableRendering': True,
@@ -84,16 +85,26 @@ def reset_environment_and_additional_commands(controller, scene_name):
     controller.step(action="MakeObjectsStaticKinematicMassThreshold")
     make_all_objects_unbreakable(controller)
 
+    assert controller.last_event.metadata['fov'] == max(INTEL_FOV_W, INTEL_FOV_H)
+    # assert controller.last_event.metadata['thirdPartyCameras'][0]['fieldOfView'] == max(KINECT_FOV_W, KINECT_FOV_H) #TODO put back
+
     event_init_arm = controller.step(dict(action="MoveArm", position=dict(x=0,y=0.8,z=0), **ADITIONAL_ARM_ARGS))
     if event_init_arm.metadata['lastActionSuccess'] is False:
         print('Initialze arm failed')
     return
 
 def only_reset_scene(controller, scene_name):
+
     controller.reset(scene_name)
     controller.step(action='MakeAllObjectsMoveable')
     controller.step(action='MakeObjectsStaticKinematicMassThreshold')
     make_all_objects_unbreakable(controller)
+
+    event_init_arm = controller.step(dict(action="MoveArm", position=dict(x=0,y=0.8,z=0), **ADITIONAL_ARM_ARGS))
+    if event_init_arm.metadata['lastActionSuccess'] is False:
+        print('Initialze arm failed')
+
+
 
 
 def transport_wrapper(controller, target_object, target_location):
@@ -225,7 +236,7 @@ def get_current_wrist_state(controller):
 
 def get_relative_stretch_current_arm_state(controller):
 
-    arm = controller.last_event.metadata['arm']['joints'] #TODO is this the right one? how about wrist movements
+    arm = controller.last_event.metadata['arm']['joints']
     z = arm[-1]['rootRelativePosition']['z']
     x = arm[-1]['rootRelativePosition']['x']
     assert abs(x - 0) < 1e-3

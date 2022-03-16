@@ -3,7 +3,7 @@ import platform
 import gym
 import torch
 
-from manipulathor_baselines.stretch_bring_object_baselines.experiments.ithor.pointnav_emul_stretch import \
+from manipulathor_baselines.stretch_bring_object_baselines.experiments.ithor.temp_obsolete_pointnav_emul_stretch import \
     PointNavEmulStretch
 from manipulathor_baselines.stretch_bring_object_baselines.experiments.ithor.real_point_nav_stretch import RealPointNavStretch
 

@@ -1,11 +1,11 @@
+import imageio
 import torch
 import os
 from datetime import datetime
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from ithor_arm.ithor_arm_viz import put_additional_text_on_image
-from manipulathor_utils.debugger_util import ForkedPdb
+from utils.stretch_utils.stretch_constants import MOVE_AHEAD, ROTATE_LEFT ,ROTATE_RIGHT ,MOVE_ARM_HEIGHT_P ,MOVE_ARM_HEIGHT_M ,MOVE_ARM_X_P ,MOVE_ARM_X_M ,MOVE_ARM_Y_P ,MOVE_ARM_Y_M ,MOVE_ARM_Z_P ,MOVE_ARM_Z_M ,PICKUP ,DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL
 
 
 def hacky_visualization(observations, object_mask, query_objects, base_directory_to_right_images, gt_mask=None, text_to_write=None):
@@ -92,3 +92,70 @@ def get_stretch_top_view(controller): # TODO this might mess up some other thing
             position=camera_position['position'],
             fieldOfView=100)
     return( controller.last_event.third_party_camera_frames[-1])
+
+def save_image_list_to_gif(image_list, gif_name, gif_dir):
+    gif_adr = os.path.join(gif_dir, gif_name)
+
+    seq_len, cols, w, h, c = image_list.shape
+
+    pallet = np.zeros((seq_len, w, h * cols, c))
+
+    for col_ind in range(cols):
+        pallet[:, :, col_ind * h : (col_ind + 1) * h, :] = image_list[:, col_ind]
+
+    if not os.path.exists(gif_dir):
+        os.makedirs(gif_dir)
+    imageio.mimsave(gif_adr, pallet.astype(np.uint8), format="GIF", duration=1 / 5)
+    print("Saved result in ", gif_adr)
+
+def put_action_on_image(images, actions):
+    all_images = []
+    for i in range(len(images) - 1):
+        img = images[i]
+        action = actions[i]
+        action_names = (MOVE_AHEAD,ROTATE_LEFT ,ROTATE_RIGHT ,MOVE_ARM_HEIGHT_P ,MOVE_ARM_HEIGHT_M ,MOVE_ARM_X_P ,MOVE_ARM_X_M ,MOVE_ARM_Y_P ,MOVE_ARM_Y_M ,MOVE_ARM_Z_P ,MOVE_ARM_Z_M ,PICKUP ,DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL)
+        action_short = ("MOVE_AHEAD","ROTATE_L" ,"ROTATE_R" ,"ARM_H_P" ,"ARM_H_M" ,"ARM_X_P" ,"ARM_X_M" ,"ARM_Y_P" ,"ARM_Y_M" ,"ARM_Z_P" ,"ARM_Z_M" ,"PICKUP" ,"DONE", "MOVE_BACK", "WRIST_P", "WRIST_M", "ROTATE_L_S" ,"ROTATE_R_S" , "WRIST_P_S", "WRIST_M_S")
+        action = action_short[action_names.index(action)]
+        position = (10,10)
+
+        from PIL import Image, ImageFont, ImageDraw
+        pil_img = Image.fromarray(img)
+        draw = ImageDraw.Draw(pil_img)
+        draw.text(position, action, (0,0,0))
+        all_images.append(np.array(pil_img))
+
+
+    all_images.append(images[-1]) # No action needs to be written here
+    return all_images
+
+
+def put_additional_text_on_image(images, added_texts, color = (0,0,0)):
+    all_images = []
+    length_of_list = len(images)
+
+    for i in range(length_of_list):
+        if i == length_of_list - 1 and len(added_texts) < length_of_list:
+            assert len(added_texts) == length_of_list - 1
+            all_images.append(images[i]) # No action needs to be written here
+            continue
+
+        original_image = images[i]
+        if type(original_image) == torch.Tensor:
+            images[i] = (original_image* 255.).int().cpu().numpy().astype(np.uint8)
+        img = images[i]
+        text = added_texts[i]
+
+        position = (10,200)
+        from PIL import Image, ImageFont, ImageDraw
+        pil_img = Image.fromarray(img)
+        draw = ImageDraw.Draw(pil_img)
+        draw.text(position, text, color)
+        numpy_image = np.array(pil_img)
+
+        if type(original_image) == torch.Tensor:
+            numpy_image = torch.Tensor(numpy_image).float() / 255.
+        all_images.append(numpy_image)
+
+
+
+    return all_images

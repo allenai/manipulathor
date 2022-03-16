@@ -22,11 +22,11 @@ from utils.stretch_utils.stretch_constants import STRETCH_MANIPULATHOR_COMMIT_ID
 
 screen_size=224
 
-STRETCH_ENV_ARGS['width'] = screen_size
-STRETCH_ENV_ARGS['height'] = screen_size
-STRETCH_ENV_ARGS['commit_id']=STRETCH_MANIPULATHOR_COMMIT_ID
-STRETCH_ENV_ARGS['renderDepthImage'] = False
-STRETCH_ENV_ARGS['renderInstanceSegmentation'] = False
+# STRETCH_ENV_ARGS['width'] = screen_size
+# STRETCH_ENV_ARGS['height'] = screen_size
+# STRETCH_ENV_ARGS['commit_id']=STRETCH_MANIPULATHOR_COMMIT_ID
+# STRETCH_ENV_ARGS['renderDepthImage'] = False
+# STRETCH_ENV_ARGS['renderInstanceSegmentation'] = False
 
 
 def round_float(number, round_digit=2):

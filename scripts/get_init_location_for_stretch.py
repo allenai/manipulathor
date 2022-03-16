@@ -8,10 +8,10 @@ from scripts.dataset_generation.find_categories_to_use import ROBOTHOR_SCENE_NAM
 from scripts.stretch_jupyter_helper import get_reachable_positions
 from utils.stretch_utils.stretch_constants import STRETCH_MANIPULATHOR_COMMIT_ID, STRETCH_ENV_ARGS
 
-STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
-STRETCH_ENV_ARGS['renderDepthImage'] = False
-STRETCH_ENV_ARGS['renderInstanceSegmentation'] = False
-controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
+# STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
+# STRETCH_ENV_ARGS['renderDepthImage'] = False
+# STRETCH_ENV_ARGS['renderInstanceSegmentation'] = False
+# controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
 
 kitchens = [f"FloorPlan{i}_physics" for i in range(1, 31)]
 living_rooms = [f"FloorPlan{200 + i}_physics" for i in range(1, 31)]

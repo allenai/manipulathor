@@ -22,14 +22,14 @@ from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, STRETCH_MANI
 
 screen_size=224
 
-STRETCH_ENV_ARGS['width'] = screen_size
-STRETCH_ENV_ARGS['height'] = screen_size
-STRETCH_ENV_ARGS['agentMode']='stretch'
-# STRETCH_ENV_ARGS['commit_id']='03b26e96a43c83f955386b8cac925d4d2b550837'
-STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
+# STRETCH_ENV_ARGS['width'] = screen_size
+# STRETCH_ENV_ARGS['height'] = screen_size
+# STRETCH_ENV_ARGS['agentMode']='stretch'
+# # STRETCH_ENV_ARGS['commit_id']='03b26e96a43c83f955386b8cac925d4d2b550837'
+# STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
 
-STRETCH_ENV_ARGS['renderDepthImage'] = True
-STRETCH_ENV_ARGS['renderInstanceSegmentation'] = True #TODO try out some real segmentation
+# STRETCH_ENV_ARGS['renderDepthImage'] = True
+# STRETCH_ENV_ARGS['renderInstanceSegmentation'] = True # TODO try out some real segmentation
 
 if platform.system() == "Darwin":
     saved_image_folder = '/Users/kianae/Desktop/saved_stretch_images'
@@ -289,8 +289,8 @@ def test_teleport_agent(controller, scenes):
         print('scene', scene, 'failed', failed, 'out of', len(reachable_positions))
 
 def test_fov(controller):
-    STRETCH_ENV_ARGS['width'] = int(720/3)
-    STRETCH_ENV_ARGS['height'] = int(1280/3)
+    # STRETCH_ENV_ARGS['width'] = int(720/3)
+    # STRETCH_ENV_ARGS['height'] = int(1280/3)
     # STRETCH_ENV_ARGS['agentMode'] = 'arm'
     print(STRETCH_ENV_ARGS)
     controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
@@ -324,8 +324,7 @@ def test_stretch_in_THOR():
 
 def test_stretch_in_robothor():
     # # all the following tests need to pass
-    global STRETCH_ENV_ARGS
-    STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
+
     controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
     print('Testing ', controller._build.url)
     # TODO do we need to define any of these?

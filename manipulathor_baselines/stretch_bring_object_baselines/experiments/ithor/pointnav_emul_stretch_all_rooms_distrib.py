@@ -1,11 +1,7 @@
-import platform
-
-import gym
 import torch
 
 from manipulathor_baselines.stretch_bring_object_baselines.experiments.ithor.pointnav_emul_stretch_all_rooms import \
     PointNavEmulStretchAllRooms
-from manipulathor_baselines.stretch_bring_object_baselines.experiments.ithor.real_point_nav_stretch import RealPointNavStretch
 
 
 class PointNavEmulStretchAllRoomsDistrib(

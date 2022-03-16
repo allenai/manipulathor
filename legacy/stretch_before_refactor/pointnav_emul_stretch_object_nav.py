@@ -21,7 +21,6 @@ from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_real_p
 from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask, \
     StretchExploreWiseRewardTaskOnlyPickUp, StretchObjectNavTask
-from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, \
     RGBSensorStretchKinect, DepthSensorStretchKinect, AgentBodyPointNavSensor, AgentBodyPointNavEmulSensor, \
     RGBSensorStretchKinectZero, \
@@ -98,7 +97,6 @@ class PointNavEmulStretchObjectNav(
 
         self.REWARD_CONFIG['exploration_reward'] = 0.
         self.REWARD_CONFIG['object_found'] = 0
-        self.ENV_ARGS = STRETCH_ENV_ARGS
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['renderInstanceSegmentation'] = True
 

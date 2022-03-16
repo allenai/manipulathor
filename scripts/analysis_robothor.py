@@ -17,18 +17,18 @@ import numpy as np
 from pyquaternion import Quaternion
 
 from scripts.jupyter_helper import get_reachable_positions
-from scripts.stretch_jupyter_helper import two_dict_equal, ARM_MOVE_CONSTANT, get_current_arm_state, only_reset_scene, transport_wrapper, ADITIONAL_ARM_ARGS, execute_command, WRIST_ROTATION, get_current_wrist_state
-from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, STRETCH_MANIPULATHOR_COMMIT_ID, ROBOTHOR_SCENE_NAMES
+from scripts.stretch_jupyter_helper import two_dict_equal, ARM_MOVE_CONSTANT, only_reset_scene, transport_wrapper, ADITIONAL_ARM_ARGS, execute_command, WRIST_ROTATION, get_current_wrist_state
+from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, STRETCH_MANIPULATHOR_COMMIT_ID#, ROBOTHOR_SCENE_NAMES
 
 screen_size=224
 
-STRETCH_ENV_ARGS['width'] = screen_size
-STRETCH_ENV_ARGS['height'] = screen_size
-STRETCH_ENV_ARGS['agentMode']='stretch'
-# STRETCH_ENV_ARGS['commit_id']='03b26e96a43c83f955386b8cac925d4d2b550837'
-STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
-STRETCH_ENV_ARGS['renderDepthImage'] = True
-STRETCH_ENV_ARGS['renderInstanceSegmentation'] = True # TODO try out some real segmentation
+# STRETCH_ENV_ARGS['width'] = screen_size TODO this will change the original shit! be careful
+# STRETCH_ENV_ARGS['height'] = screen_size
+# STRETCH_ENV_ARGS['agentMode']='stretch'
+# # STRETCH_ENV_ARGS['commit_id']='03b26e96a43c83f955386b8cac925d4d2b550837'
+# STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
+# STRETCH_ENV_ARGS['renderDepthImage'] = True
+# STRETCH_ENV_ARGS['renderInstanceSegmentation'] = True # TODO try out some real segmentation
 
 if platform.system() == "Darwin":
     saved_image_folder = '/Users/kianae/Desktop/saved_stretch_images'
@@ -39,8 +39,8 @@ if platform.system() == "Darwin":
 
 def test_stretch_in_robothor():
     # # all the following tests need to pass
-    global STRETCH_ENV_ARGS
-    STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
+    # global STRETCH_ENV_ARGS
+    # STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
     controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
     print('Testing ', controller._build.url)
     list_of_all_objects = {}
@@ -64,8 +64,8 @@ def test_stretch_in_robothor():
 
 def test_interactable_obj_in_robothor():
     # # all the following tests need to pass
-    global STRETCH_ENV_ARGS
-    STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
+    # global STRETCH_ENV_ARGS
+    # STRETCH_ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
     controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
     print('Testing ', controller._build.url)
     list_of_all_objects = {}

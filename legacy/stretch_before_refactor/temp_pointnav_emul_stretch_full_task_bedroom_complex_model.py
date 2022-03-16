@@ -1,4 +1,5 @@
 import platform
+import random
 
 import gym
 import torch
@@ -14,21 +15,26 @@ from ithor_arm.near_deadline_sensors import RealPointNavSensor
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
+from manipulathor_baselines.stretch_bring_object_baselines.models.tmp_stretch_pointnav_emul_complex_model import \
+    StretchPointNavEmulComplexModel
 from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_pointnav_emul_model import StretchPointNavEmulModel
 from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_real_pointnav_model import StretchRealPointNavModel
+from manipulathor_utils.debugger_util import ForkedPdb
+from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJECTS, KITCHEN_TRAIN, LIVING_ROOM_TRAIN, \
+    BEDROOM_TRAIN, ROBOTHOR_TRAIN, ROBOTHOR_VAL, BATHROOM_TEST, BATHROOM_TRAIN, BEDROOM_TEST, LIVING_ROOM_TEST, \
+    KITCHEN_TEST
 from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask, \
     StretchExploreWiseRewardTaskOnlyPickUp, StretchObjectNavTask
-from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
+from utils.stretch_utils.stretch_constants import STRETCH_MANIPULATHOR_COMMIT_ID
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, \
-    RGBSensorStretchKinect, DepthSensorStretchKinect, AgentBodyPointNavSensor, AgentBodyPointNavEmulSensor, \
-    RGBSensorStretchKinectZero, \
+    RGBSensorStretchKinect, DepthSensorStretchKinect, AgentBodyPointNavSensor, AgentBodyPointNavEmulSensor, RGBSensorStretchKinectZero, \
     DepthSensorStretchKinectZero, IntelRawDepthSensor, ArmPointNavEmulSensor, KinectRawDepthSensor, \
-    KinectNoisyObjectMask, IntelNoisyObjectMask
+    KinectNoisyObjectMask
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
-class PointNavEmulStretchPickUp(
+class PointNavEmulStretchBedroomComplexModel(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -39,8 +45,8 @@ class PointNavEmulStretchPickUp(
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
 
-    source_mask_sensor_intel = IntelNoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='source', distance_thr=distance_thr)
-    destination_mask_sensor_intel = IntelNoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='destination', distance_thr=distance_thr)
+    source_mask_sensor_intel = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='source', distance_thr=distance_thr)
+    destination_mask_sensor_intel = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='destination', distance_thr=distance_thr)
     depth_sensor_intel = IntelRawDepthSensor()
 
     source_mask_sensor_kinect = KinectNoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=0, type='source', distance_thr=distance_thr)
@@ -99,27 +105,30 @@ class PointNavEmulStretchPickUp(
     MAX_STEPS = 200
 
     TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
-    TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp # TODO change
+    TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp
 
-    NUM_PROCESSES = 40
+    NUM_PROCESSES = 20
 
-    OBJECT_TYPES = TRAIN_OBJECTS + TEST_OBJECTS
+
+    TRAIN_SCENES = BEDROOM_TRAIN
+    TEST_SCENES = BEDROOM_TEST
+    OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ != 'robothor']))
+
+
 
     POTENTIAL_VISUALIZERS = [StretchBringObjImageVisualizer, TestMetricLogger]
 
-    # if platform.system() == "Darwin":
-    #     MAX_STEPS = 200
 
     def __init__(self):
         super().__init__()
         self.REWARD_CONFIG['exploration_reward'] = 0.1
         self.REWARD_CONFIG['object_found'] = 1
-        self.ENV_ARGS = STRETCH_ENV_ARGS
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
+        self.ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
         self.ENV_ARGS['renderInstanceSegmentation'] = True
 
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchPickUp, self).test_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchBedroomComplexModel, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -134,7 +143,7 @@ class PointNavEmulStretchPickUp(
         return sampler_args
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchPickUp, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchBedroomComplexModel, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -150,7 +159,7 @@ class PointNavEmulStretchPickUp(
 
     @classmethod
     def create_model(cls, **kwargs) -> nn.Module:
-        return StretchPointNavEmulModel(
+        return StretchPointNavEmulComplexModel(
             action_space=gym.spaces.Discrete(
                 len(cls.TASK_TYPE.class_action_names())
             ),

@@ -11,8 +11,6 @@ from allenact.base_abstractions.task import TaskSampler, Task
 from allenact.utils.experiment_utils import set_deterministic_cudnn, set_seed
 from torch.distributions.utils import lazy_property
 
-from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
-from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.dataset_generation.find_categories_to_use import ROBOTHOR_TRAIN, KITCHEN_TRAIN, KITCHEN_TEST, KITCHEN_VAL
@@ -105,7 +103,7 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
         self.env_args = env_args
         self.scenes = scenes
         self.grid_size = 0.25
-        self.env: Optional[ManipulaTHOREnvironment] = None
+        self.env: Optional[StretchManipulaTHOREnvironment] = None
         self.sensors = sensors
         self.max_steps = max_steps
         self._action_space = action_space

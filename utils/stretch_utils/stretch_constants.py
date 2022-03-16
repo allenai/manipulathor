@@ -3,12 +3,16 @@ import ai2thor.fifo_server
 
 # INTEL_CAMERA_WIDTH = int(720/3)
 # INTEL_CAMERA_HEIGHT = int(1280/3)
-INTEL_CAMERA_WIDTH, INTEL_CAMERA_HEIGHT = 224,224 #TODO just for the beginning you have to chngfe this and have different values for differnt cameras
+from manipulathor_utils.debugger_util import ForkedPdb
+
+INTEL_CAMERA_WIDTH, INTEL_CAMERA_HEIGHT = 224,224 #TODO this is too small 320,320
 # STRETCH_MANIPULATHOR_COMMIT_ID = '7184aa455bc21cc38406487a3d8e2d65ceba2571'
 # STRETCH_MANIPULATHOR_COMMIT_ID = 'f698c1c27a39536858c854cae413fd31987cdf2a'
 # STRETCH_MANIPULATHOR_COMMIT_ID = 'fe005524939307669392dab264a22da8ab6ed53a' #This one was rotated
 # STRETCH_MANIPULATHOR_COMMIT_ID = '546c50bfa7cfbcec7d5224527e48e6ccb7ed26c2' # just for the segmentation sanity check
-STRETCH_MANIPULATHOR_COMMIT_ID = 'cf23e657aa4738324d09cc79d5f78ea741bf20bf' # eriic commit?
+STRETCH_MANIPULATHOR_COMMIT_ID = 'cf23e657aa4738324d09cc79d5f78ea741bf20bf' # eriic commit?--
+# STRETCH_MANIPULATHOR_COMMIT_ID  = 'cad761834abd6d0715bbf45c712fbd4947f43710' #new default camera params
+#TODO put back
 STRETCH_ENV_ARGS = dict(
     gridSize=0.25,
     width=INTEL_CAMERA_WIDTH,
@@ -16,7 +20,7 @@ STRETCH_ENV_ARGS = dict(
     visibilityDistance=1.0,
     # fieldOfView=42,
     # fieldOfView=69,
-    fieldOfView=100, #TODO definitely change
+    fieldOfView=69,
     agentControllerType="mid-level",
     server_class=ai2thor.fifo_server.FifoServer,
     useMassThreshold=True,
@@ -28,8 +32,48 @@ STRETCH_ENV_ARGS = dict(
     renderDepthImage=True,
 )
 
+#TODO depth and rgb dodesnt' match in real world?
+#TODO do we get different fov when we are calculating depth and stuff?
+#TODO check these ratios with real camera
+KINECT_REAL_W, KINECT_REAL_H = 1280, 720
+KINECT_RESIZED_W, KINECT_RESIZED_H = 320, 180
+KINECT_FOV_W, KINECT_FOV_H = 90, 59
 
+INTEL_REAL_W, INTEL_REAL_H = 1080, 1920
+INTEL_RESIZED_W, INTEL_RESIZED_H = 180, 320
+INTEL_FOV_W, INTEL_FOV_H = 42, 69
+
+MOVE_AHEAD = "MoveAhead"
+MOVE_BACK = "MoveBack"
+ROTATE_LEFT = "RotateLeft"
+ROTATE_RIGHT = "RotateRight"
+MOVE_ARM_HEIGHT_P = "MoveArmHeightP"
+MOVE_ARM_HEIGHT_M = "MoveArmHeightM"
+MOVE_ARM_X_P = "MoveArmXP"
+MOVE_ARM_X_M = "MoveArmXM"
+MOVE_ARM_Y_P = "MoveArmYP"
+MOVE_ARM_Y_M = "MoveArmYM"
+MOVE_ARM_Z_P = "MoveArmZP"
+MOVE_ARM_Z_M = "MoveArmZM"
+PICKUP = "PickUp"
+DONE = "Done"
+MOVE_WRIST_P = 'MoveWristP'
+MOVE_WRIST_M = 'MoveWristM'
+GRASP_O = 'GraspOpen'
+GRASP_C = 'GraspClose'
+ROTATE_RIGHT_SMALL = 'RotateRightSmall'
+ROTATE_LEFT_SMALL = 'RotateLeftSmall'
+MOVE_WRIST_P_SMALL = 'MoveWristPSmall'
+MOVE_WRIST_M_SMALL = 'MoveWristMSmall'
+
+ADITIONAL_ARM_ARGS = {
+    "disableRendering": True,
+    "returnToStart": True,
+    "speed": 1,
+}
+
+MOVE_ARM_CONSTANT = 0.05
+ARM_LENGTH = 1.
 
 # and as far as your earlier question regarding (H fov vs V fov)
 # the field of view that gets set through the API corresponds to the vertical field of view (https://docs.unity3d.com/ScriptReference/Camera-fieldOfView.html)
-# TODO then 42 would be the correct value probably. Also make sure you set these correctly (and differently for the azure camera)

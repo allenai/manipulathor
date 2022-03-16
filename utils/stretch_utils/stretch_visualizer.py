@@ -4,12 +4,13 @@ from datetime import datetime
 import cv2
 from torch.distributions.utils import lazy_property
 
-from ithor_arm.ithor_arm_constants import reset_environment_and_additional_commands
-from ithor_arm.ithor_arm_viz import save_image_list_to_gif, LoggerVisualizer, put_action_on_image, put_additional_text_on_image
+from ithor_arm.ithor_arm_viz import LoggerVisualizer
+from utils.hacky_viz_utils import save_image_list_to_gif, put_action_on_image, put_additional_text_on_image
 import numpy as np
 
 from manipulathor_utils.debugger_util import ForkedPdb
-from scripts.stretch_jupyter_helper import transport_wrapper
+from scripts.stretch_jupyter_helper import transport_wrapper, reset_environment_and_additional_commands
+from utils.stretch_utils.stretch_sim2real_utils import kinect_reshape, intel_reshape
 
 
 class StretchBringObjImageVisualizer(LoggerVisualizer):
@@ -81,7 +82,9 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
 
     def log(self, environment, action_str):
         image_tensor = environment.current_frame
+        image_tensor = intel_reshape(image_tensor)
         arm_frame = environment.arm_frame
+        arm_frame = kinect_reshape(arm_frame)
         self.action_queue.append(action_str)
         self.log_queue.append(image_tensor)
         self.arm_frame_queue.append(arm_frame)

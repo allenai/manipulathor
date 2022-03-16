@@ -26,11 +26,11 @@ from scripts.stretch_jupyter_helper import two_dict_equal, ARM_MOVE_CONSTANT, ge
 
 screen_size=224
 
-STRETCH_ENV_ARGS['width'] = screen_size
-STRETCH_ENV_ARGS['height'] = screen_size
-STRETCH_ENV_ARGS['agentMode']='stretch'
-STRETCH_ENV_ARGS['commit_id']='7184aa455bc21cc38406487a3d8e2d65ceba2571'
-STRETCH_ENV_ARGS['renderDepthImage'] = True
+# STRETCH_ENV_ARGS['width'] = screen_size
+# STRETCH_ENV_ARGS['height'] = screen_size
+# STRETCH_ENV_ARGS['agentMode']='stretch'
+# STRETCH_ENV_ARGS['commit_id']='7184aa455bc21cc38406487a3d8e2d65ceba2571'
+# STRETCH_ENV_ARGS['renderDepthImage'] = True
 
 controller = ai2thor.controller.Controller(**STRETCH_ENV_ARGS)
 
