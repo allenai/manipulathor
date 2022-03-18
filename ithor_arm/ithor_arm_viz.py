@@ -12,10 +12,12 @@ from gym.spaces import Discrete, Box
 from ithor_arm.arm_calculation_utils import initialize_arm
 from ithor_arm.ithor_arm_constants import (
     reset_environment_and_additional_commands,
-    transport_wrapper, MOVE_AHEAD, ROTATE_LEFT, ROTATE_RIGHT, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, PICKUP, DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, ROTATE_RIGHT_SMALL, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL, ROTATE_LEFT_SMALL
+    transport_wrapper,
+    #MOVE_AHEAD, ROTATE_LEFT, ROTATE_RIGHT, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, PICKUP, DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, ROTATE_RIGHT_SMALL, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL, ROTATE_LEFT_SMALL
 )
 # from manipulathor_baselines.bring_object_baselines.models.small_bring_object_pred_box_model import SmallBringObjectPredictBBXDepthBaselineActorCritic
 from manipulathor_utils.debugger_util import ForkedPdb
+from utils.hacky_viz_utils import put_action_on_image
 
 
 class LoggerVisualizer:
@@ -397,25 +399,25 @@ def save_image_list_to_gif(image_list, gif_name, gif_dir):
     imageio.mimsave(gif_adr, pallet.astype(np.uint8), format="GIF", duration=1 / 5)
     print("Saved result in ", gif_adr)
 
-def put_action_on_image(images, actions):
-    all_images = []
-    for i in range(len(images) - 1):
-        img = images[i]
-        action = actions[i]
-        action_names = (MOVE_AHEAD,ROTATE_LEFT ,ROTATE_RIGHT ,MOVE_ARM_HEIGHT_P ,MOVE_ARM_HEIGHT_M ,MOVE_ARM_X_P ,MOVE_ARM_X_M ,MOVE_ARM_Y_P ,MOVE_ARM_Y_M ,MOVE_ARM_Z_P ,MOVE_ARM_Z_M ,PICKUP ,DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL)
-        action_short = ("MOVE_AHEAD","ROTATE_L" ,"ROTATE_R" ,"ARM_H_P" ,"ARM_H_M" ,"ARM_X_P" ,"ARM_X_M" ,"ARM_Y_P" ,"ARM_Y_M" ,"ARM_Z_P" ,"ARM_Z_M" ,"PICKUP" ,"DONE", "MOVE_BACK", "WRIST_P", "WRIST_M", "ROTATE_L_S" ,"ROTATE_R_S" , "WRIST_P_S", "WRIST_M_S")
-        action = action_short[action_names.index(action)]
-        position = (10,10)
-
-        from PIL import Image, ImageFont, ImageDraw
-        pil_img = Image.fromarray(img)
-        draw = ImageDraw.Draw(pil_img)
-        draw.text(position, action, (0,0,0))
-        all_images.append(np.array(pil_img))
-
-
-    all_images.append(images[-1]) # No action needs to be written here
-    return all_images
+# def put_action_on_image(images, actions):
+#     all_images = []
+#     for i in range(len(images) - 1):
+#         img = images[i]
+#         action = actions[i]
+#         action_names = (MOVE_AHEAD,ROTATE_LEFT ,ROTATE_RIGHT ,MOVE_ARM_HEIGHT_P ,MOVE_ARM_HEIGHT_M ,MOVE_ARM_X_P ,MOVE_ARM_X_M ,MOVE_ARM_Y_P ,MOVE_ARM_Y_M ,MOVE_ARM_Z_P ,MOVE_ARM_Z_M ,PICKUP ,DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL)
+#         action_short = ("MOVE_AHEAD","ROTATE_L" ,"ROTATE_R" ,"ARM_H_P" ,"ARM_H_M" ,"ARM_X_P" ,"ARM_X_M" ,"ARM_Y_P" ,"ARM_Y_M" ,"ARM_Z_P" ,"ARM_Z_M" ,"PICKUP" ,"DONE", "MOVE_BACK", "WRIST_P", "WRIST_M", "ROTATE_L_S" ,"ROTATE_R_S" , "WRIST_P_S", "WRIST_M_S")
+#         action = action_short[action_names.index(action)]
+#         position = (10,10)
+#
+#         from PIL import Image, ImageFont, ImageDraw
+#         pil_img = Image.fromarray(img)
+#         draw = ImageDraw.Draw(pil_img)
+#         draw.text(position, action, (0,0,0))
+#         all_images.append(np.array(pil_img))
+#
+#
+#     all_images.append(images[-1]) # No action needs to be written here
+#     return all_images
 
 
 def put_additional_text_on_image(images, added_texts, color = (0,0,0)):

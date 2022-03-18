@@ -159,7 +159,7 @@ import pdb
 command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/pointnav_emul_stretch_all_rooms_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag train_full_task_distant_masks_only_pickup_from_scratch'
+ --seed 10 --machine_id 0 --extra_tag train_full_task_distant_masks_only_pickup_with_realisticcamera_from_pretrained -c ~/exp_PointNavEmulStretchAllRoomsDistrib_train_full_task_all_ithor_rooms_from_pickup__stage_00__steps_000100608660.pt '
 
 # scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/PointNavEmulStretchDistrib/train_object_nav_with_mask/2022-01-22_00-10-52/exp_PointNavEmulStretchDistrib_train_object_nav_with_mask__stage_00__steps_000002540050.pt ~/
 # pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+5afa5633597b12898e12eed528c2332a50bc0f79

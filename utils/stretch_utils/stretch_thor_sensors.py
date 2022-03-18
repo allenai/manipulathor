@@ -32,25 +32,6 @@ from utils.noise_in_motion_util import squeeze_bool_mask
 from utils.stretch_utils.stretch_sim2real_utils import kinect_reshape, intel_reshape
 
 
-class DepthSensorStretch(
-    DepthSensor[
-        Union[IThorEnvironment],
-        Union[Task[IThorEnvironment]],
-    ]
-):
-    """Sensor for Depth images in THOR.
-
-    Returns from a running IThorEnvironment instance, the current RGB
-    frame corresponding to the agent's egocentric view.
-    """
-
-    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
-        print('take care of resizing because of the kinect vs intel')
-        ForkedPdb().set_trace()
-        depth = (env.controller.last_event.depth_frame.copy())
-        depth = clip_frame(depth)
-        #TODO the ratio of image is slightly different in the real stretch tho
-        return depth
 
 
 class DepthSensorStretchIntel(
@@ -152,7 +133,7 @@ class RGBSensorStretchIntel(
 
         return intel_reshape(rgb)#cv2.resize(rgb, (224,224))
 
-# class NoisyObjectMaskStretch(NoisyObjectMask): #TODO double check correctness of this
+# class NoisyObjectMaskStretch(NoisyObjectMask): TODO double check correctness of this
 #
 #     def get_observation(
 #             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
@@ -161,61 +142,43 @@ class RGBSensorStretchIntel(
 #         ForkedPdb().set_trace()
 #         mask = super().get_observation(env, task, *args, **kwargs)
 #         return clip_frame(mask)
-class RGBSensorStretch(
-    RGBSensorThor
-):
-    """Sensor for RGB images in THOR.
-
-    Returns from a running IThorEnvironment instance, the current RGB
-    frame corresponding to the agent's egocentric view.
-    """
-
-    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
-        print('take care of resizing because of the kinect vs intel')
-        ForkedPdb().set_trace()
-
-        rgb = (env.controller.last_event.frame.copy())
-        rgb = clip_frame(rgb) #TODO we should add more noise to this as well
-        #TODO this is very dorehami
-        return rgb
-#TODO we need to crop our segmentation masks as well.
-MASK_FRAMES = None
-
-def clip_frame(frame):
-    print('take care of resizing because of the kinect vs intel')
-    ForkedPdb().set_trace()
-    #TODO should we swap this w and h?
-    if len(frame.shape) == 2:
-        w, h = frame.shape
-    if len(frame.shape) == 3:
-        w, h, c = frame.shape
-    if MASK_FRAMES is None or MASK_FRAMES.shape[0] != w or MASK_FRAMES.shape[1] != h:
-        set_mask_frames(w, h)
-    frame[(1 - MASK_FRAMES).astype(bool)] = 0
-    return frame
+# class RGBSensorStretch(
+#     RGBSensorThor
+# ):
+#     """Sensor for RGB images in THOR.
+#
+#     Returns from a running IThorEnvironment instance, the current RGB
+#     frame corresponding to the agent's egocentric view.
+#     """
+#
+#     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+#         print('take care of resizing because of the kinect vs intel')
+#         ForkedPdb().set_trace()
+#
+#         rgb = (env.controller.last_event.frame.copy())
+#         rgb = clip_frame(rgb) TODO we should add more noise to this as well
+#         TODO this is very dorehami
+#         return rgb
 
 
-def set_mask_frames(w, h):
-    original_w, original_h = 640, 576
-    w_up_left, h_up_left = 150, 270
-    w_up_right, h_up_right = 120, 210
-    w_down_left, h_down_left = 150,250
-    w_down_right, h_down_right = 120, 200
+# TODO we need to crop our segmentation masks as well.
+# MASK_FRAMES = None
+#
+# def clip_frame(frame):
+#     print('take care of resizing because of the kinect vs intel')
+#     ForkedPdb().set_trace()
+#     TODO should we swap this w and h?
+#     if len(frame.shape) == 2:
+#         w, h = frame.shape
+#     if len(frame.shape) == 3:
+#         w, h, c = frame.shape
+#     if MASK_FRAMES is None or MASK_FRAMES.shape[0] != w or MASK_FRAMES.shape[1] != h:
+#         set_mask_frames(w, h)
+#     frame[(1 - MASK_FRAMES).astype(bool)] = 0
+#     return frame
 
-    init = [(0, 0), (original_w, 0), (0, original_h), (original_w, original_h)]
-    ws = [w_up_left, -w_up_right, w_down_left, -w_down_right]
-    hs = [h_up_left, h_up_right, -h_down_left, -h_down_right]
 
-    mask = np.ones((original_h, original_w))
 
-    for i in range(4):
-        pt1 = init[i]
-        pt2 = (pt1[0] + ws[i], pt1[1])
-        pt3 = (pt1[0], pt1[1] + hs[i])
-        triangle_cnt = np.array( [pt1, pt2, pt3] )
-        mask = cv2.drawContours(mask, [triangle_cnt], 0, (0), -1)
-    global MASK_FRAMES
-    MASK_FRAMES = cv2.resize(mask, (h, w))
 
 
 
@@ -522,19 +485,19 @@ class IntelNoisyObjectMask(Sensor):
             mask_frame =np.zeros(env.controller.last_event.frame[:,:,0].shape)
 
         result = (np.expand_dims(mask_frame.astype(np.float),axis=-1))
-        if len(env.controller.last_event.instance_masks) == 0:
-            fake_mask = np.zeros(env.controller.last_event.frame[:,:,0].shape)
-        else:
-            fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
-        fake_mask = (np.expand_dims(fake_mask.astype(np.float),axis=-1))
+        # if len(env.controller.last_event.instance_masks) == 0:
+        #     fake_mask = np.zeros(env.controller.last_event.frame[:,:,0].shape)
+        # else:
+        #     fake_mask = random.choice([v for v in env.controller.last_event.instance_masks.values()])
+        # fake_mask = (np.expand_dims(fake_mask.astype(np.float),axis=-1))
         # fake_mask, is_real_mask = add_mask_noise(result, fake_mask, noise=self.noise)
         assert self.noise == 0
         is_real_mask = True
-        current_shape = fake_mask.shape
+        current_shape = result.shape
         if (current_shape[0], current_shape[1]) == (self.width, self.height):
-            resized_mask = fake_mask
+            resized_mask = result
         else:
-            resized_mask = cv2.resize(fake_mask, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
+            resized_mask = cv2.resize(result, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
         return intel_reshape(resized_mask)
 
 class KinectNoisyObjectMask(Sensor):

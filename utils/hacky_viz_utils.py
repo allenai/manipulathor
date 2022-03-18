@@ -159,3 +159,10 @@ def put_additional_text_on_image(images, added_texts, color = (0,0,0)):
 
 
     return all_images
+
+def depth_to_rgb(frame):
+    frame = frame / 10 * 255.
+    frame = frame.astype(np.uint8)
+    frame = np.expand_dims(frame, axis=-1)
+    frame = np.tile(frame,(1,1,3))
+    return frame

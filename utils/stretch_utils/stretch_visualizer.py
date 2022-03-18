@@ -5,7 +5,8 @@ import cv2
 from torch.distributions.utils import lazy_property
 
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
-from utils.hacky_viz_utils import save_image_list_to_gif, put_action_on_image, put_additional_text_on_image
+from utils.hacky_viz_utils import save_image_list_to_gif, put_action_on_image, put_additional_text_on_image, \
+    depth_to_rgb
 import numpy as np
 
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -42,9 +43,10 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
         self.log_queue = put_action_on_image(self.log_queue, self.action_queue[1:])
         addition_texts = ['xxx'] + [str(x) for x in episode_info.agent_body_dist_to_obj]
         self.log_queue = put_additional_text_on_image(self.log_queue, addition_texts)
-        concat_all_images = np.expand_dims(np.stack(self.arm_frame_queue, axis=0), axis=1)
-        arm_frames = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
-        concat_all_images = np.concatenate([concat_all_images, arm_frames], axis=3)
+        # concat_all_images = np.expand_dims(np.stack(self.arm_frame_queue, axis=0), axis=1)
+        # arm_frames = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
+        # concat_all_images = np.concatenate([concat_all_images, arm_frames], axis=3)
+        concat_all_images = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
         save_image_list_to_gif(concat_all_images, gif_name, self.log_dir)
         this_controller = environment.controller
         scene = this_controller.last_event.metadata[
@@ -81,13 +83,17 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
         self.arm_frame_queue = []
 
     def log(self, environment, action_str):
-        image_tensor = environment.current_frame
-        image_tensor = intel_reshape(image_tensor)
-        arm_frame = environment.arm_frame
-        arm_frame = kinect_reshape(arm_frame)
+        image_intel = environment.intel_frame
+        depth_intel = environment.intel_depth
+        image_kinect = environment.kinect_frame
+        depth_kinect = environment.kinect_depth
+
+        # image_intel = intel_reshape(image_intel)
+        # kinect_frame = kinect_reshape(kinect_frame)
+
         self.action_queue.append(action_str)
-        self.log_queue.append(image_tensor)
-        self.arm_frame_queue.append(arm_frame)
+        combined_frame = np.concatenate([image_intel, image_kinect, depth_to_rgb(depth_intel), depth_to_rgb(depth_kinect)],axis=1)
+        self.log_queue.append(combined_frame)
 
 
     @lazy_property
