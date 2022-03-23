@@ -412,8 +412,10 @@ class StretchExploreWiseRewardTask(AbstractStretchBringObjectTask):
         elif visited_new_place and self.object_picked_up and not self.goal_observed_reward:
             reward += self.reward_configs["exploration_reward"]
 
+        #TODO definition of visibility is different because of the new cameras. We crop them but these don't count that
         source_is_visible = self.env.last_event.get_object(self.task_info['source_object_id'])['visible']
         goal_is_visible = self.env.last_event.get_object(self.task_info['goal_object_id'])['visible']
+
 
         if not self.source_observed_reward and source_is_visible:
             self.source_observed_reward = True

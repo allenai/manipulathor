@@ -30,7 +30,7 @@ from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, Dept
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
-class PointNavEmulStretchAllRooms(
+class TempPointNavEmulStretchAllRooms(
     StretchBringObjectiThorBaseConfig,
     StretchBringObjectMixInPPOConfig,
     StretchBringObjectMixInSimpleGRUConfig,
@@ -85,7 +85,7 @@ class PointNavEmulStretchAllRooms(
     MAX_STEPS = 200
 
     TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
-    TASK_TYPE = StretchExploreWiseRewardTask
+    TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp
 
     NUM_PROCESSES = 20
 
@@ -94,7 +94,8 @@ class PointNavEmulStretchAllRooms(
     TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST
     OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ != 'robothor']))
 
-
+    TRAIN_SCENES = LIVING_ROOM_TRAIN
+    TEST_SCENES = LIVING_ROOM_TEST
     random.shuffle(TRAIN_SCENES)
 
 
@@ -119,7 +120,7 @@ class PointNavEmulStretchAllRooms(
         self.ENV_ARGS['renderInstanceSegmentation'] = True
 
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchAllRooms, self).test_task_sampler_args(**kwargs)
+        sampler_args = super(TempPointNavEmulStretchAllRooms, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -134,7 +135,7 @@ class PointNavEmulStretchAllRooms(
         return sampler_args
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchAllRooms, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(TempPointNavEmulStretchAllRooms, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
