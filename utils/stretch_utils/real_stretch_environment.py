@@ -12,23 +12,18 @@ from ai2thor.controller import Controller
 from allenact_plugins.ithor_plugin.ithor_constants import VISIBILITY_DISTANCE, FOV
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 
-from ithor_arm.ithor_arm_constants import (
-    ADITIONAL_ARM_ARGS,
-    ARM_MIN_HEIGHT,
-    ARM_MAX_HEIGHT,
-    MOVE_ARM_HEIGHT_CONSTANT,
-    MOVE_ARM_CONSTANT,
-    MANIPULATHOR_COMMIT_ID,
-    reset_environment_and_additional_commands,
-    MOVE_THR,
-    MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, PICKUP, DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, GRASP_O, GRASP_C
-)
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from manipulathor_utils.debugger_util import ForkedPdb
 import ai2thor.robot_controller
 
+from utils.stretch_utils.real_stretch_sensors import normalize_real_kinect_image, normalize_real_intel_image
+from utils.stretch_utils.stretch_constants import MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, \
+    MOVE_WRIST_P, MOVE_WRIST_M, GRASP_O, GRASP_C, MOVE_AHEAD, MOVE_BACK, ROTATE_RIGHT, ROTATE_LEFT, MOVE_WRIST_P_SMALL, \
+    MOVE_WRIST_M_SMALL, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL
+from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 
-class StretchRealEnvironment(ManipulaTHOREnvironment):
+
+class StretchRealEnvironment(StretchManipulaTHOREnvironment):
     """Wrapper for the manipulathor controller providing arm functionality
     and bookkeeping.
 
@@ -45,7 +40,6 @@ class StretchRealEnvironment(ManipulaTHOREnvironment):
 
     def create_controller(self):
         controller = ai2thor.robot_controller.Controller(host="stretch1.corp.ai2", port=9000, width=1280, height=720) #TODO frame width and height?
-        # controller.step('Initialize') # TODO should i put this back?>
         return controller
 
     def start(
@@ -131,10 +125,14 @@ class StretchRealEnvironment(ManipulaTHOREnvironment):
             stretch_action = dict(action='MoveWristP',)
         elif action == MOVE_WRIST_M:
             stretch_action = dict(action='MoveWristN',)
-        elif action == GRASP_O:
-            stretch_action = dict(action='GraspOpen',)
-        elif action == GRASP_C:
-            stretch_action = dict(action='GrapClose',)
+        elif action == MOVE_WRIST_P_SMALL:
+            stretch_action = dict(action='MoveWristPSmall',)
+        elif action == MOVE_WRIST_M_SMALL:
+            stretch_action = dict(action='MoveWristNSmall',)
+        # elif action == GRASP_O:
+        #     stretch_action = dict(action='GraspOpen',)
+        # elif action == GRASP_C:
+        #     stretch_action = dict(action='GrapClose',)
         elif action == MOVE_AHEAD:
             stretch_action = dict(action='MoveAhead',)
         elif action == MOVE_BACK:
@@ -143,6 +141,12 @@ class StretchRealEnvironment(ManipulaTHOREnvironment):
             stretch_action = dict(action='RotateRight',)
         elif action == ROTATE_LEFT:
             stretch_action = dict(action='RotateLeft',)
+
+        elif action == ROTATE_LEFT_SMALL:
+            stretch_action = dict(action='RotateLeftSmall',)
+        elif action == ROTATE_RIGHT_SMALL: #TODO add these actions to the server
+            stretch_action = dict(action='RotateRightSmall',)
+
         else:
             print('Action Not Supported')
             self.last_image_changed = False
@@ -157,3 +161,21 @@ class StretchRealEnvironment(ManipulaTHOREnvironment):
             print(self.controller.last_event)
 
         return sr
+
+    @property
+    def intel_frame(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        return normalize_real_intel_image(self.controller.last_event.third_party_camera_frames[0].copy())
+    @property
+    def intel_depth(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        return normalize_real_intel_image(self.controller.last_event.third_party_depth_frames[0].copy())
+
+    @property
+    def kinect_frame(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        return normalize_real_kinect_image(self.controller.last_event.frame.copy())
+    @property
+    def kinect_depth(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        return normalize_real_kinect_image(self.controller.last_event.depth_frame.copy())

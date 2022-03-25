@@ -384,7 +384,7 @@ class ImageVisualizer(LoggerVisualizer):
         cv2.imwrite(image_dir, image_tensor[:, :, [2, 1, 0]])
 
 
-def save_image_list_to_gif(image_list, gif_name, gif_dir):
+def save_image_list_to_gif(image_list, gif_name, gif_dir, duration=1/5):
     gif_adr = os.path.join(gif_dir, gif_name)
 
     seq_len, cols, w, h, c = image_list.shape
@@ -396,7 +396,7 @@ def save_image_list_to_gif(image_list, gif_name, gif_dir):
 
     if not os.path.exists(gif_dir):
         os.makedirs(gif_dir)
-    imageio.mimsave(gif_adr, pallet.astype(np.uint8), format="GIF", duration=1 / 5)
+    imageio.mimsave(gif_adr, pallet.astype(np.uint8), format="GIF", duration=duration)
     print("Saved result in ", gif_adr)
 
 # def put_action_on_image(images, actions):

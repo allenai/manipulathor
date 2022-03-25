@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 from utils.stretch_utils.stretch_constants import MOVE_AHEAD, ROTATE_LEFT ,ROTATE_RIGHT ,MOVE_ARM_HEIGHT_P ,MOVE_ARM_HEIGHT_M ,MOVE_ARM_X_P ,MOVE_ARM_X_M ,MOVE_ARM_Y_P ,MOVE_ARM_Y_M ,MOVE_ARM_Z_P ,MOVE_ARM_Z_M ,PICKUP ,DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL
 
 
-def hacky_visualization(observations, object_mask, query_objects, base_directory_to_right_images, gt_mask=None, text_to_write=None):
+def hacky_visualization(observations, object_mask, base_directory_to_right_images, query_objects=None, gt_mask=None, text_to_write=None):
     def unnormalize_image(img):
+        # img = img.squeeze(0).squeeze(0)
         mean=torch.Tensor([0.485, 0.456, 0.406]).to(img.device)
         std=torch.Tensor([0.229, 0.224, 0.225]).to(img.device)
         img = (img * std + mean)
@@ -26,11 +27,29 @@ def hacky_visualization(observations, object_mask, query_objects, base_directory
     bsize, seqlen, w, h, c = viz_image.shape
     if bsize == 1 and seqlen == 1:
         viz_image = viz_image.squeeze(0).squeeze(0)
-        depth = depth.squeeze(0).squeeze(0)
-        depth = depth.clamp(0,10) / 10
-        depth = depth.repeat(1, 1, 3)
+        viz_image = unnormalize_image(viz_image)
+        def normalize_depth(depth):
+            depth = depth.squeeze(0).squeeze(0)
+            depth = depth.clamp(0,10) / 10
+            depth = depth.repeat(1, 1, 3)
+            return depth
+        depth = normalize_depth(depth)
 
-        viz_query_obj = query_objects.squeeze(0).squeeze(0).permute(1,2,0) #TO make it channel last
+        list_of_visualizations = [viz_image, depth]
+
+        if 'rgb_lowres_arm' in observations:
+            kinect_image = observations['rgb_lowres_arm'].squeeze(0).squeeze(0)
+            kinect_image = unnormalize_image(kinect_image)
+            list_of_visualizations.append(kinect_image)
+        if 'depth_lowres_arm' in observations:
+            arm_depth = normalize_depth(observations['depth_lowres_arm'])
+            list_of_visualizations.append(arm_depth)
+
+        if query_objects is not None:
+            viz_query_obj = query_objects.squeeze(0).squeeze(0).permute(1,2,0) #TO make it channel last
+            viz_query_obj = unnormalize_image(viz_query_obj)
+            list_of_visualizations.append(viz_query_obj)
+
         viz_mask = predicted_masks.squeeze(0).squeeze(0).repeat(1,1, 3)
         if text_to_write is not None:
 
@@ -40,12 +59,12 @@ def hacky_visualization(observations, object_mask, query_objects, base_directory
             text_to_write = str(text_to_write.tolist()) + '=' + str(text_to_write.float().norm().item())
             viz_mask = put_additional_text_on_image([viz_mask], [text_to_write], color=(255,255,255))[0]
 
-        viz_image = unnormalize_image(viz_image)
-        viz_query_obj = unnormalize_image(viz_query_obj)
-        list_of_visualizations = [viz_image, depth, viz_query_obj, viz_mask]
+
+        list_of_visualizations.append(viz_mask)
         if gt_mask is not None:
             gt_mask = gt_mask.squeeze(0).squeeze(0).repeat(1,1, 3)
             list_of_visualizations.append(gt_mask)
+
         combined = torch.cat(list_of_visualizations, dim=1)
         directory_to_write_images = os.path.join('experiment_output/visualizations_masks', base_directory_to_right_images)
         os.makedirs(directory_to_write_images, exist_ok=True)

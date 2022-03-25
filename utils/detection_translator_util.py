@@ -2,5 +2,5 @@
 
 THOR2COCO = {
     'Apple': 'apple',
-    # 'Mug': 'bowl', # WTF
+    'Mug': 'bowl', #TODO WTF
 }

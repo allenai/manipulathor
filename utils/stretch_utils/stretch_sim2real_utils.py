@@ -1,7 +1,8 @@
 import random
 
 from manipulathor_utils.debugger_util import ForkedPdb
-from utils.stretch_utils.stretch_constants import INTEL_RESIZED_W, INTEL_RESIZED_H, KINECT_RESIZED_W, KINECT_RESIZED_H
+from utils.stretch_utils.stretch_constants import INTEL_RESIZED_W, INTEL_RESIZED_H, KINECT_RESIZED_W, KINECT_RESIZED_H, \
+    MAX_INTEL_DEPTH, MIN_INTEL_DEPTH, MAX_KINECT_DEPTH, MIN_KINECT_DEPTH
 import numpy as np
 import cv2
 
@@ -20,6 +21,9 @@ def kinect_reshape(frame):
     end = original_size / 2 + desired_w / fraction / 2
     frame[:int(beginning), :] = 0
     frame[int(end):, :] = 0
+    if len(frame.shape) == 2: #it is depth image
+        frame[frame > MAX_KINECT_DEPTH] = 0
+        frame[frame < MIN_KINECT_DEPTH] = 0
     return frame
 
 
@@ -34,6 +38,9 @@ def intel_reshape(frame):
     end = original_size / 2 + desired_h / fraction / 2
     frame[:,:int(beginning)] = 0
     frame[:,int(end):] = 0
+    if len(frame.shape) == 2: #it is depth image
+        frame[frame > MAX_INTEL_DEPTH] = 0
+        frame[frame < MIN_INTEL_DEPTH] = 0
     return frame
 
 DEPTH_KINECT_MASK_FRAMES = None

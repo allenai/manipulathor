@@ -35,9 +35,11 @@ from ithor_arm.ithor_arm_sensors import DepthSensorThor
 from manipulathor_utils.debugger_util import ForkedPdb
 #
 from utils.detection_translator_util import THOR2COCO
+from utils.stretch_utils.stretch_constants import INTEL_RESIZED_H, INTEL_RESIZED_W, KINECT_REAL_W, KINECT_REAL_H, \
+    MAX_INTEL_DEPTH, MIN_INTEL_DEPTH, MAX_KINECT_DEPTH, MIN_KINECT_DEPTH
 
 
-class RGBSensorRealStretch(
+class RealRGBSensorStretchIntel(
     RGBSensorThor
 ):
     """Sensor for RGB images in THOR.
@@ -49,72 +51,82 @@ class RGBSensorRealStretch(
     def frame_from_env(
             self, env: IThorEnvironment, task: Task[IThorEnvironment]
     ) -> np.ndarray:  # type:ignore
+        rgb = env.intel_frame.copy()
+        return (rgb)
 
-        return env.current_frame.copy()
-
-class DepthSensorRealStretch(
+class RealDepthSensorStretchIntel(
     DepthSensorThor
 ):
     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
-        depth = (env.controller.last_event.depth_frame.copy())
-        return depth
+        depth = env.intel_depth.copy()
+        return (depth)
 
-def normalize_intel_image(image):
-    rotated = cv2.rotate(image, cv2.cv2.ROTATE_90_CLOCKWISE)
+
+class RealRGBSensorStretchKinect(
+    RGBSensorThor
+):
+
+    def frame_from_env(
+            self, env: IThorEnvironment, task: Task[IThorEnvironment]
+    ) -> np.ndarray:  # type:ignore
+        rgb = env.kinect_frame.copy()
+        return (rgb)
+
+class RealDepthSensorStretchKinect(
+    DepthSensorThor
+):
+    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+        depth = env.kinect_depth.copy()
+        return (depth)
+
+def normalize_real_intel_image(image,final_size=224):
+    image = cv2.rotate(image, cv2.cv2.ROTATE_90_CLOCKWISE)
     if len(image.shape) == 3:
-        rotated = rotated[:,:,::-1]
+        image = image[:,:,::-1]
         #TODO why only rgb is flipped?
-        rotated = cv2.flip(rotated,1)
-    return rotated
+        image = cv2.flip(image,1)
+    assert image.shape[0] / INTEL_RESIZED_W == image.shape[1] / INTEL_RESIZED_H, ForkedPdb().set_trace()
+    ratio = max(INTEL_RESIZED_W, INTEL_RESIZED_H) / final_size
+    new_w, new_h = int(INTEL_RESIZED_W / ratio), int(INTEL_RESIZED_H / ratio)
+    image = cv2.resize(image,(new_h, new_w))
+    if len(image.shape) == 3:
+        result = np.zeros((final_size, final_size, image.shape[2]))
+    elif len(image.shape) == 2:
+        result = np.zeros((final_size, final_size))
+    start_w = int(final_size / 2 - new_w / 2)
+    end_w = start_w + new_w
+    start_h = int(final_size / 2 - new_h / 2)
+    end_h = start_h + new_h
+    result[start_w:end_w,start_h:end_h] = image
+    if len(image.shape) == 2: #it is depth image
+        result[result > MAX_INTEL_DEPTH] = 0
+        result[result < MIN_INTEL_DEPTH] = 0
+    return result.astype(image.dtype)
 
+def normalize_real_kinect_image(frame,size=224):
+    assert (frame.shape[0], frame.shape[1]) == (KINECT_REAL_W, KINECT_REAL_H)
+    current_size = frame.shape
+    bigger_size = max(current_size[0], current_size[1])
+    ratio = size / bigger_size
+    w,h = (int(current_size[0] * ratio), int(current_size[1] * ratio))
 
-class RGBSensorIntelRealStretch(
-    RGBSensorThor
-):
-    """Sensor for RGB images in THOR.
-
-    Returns from a running IThorEnvironment instance, the current RGB
-    frame corresponding to the agent's egocentric view.
-    """
-
-    def frame_from_env(
-            self, env: IThorEnvironment, task: Task[IThorEnvironment]
-    ) -> np.ndarray:  # type:ignore
-        rgb = env.controller.last_event.third_party_camera_frames[0].copy()
-        return normalize_intel_image(rgb)
-
-class DepthSensorIntelRealStretch(
-    DepthSensorThor
-):
-    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
-        depth = env.controller.last_event.third_party_depth_frames[0].copy()
-        return normalize_intel_image(depth)
-
-class StretchCategorySampleSensor(Sensor):
-    def __init__(self, type: str, uuid: str = "category_object", **kwargs: Any):
-        observation_space = gym.spaces.Box(
-            low=0, high=1, shape=(1,), dtype=np.float32
-        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
-        self.type = type
-        uuid = '{}_{}'.format(uuid, type)
-        super().__init__(**prepare_locals_for_super(locals()))
-
-
-    def get_observation(
-            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
-    ) -> Any:
-
-        if self.type == 'source':
-            info_to_search = 'source_object_query'
-        elif self.type == 'destination':
-            info_to_search = 'goal_object_query'
-        else:
-            raise Exception('Not implemented', self.type)
-        image = task.task_info[info_to_search]
-        return image
+    frame = cv2.resize(frame,(h,w))
+    if len(frame.shape) == 3:
+        result = np.zeros((size, size, frame.shape[2]))
+    elif len(frame.shape) == 2:
+        result = np.zeros((size, size))
+    start_w = int(size / 2 - w / 2)
+    end_w = start_w + w
+    start_h = int(size / 2 - h / 2)
+    end_h = start_h + h
+    result[start_w:end_w,start_h:end_h] = frame
+    if len(frame.shape) == 2: #it is depth image
+        result[result > MAX_KINECT_DEPTH] = 0
+        result[result < MIN_KINECT_DEPTH] = 0
+    return result.astype(frame.dtype)
 
 class StretchDetectronObjectMask(Sensor):
-    def __init__(self, type: str,noise, source_camera = 'azure', uuid: str = "object_mask", **kwargs: Any):
+    def __init__(self, type: str,noise, source_camera, uuid: str = "object_mask", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
@@ -142,11 +154,7 @@ class StretchDetectronObjectMask(Sensor):
     ) -> Any:
         if env.last_image_changed is False and self.cache is not None:
             return self.cache
-        if self.source_camera == 'azure':
-            im = env.controller.last_event.frame.copy()
-        elif self.source_camera == 'intel':
-            im = env.controller.last_event.third_party_camera_frames[0].copy()
-            im = normalize_intel_image(im)
+        im = self.source_camera.get_observation(env, task, *args, **kwargs)
         # TODO VERYYYYYY IMPORTANT
         im = im[:,:,::-1]
         # the detection requires BGR???
@@ -163,10 +171,6 @@ class StretchDetectronObjectMask(Sensor):
             plt.imsave(os.path.join(dir, timestamp), out.get_image()[:, :, ::-1])
         # ForkedPdb().set_trace()
 
-        # TODO remove
-        # visualize_detections(im, outputs)
-        # ForkedPdb().set_trace()
-
         if self.type == 'source':
             info_to_search = 'source_object_id'
         elif self.type == 'destination':
@@ -175,7 +179,7 @@ class StretchDetectronObjectMask(Sensor):
         assert category in THOR2COCO
         class_ind_to_look_for = self.class_labels.index(THOR2COCO[category])
         all_predicted_labels = outputs['instances'].pred_classes
-        all_predicted_bbox = outputs['instances'].pred_boxes #LATER TODO switch to segmentation
+        all_predicted_bbox = outputs['instances'].pred_boxes #TODO switch to segmentation
         mask = torch.zeros((im.shape[0], im.shape[1]))
         valid_boxes = [all_predicted_bbox[i] for i in range(len(all_predicted_labels)) if all_predicted_labels[i] == class_ind_to_look_for]
         for box in valid_boxes:
@@ -269,7 +273,7 @@ class StretchObjectMask(Sensor):
 
 
 
-class StretchPickedUpObjSensor(Sensor):
+class RealStretchPickedUpObjSensor(Sensor):
     def __init__(self, uuid: str = "pickedup_object", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
@@ -281,6 +285,53 @@ class StretchPickedUpObjSensor(Sensor):
     ) -> Any:
         return False
 
+
+#TODO these need to be redone
+class RealArmPointNavEmulSensor(Sensor):
+
+    def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, uuid: str = "arm_point_nav_emul", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        self.mask_sensor = mask_sensor
+        self.depth_sensor = depth_sensor
+        uuid = '{}_{}'.format(uuid, type)
+
+        self.min_xyz = np.zeros((3))
+
+        self.dummy_answer = torch.zeros(3)
+        self.dummy_answer[:] = 4 # is this good enough?
+        self.device = torch.device("cpu")
+        super().__init__(**prepare_locals_for_super(locals()))
+    def get_observation(
+            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        return torch.zeros((3))
+
+
+class RealAgentBodyPointNavEmulSensor(Sensor):
+
+    def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, uuid: str = "point_nav_emul", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        self.mask_sensor = mask_sensor
+        self.depth_sensor = depth_sensor
+        uuid = '{}_{}'.format(uuid, type)
+
+        self.min_xyz = np.zeros((3))
+        self.dummy_answer = torch.zeros(3)
+        self.dummy_answer[:] = 4 # is this good enough?
+        self.device = torch.device("cpu")
+
+
+        super().__init__(**prepare_locals_for_super(locals()))
+    def get_observation(
+            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        return torch.zeros((3))
 #TODO are we sure that we don't need to do anything about the depth normalization? we have to clip depth from intel realsense so that the norms are similar to the depth we get from thor? do we do the postprocessing for depth iamges?
 
 

@@ -4,48 +4,58 @@ from typing import Dict, Tuple, List, Any, Optional
 
 import gym
 import numpy as np
+import torch
 from allenact.base_abstractions.misc import RLStepResult
 from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import Task
 
 from ithor_arm.bring_object_tasks import BringObjectTask
-from ithor_arm.ithor_arm_constants import (
-    MOVE_ARM_CONSTANT,
-    MOVE_ARM_HEIGHT_P,
-    MOVE_ARM_HEIGHT_M,
-    MOVE_ARM_X_P,
-    MOVE_ARM_X_M,
-    MOVE_ARM_Y_P,
-    MOVE_ARM_Y_M,
-    MOVE_ARM_Z_P,
-    MOVE_ARM_Z_M,
-    MOVE_AHEAD,
-    ROTATE_RIGHT,
-    ROTATE_LEFT,
-    PICKUP,
-    DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, GRASP_O, GRASP_C,
-)
+from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask
+from utils.stretch_utils.stretch_constants import (
+        MOVE_ARM_HEIGHT_P,
+        MOVE_ARM_HEIGHT_M,
+        MOVE_ARM_Z_P,
+        MOVE_ARM_Z_M,
+        MOVE_WRIST_P,
+        MOVE_WRIST_M,
+        MOVE_AHEAD,
+        MOVE_BACK,
+        ROTATE_RIGHT,
+        ROTATE_LEFT,
+        ROTATE_RIGHT_SMALL,
+        ROTATE_LEFT_SMALL,
+        MOVE_WRIST_P_SMALL,
+        MOVE_WRIST_M_SMALL,
+        # PICKUP,
+        # DONE,
+    )
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
 
 
-class StretchRealBringObjectTask(BringObjectTask):
+class RealStretchExploreWiseRewardTask(StretchExploreWiseRewardTask):
     _actions = (
         MOVE_ARM_HEIGHT_P,
         MOVE_ARM_HEIGHT_M,
-        MOVE_ARM_X_P,
-        MOVE_ARM_X_M,
-        MOVE_ARM_Y_P,
-        MOVE_ARM_Y_M,
         MOVE_ARM_Z_P,
         MOVE_ARM_Z_M,
+        MOVE_WRIST_P,
+        MOVE_WRIST_M,
         MOVE_AHEAD,
+        MOVE_BACK,
         ROTATE_RIGHT,
         ROTATE_LEFT,
+        ROTATE_RIGHT_SMALL,
+        ROTATE_LEFT_SMALL,
+        MOVE_WRIST_P_SMALL,
+        MOVE_WRIST_M_SMALL,
         # PICKUP,
         # DONE,
     )
+    def set_reachable_positions(self):
+        self.all_reachable_positions = torch.zeros((100,3))
+        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
     def metrics(self) -> Dict[str, Any]:
         result = {}
         if self.is_done():
@@ -64,21 +74,23 @@ class StretchRealBringObjectTask(BringObjectTask):
         action_str = self.class_action_names()[action]
         print('Model Said', action_str)
 
-        self.manual_action = False
+        self.manual_action = True
+        # self.env.kinect_depth
         if self.manual_action:
-            list_of_actions = [MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, PICKUP, DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, GRASP_O, GRASP_C]
-            corespond = ['hp', 'hm', 'xp', 'xm', 'yp', 'ym', 'zp', 'zm', 'm', 'r', 'l', 'p', 'd', 'b', 'wp', 'wm', 'go', 'gc']
+            ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_WRIST_P,MOVE_WRIST_M,MOVE_AHEAD,MOVE_BACK,ROTATE_RIGHT,ROTATE_LEFT,]
+            ARM_SHORTENED_ACTIONS_ORDERED = ['hp','hm','zp','zm','wp','wm','m', 'b','r','l']
             action = ''
-            ForkedPdb().set_trace()
-            if action != '':
-                action_str = list_of_actions[corespond.index(action)]
+            while(True):
+                ForkedPdb().set_trace()
+                try:
+                    action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
+                    break
+                except Exception:
+                    print("wrong action")
+                    continue
 
-        # list_of_actions = [MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_X_P, MOVE_ARM_X_M, MOVE_ARM_Y_P, MOVE_ARM_Y_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, PICKUP, DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, GRASP_O, GRASP_C]
-        # translate = [MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P, MOVE_ARM_Z_P, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_ARM_Z_P, ROTATE_RIGHT, ROTATE_LEFT, PICKUP, DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, GRASP_O, GRASP_C]
-        # translated_action = translate[list_of_actions.index(action_str)]
-        # action_str = translated_action TODO
 
-        # import matplotlib.pyplot as plt; plt.imsave('something.png', self.env.last_event.frame)
+
 
         print('Action Called', action_str)
 
@@ -108,11 +120,3 @@ class StretchRealBringObjectTask(BringObjectTask):
         """Compute the reward after having taken a step."""
         reward = 0
         return reward
-
-class StretchRealObjectNavTask(StretchRealBringObjectTask):
-    _actions = (
-        MOVE_AHEAD,
-        ROTATE_RIGHT,
-        ROTATE_LEFT,
-        MOVE_BACK
-    )

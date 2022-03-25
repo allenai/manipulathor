@@ -18,6 +18,11 @@ from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJECTS, KITCHEN_TRAIN, LIVING_ROOM_TRAIN, \
     BEDROOM_TRAIN, ROBOTHOR_TRAIN, ROBOTHOR_VAL, BATHROOM_TEST, BATHROOM_TRAIN, BEDROOM_TEST, LIVING_ROOM_TEST, \
     KITCHEN_TEST
+from utils.stretch_utils.real_stretch_bring_object_task_sampler import RealStretchDiverseBringObjectTaskSampler
+from utils.stretch_utils.real_stretch_sensors import RealRGBSensorStretchIntel, RealDepthSensorStretchIntel, \
+    RealRGBSensorStretchKinect, RealDepthSensorStretchKinect, RealStretchPickedUpObjSensor, StretchDetectronObjectMask, \
+    RealArmPointNavEmulSensor, RealAgentBodyPointNavEmulSensor
+from utils.stretch_utils.real_stretch_tasks import RealStretchExploreWiseRewardTask
 from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask, \
     StretchExploreWiseRewardTaskOnlyPickUp, StretchObjectNavTask
@@ -30,7 +35,7 @@ from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, Dept
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
-class PointNavEmulStretchRoboTHOR(
+class RealPointNavEmulStretchAllRooms(
     StretchBringObjectiThorBaseConfig,
     StretchBringObjectMixInPPOConfig,
     StretchBringObjectMixInSimpleGRUConfig,
@@ -41,40 +46,53 @@ class PointNavEmulStretchRoboTHOR(
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
 
-    source_mask_sensor_intel = IntelNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True)
-    destination_mask_sensor_intel = IntelNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True)
-    depth_sensor_intel = IntelRawDepthSensor()
+    rgb_intel_camera_sensor = RealRGBSensorStretchIntel(
+            height=desired_screen_size,
+            width=desired_screen_size,
+            use_resnet_normalization=False,
+            uuid="rgb_lowres_raw",
+        )
+    rgb_kinect_camera_sensor = RealRGBSensorStretchKinect(
+            height=desired_screen_size,
+            width=desired_screen_size,
+            use_resnet_normalization=False,
+            uuid="rgb_lowres_arm_raw",
+        )
 
-    source_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True)
-    destination_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True)
-    depth_sensor_kinect = KinectRawDepthSensor()
+    source_mask_sensor_intel = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_intel_camera_sensor, uuid='object_mask')
+    destination_mask_sensor_intel = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_intel_camera_sensor, uuid='object_mask')
+    depth_sensor_intel = RealDepthSensorStretchIntel(height=desired_screen_size,width=desired_screen_size,use_normalization=False,uuid="depth_lowres_raw",)
+
+    source_mask_sensor_kinect = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_kinect_camera_sensor, uuid='object_mask_kinect')
+    destination_mask_sensor_kinect = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_kinect_camera_sensor, uuid='object_mask_kinect')
+    depth_sensor_kinect = RealDepthSensorStretchKinect(height=desired_screen_size,width=desired_screen_size,use_normalization=False,uuid="depth_lowres_arm_raw",) #TODO double check that this is not distorted
 
 
     SENSORS = [
-        RGBSensorStretchIntel(
+        RealRGBSensorStretchIntel(
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
-        DepthSensorStretchIntel(height=desired_screen_size,width=desired_screen_size,use_normalization=True,uuid="depth_lowres",),
-        RGBSensorStretchKinect(
+        RealDepthSensorStretchIntel(height=desired_screen_size,width=desired_screen_size,use_normalization=True,uuid="depth_lowres",),
+        RealRGBSensorStretchKinect(
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=True,
             uuid="rgb_lowres_arm",
         ),
-        DepthSensorStretchKinect(
+        RealDepthSensorStretchKinect(
             height=desired_screen_size,
             width=desired_screen_size,
             use_normalization=True,
             uuid="depth_lowres_arm",
         ),
-        StretchPickedUpObjSensor(),
-        AgentBodyPointNavEmulSensor(type='source', mask_sensor=source_mask_sensor_intel, depth_sensor=depth_sensor_intel),
-        AgentBodyPointNavEmulSensor(type='destination', mask_sensor=destination_mask_sensor_intel, depth_sensor=depth_sensor_intel),
-        ArmPointNavEmulSensor(type='source', mask_sensor=source_mask_sensor_kinect, depth_sensor=depth_sensor_kinect),
-        ArmPointNavEmulSensor(type='destination', mask_sensor=destination_mask_sensor_kinect, depth_sensor=depth_sensor_kinect),
+        RealStretchPickedUpObjSensor(),
+        RealAgentBodyPointNavEmulSensor(type='source', mask_sensor=source_mask_sensor_intel, depth_sensor=depth_sensor_intel),
+        RealAgentBodyPointNavEmulSensor(type='destination', mask_sensor=destination_mask_sensor_intel, depth_sensor=depth_sensor_intel),
+        RealArmPointNavEmulSensor(type='source', mask_sensor=source_mask_sensor_kinect, depth_sensor=depth_sensor_kinect),
+        RealArmPointNavEmulSensor(type='destination', mask_sensor=destination_mask_sensor_kinect, depth_sensor=depth_sensor_kinect),
         source_mask_sensor_intel,
         destination_mask_sensor_intel,
         source_mask_sensor_kinect,
@@ -84,29 +102,20 @@ class PointNavEmulStretchRoboTHOR(
 
     MAX_STEPS = 200
 
-    TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
-    TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp #TODO
+    TASK_SAMPLER = RealStretchDiverseBringObjectTaskSampler
+    TASK_TYPE = RealStretchExploreWiseRewardTask
 
-    NUM_PROCESSES = 30
+    NUM_PROCESSES = 20
 
-    TRAIN_SCENES = ROBOTHOR_TRAIN
-    TEST_SCENES = ROBOTHOR_VAL
+
+    TRAIN_SCENES = ['RealRobothor']
+    TEST_SCENES = ['RealRobothor']
     OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ == 'robothor']))
 
 
     random.shuffle(TRAIN_SCENES)
 
 
-
-
-
-    # if platform.system() == "Darwin": TODO remove
-    #     random.shuffle(KITCHEN_TRAIN)
-    #     random.shuffle(LIVING_ROOM_TRAIN)
-    #     random.shuffle(BEDROOM_TRAIN)
-    #     random.shuffle(BATHROOM_TRAIN)
-    #     random.shuffle(ROBOTHOR_TRAIN)
-    #     TRAIN_SCENES = KITCHEN_TRAIN[:10] + LIVING_ROOM_TRAIN[:10]  + BEDROOM_TRAIN[:10]  + BATHROOM_TRAIN[:10]  + ROBOTHOR_TRAIN[:10]
 
     def __init__(self):
         super().__init__()
@@ -118,7 +127,7 @@ class PointNavEmulStretchRoboTHOR(
         self.ENV_ARGS['renderInstanceSegmentation'] = True
 
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchRoboTHOR, self).test_task_sampler_args(**kwargs)
+        sampler_args = super(RealPointNavEmulStretchAllRooms, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -133,7 +142,7 @@ class PointNavEmulStretchRoboTHOR(
         return sampler_args
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchRoboTHOR, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(RealPointNavEmulStretchAllRooms, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:

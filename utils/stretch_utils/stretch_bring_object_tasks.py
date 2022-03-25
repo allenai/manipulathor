@@ -271,16 +271,18 @@ class StretchExploreWiseRewardTask(AbstractStretchBringObjectTask):
     )
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions(self.env.controller)]
-        self.all_reachable_positions = torch.Tensor(all_locations)
-        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
+        self.set_reachable_positions()
+
         self.source_observed_reward = False
         self.goal_observed_reward = False
 
         self.last_body_to_obj_distance = None
         self.agent_body_dist_to_obj = []
 
-
+    def set_reachable_positions(self):
+        all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions(self.env.controller)]
+        self.all_reachable_positions = torch.Tensor(all_locations)
+        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
 
     def metrics(self) -> Dict[str, Any]:
         result = super(StretchExploreWiseRewardTask, self).metrics()
@@ -327,6 +329,7 @@ class StretchExploreWiseRewardTask(AbstractStretchBringObjectTask):
     def _step(self, action: int) -> RLStepResult:
 
         action_str = self.class_action_names()[action]
+
 
         self.manual = False
         if self.manual:

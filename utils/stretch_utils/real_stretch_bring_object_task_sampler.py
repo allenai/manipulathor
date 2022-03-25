@@ -24,9 +24,10 @@ from ithor_arm.ithor_arm_tasks import (
 from ithor_arm.ithor_arm_viz import LoggerVisualizer, BringObjImageVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.stretch_utils.real_stretch_environment import StretchRealEnvironment
+from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 
 
-class RealStretchDiverseBringObjectTaskSampler(DiverseBringObjectTaskSampler):
+class RealStretchDiverseBringObjectTaskSampler(StretchDiverseBringObjectTaskSampler):
 
     def _create_environment(self, **kwargs) -> ManipulaTHOREnvironment:
         env = StretchRealEnvironment(
@@ -40,26 +41,11 @@ class RealStretchDiverseBringObjectTaskSampler(DiverseBringObjectTaskSampler):
 
         super().__init__(**kwargs)
 
-        # TODO this needs to be changed later
-        # if self.sampler_mode == "test":
-        #     possible_initial_locations = (
-        #         "datasets/apnd-dataset/deterministic_valid_agent_initial_locations.json"
-        #     )
-        # with open(possible_initial_locations) as f:
-        #     self.possible_agent_reachable_poses = json.load(f)
-
-        self.query_image_dict = self.find_all_query_objects()
         self.all_possible_points = {}
 
         if self.sampler_mode == "test":
             self.max_tasks = self.reset_tasks = 200
 
-
-    def find_all_query_objects(self):
-        IMAGE_DIR = 'datasets/apnd-dataset/query_images/'
-        all_object_types = [f.split('/')[-1] for f in glob.glob(os.path.join(IMAGE_DIR, '*'))]
-        all_possible_images = {object_type: [f for f in glob.glob(os.path.join(IMAGE_DIR, object_type, '*.png'))] for object_type in all_object_types}
-        return all_possible_images
 
     def next_task(
             self, force_advance_scene: bool = False
@@ -73,28 +59,11 @@ class RealStretchDiverseBringObjectTaskSampler(DiverseBringObjectTaskSampler):
 
         if self.env is None:
             self.env = self._create_environment()
-        self.env.reset(scene_name='KianaRoom')
+        self.env.reset(scene_name='RealRobothor')
+        #TODO change these later
         init_object = {'object_id': 'Apple|1|1|1'}
         goal_object = {'object_id': 'Mug|1|1|1'}
 
-        def load_and_resize(img_name):
-            transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225]),
-            ])
-            with open(img_name, 'rb') as fp:
-                image = Image.open(fp).convert('RGB')
-            return transform(image)
-        def get_random_query_image(object_id):
-            object_category = object_id.split('|')[0]
-            # object_type = object_category[0].lower() + object_category[1:]
-            chosen_image_adr = random.choice(self.query_image_dict[object_category])
-            image = load_and_resize(chosen_image_adr)
-            return image
-
-        source_object_query = get_random_query_image(init_object['object_id'])
-        goal_object_query = get_random_query_image(goal_object['object_id'])
 
         task_info = {
             'source_object_id': init_object['object_id'],
@@ -104,8 +73,8 @@ class RealStretchDiverseBringObjectTaskSampler(DiverseBringObjectTaskSampler):
             'agent_initial_state': {},
             'initial_object_location':{},
             'initial_hand_state': {},
-            'source_object_query':source_object_query,
-            'goal_object_query': goal_object_query,
+            'episode_number': random.uniform(0, 10000),
+            'scene_name':'RealRobothor'
         }
 
 

@@ -224,7 +224,6 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
 
-
         if self.visualize:
             # if arm_distance_to_obj_source.shape[0] == 1 and arm_distance_to_obj_source.shape[1] == 1:
             #     arm_distances = arm_distance_to_obj_source
@@ -247,7 +246,7 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
             distances = torch.cat([observations['point_nav_emul_source'],observations['arm_point_nav_emul_source']], dim=-1)
             # distances = observations['point_nav_emul_source']
 
-            hacky_visualization(observations, object_mask=intel_mask, gt_mask=kinect_mask, query_objects=observations['rgb_lowres_arm'].permute(0,1,4,2,3), base_directory_to_right_images=self.starting_time, text_to_write=distances)
+            hacky_visualization(observations, object_mask=intel_mask, gt_mask=kinect_mask, base_directory_to_right_images=self.starting_time, text_to_write=distances)
 
 
 
