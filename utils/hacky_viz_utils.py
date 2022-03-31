@@ -1,3 +1,5 @@
+import io
+
 import imageio
 import torch
 import os
@@ -5,10 +7,12 @@ from datetime import datetime
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+
+from manipulathor_utils.debugger_util import ForkedPdb
 from utils.stretch_utils.stretch_constants import MOVE_AHEAD, ROTATE_LEFT ,ROTATE_RIGHT ,MOVE_ARM_HEIGHT_P ,MOVE_ARM_HEIGHT_M ,MOVE_ARM_X_P ,MOVE_ARM_X_M ,MOVE_ARM_Y_P ,MOVE_ARM_Y_M ,MOVE_ARM_Z_P ,MOVE_ARM_Z_M ,PICKUP ,DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL
 
 
-def hacky_visualization(observations, object_mask, base_directory_to_right_images, query_objects=None, gt_mask=None, text_to_write=None):
+def hacky_visualization(observations, object_mask, base_directory_to_right_images, query_objects=None, gt_mask=None, text_to_write=None, distance_vector_to_viz=None):
     def unnormalize_image(img):
         # img = img.squeeze(0).squeeze(0)
         mean=torch.Tensor([0.485, 0.456, 0.406]).to(img.device)
@@ -64,13 +68,35 @@ def hacky_visualization(observations, object_mask, base_directory_to_right_image
         if gt_mask is not None:
             gt_mask = gt_mask.squeeze(0).squeeze(0).repeat(1,1, 3)
             list_of_visualizations.append(gt_mask)
+        if distance_vector_to_viz is not None:
 
+            arm_dist = distance_vector_to_viz['arm_dist'].squeeze(0).squeeze(0)
+            agent_dist = distance_vector_to_viz['agent_dist'].squeeze(0).squeeze(0)
+
+            viz_vector_dist = get_distance_vector_visualization_distances(arm_dist, agent_dist)
+
+            # viz_vector_dist = fig2data(fig)
+            list_of_visualizations.append(viz_vector_dist)
         combined = torch.cat(list_of_visualizations, dim=1)
         directory_to_write_images = os.path.join('experiment_output/visualizations_masks', base_directory_to_right_images)
         os.makedirs(directory_to_write_images, exist_ok=True)
         time_to_write = datetime.now().strftime("%m_%d_%Y_%H_%M_%S_%f.png")
         cv2.imwrite(os.path.join(directory_to_write_images, time_to_write), (combined[:,:,[2,1,0]] * 255.).int().cpu().numpy())
 
+def get_distance_vector_visualization_distances(arm_dist, agent_dist):
+    plt.cla()
+    px = 1/plt.rcParams['figure.dpi']
+    fig = plt.figure(figsize=(224*px,224*px))
+    ax = fig.add_subplot(111)
+    ax.set_xlim(-4.2, 4.2)
+    ax.set_ylim(-4.2, 4.2)
+    # plt.plot([0, 0], [arm_dist[0], arm_dist[2]],linestyle='solid', label='arm',linewidth=3, color='blue')
+    if arm_dist.sum() != 12:
+        ax.arrow(0, 0, arm_dist[0], arm_dist[2],color='blue')#,head_width=3)
+    if agent_dist.sum() != 12:
+        ax.arrow(0, 0, agent_dist[0], agent_dist[2],color='green')#,head_width=3)
+    viz_vector_dist = torch.Tensor(get_img_from_fig(fig).astype(np.float) / 255.)
+    return viz_vector_dist
 def calc_dict_average(nested_dict):
     if type(nested_dict) == list:
         total_str = sum(nested_dict) / len(nested_dict)
@@ -93,6 +119,37 @@ def save_quick_frame(controller, image_adr, top_view=False):
         combined_camera = np.concatenate([first_camera, arm_camera], axis=1)
     plt.imsave(image_adr, combined_camera)
 
+def get_img_from_fig(fig, dpi=180, w=224,h=224):
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=dpi)
+    buf.seek(0)
+    img_arr = np.frombuffer(buf.getvalue(), dtype=np.uint8)
+    buf.close()
+    img = cv2.imdecode(img_arr, 1)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.resize(img, (w,h))
+
+    # fig.canvas.draw()
+    # # grab the pixel buffer and dump it into a numpy array
+    # img = np.array(fig.canvas.renderer.buffer_rgba())[:,:,3]
+    return img
+def fig2data ( fig ):
+    """
+    @brief Convert a Matplotlib figure to a 4D numpy array with RGBA channels and return it
+    @param fig a matplotlib figure
+    @return a numpy 3D array of RGBA values
+    """
+    # draw the renderer
+    fig.canvas.draw ( )
+
+    # Get the RGBA buffer from the figure
+    w,h = fig.canvas.get_width_height()
+    buf = np.fromstring ( fig.canvas.tostring_argb(), dtype=np.uint8 )
+    buf.shape = ( w, h,4 )
+
+    # canvas.tostring_argb give pixmap in ARGB mode. Roll the ALPHA channel to have it in RGBA mode
+    buf = np.roll ( buf, 3, axis = 2 )
+    return buf
 def get_stretch_top_view(controller): # TODO this might mess up some other things be careful
     camera_position = {
         'position': controller.last_event.metadata['cameraPosition'],

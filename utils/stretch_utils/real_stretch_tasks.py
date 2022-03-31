@@ -82,6 +82,11 @@ class RealStretchExploreWiseRewardTask(StretchExploreWiseRewardTask):
             action = ''
             while(True):
                 ForkedPdb().set_trace()
+
+                # self.env.kinect_frame
+                # import cv2
+                # cv2.imwrite('/Users/kianae/Desktop/kinect_frame_small.png', self.env.kinect_frame[:,:,::-1])
+                # import cv2; cv2.imwrite('/Users/kianae/Desktop/kinect_frame_big.png', self.env.controller.last_event.frame[:,:,::-1])
                 try:
                     action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
                     break

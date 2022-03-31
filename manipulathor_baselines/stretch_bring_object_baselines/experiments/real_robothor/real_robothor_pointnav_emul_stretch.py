@@ -21,7 +21,7 @@ from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJEC
 from utils.stretch_utils.real_stretch_bring_object_task_sampler import RealStretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.real_stretch_sensors import RealRGBSensorStretchIntel, RealDepthSensorStretchIntel, \
     RealRGBSensorStretchKinect, RealDepthSensorStretchKinect, RealStretchPickedUpObjSensor, StretchDetectronObjectMask, \
-    RealArmPointNavEmulSensor, RealAgentBodyPointNavEmulSensor
+    RealKinectArmPointNavEmulSensor, RealIntelAgentBodyPointNavEmulSensor, KinectArmMaskSensor
 from utils.stretch_utils.real_stretch_tasks import RealStretchExploreWiseRewardTask
 from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask, \
@@ -59,6 +59,8 @@ class RealPointNavEmulStretchAllRooms(
             uuid="rgb_lowres_arm_raw",
         )
 
+    kinect_arm_mask_sensor = KinectArmMaskSensor()
+
     source_mask_sensor_intel = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_intel_camera_sensor, uuid='object_mask')
     destination_mask_sensor_intel = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_intel_camera_sensor, uuid='object_mask')
     depth_sensor_intel = RealDepthSensorStretchIntel(height=desired_screen_size,width=desired_screen_size,use_normalization=False,uuid="depth_lowres_raw",)
@@ -89,10 +91,10 @@ class RealPointNavEmulStretchAllRooms(
             uuid="depth_lowres_arm",
         ),
         RealStretchPickedUpObjSensor(),
-        RealAgentBodyPointNavEmulSensor(type='source', mask_sensor=source_mask_sensor_intel, depth_sensor=depth_sensor_intel),
-        RealAgentBodyPointNavEmulSensor(type='destination', mask_sensor=destination_mask_sensor_intel, depth_sensor=depth_sensor_intel),
-        RealArmPointNavEmulSensor(type='source', mask_sensor=source_mask_sensor_kinect, depth_sensor=depth_sensor_kinect),
-        RealArmPointNavEmulSensor(type='destination', mask_sensor=destination_mask_sensor_kinect, depth_sensor=depth_sensor_kinect),
+        RealIntelAgentBodyPointNavEmulSensor(type='source', mask_sensor=source_mask_sensor_intel, depth_sensor=depth_sensor_intel),
+        RealIntelAgentBodyPointNavEmulSensor(type='destination', mask_sensor=destination_mask_sensor_intel, depth_sensor=depth_sensor_intel),
+        RealKinectArmPointNavEmulSensor(type='source', mask_sensor=source_mask_sensor_kinect, depth_sensor=depth_sensor_kinect, arm_mask_sensor = kinect_arm_mask_sensor),
+        RealKinectArmPointNavEmulSensor(type='destination', mask_sensor=destination_mask_sensor_kinect, depth_sensor=depth_sensor_kinect, arm_mask_sensor = kinect_arm_mask_sensor),
         source_mask_sensor_intel,
         destination_mask_sensor_intel,
         source_mask_sensor_kinect,

@@ -166,10 +166,18 @@ import pdb
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 --extra_tag train_full_task_distant_masks_with_realisticcamera_from_pretrained -c ~/exp_PointNavEmulStretchAllRoomsDistrib_train_full_task_distant_masks_only_pickup_with_realisticcamera_from_pretrained__stage_00__steps_000165883510.pt '
 
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/pointnav_emul_stretch_robothor_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag only_pickup_robothor_fixed_depth_ranges_from_pretrain -c ~/exp_PointNavEmulStretchAllRoomsDistrib_train_full_task_distant_masks_only_pickup_with_realisticcamera_from_pretrained__stage_00__steps_000165883510.pt '
+
+
 command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/pointnav_emul_stretch_robothor_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag only_pickup_robothor_fixed_depth_ranges_from_pretrain -c ~/exp_PointNavEmulStretchAllRoomsDistrib_train_full_task_distant_masks_only_pickup_with_realisticcamera_from_pretrained__stage_00__steps_000165883510.pt '
+ --seed 10 --machine_id 0 --extra_tag only_pickup_robothor_fixed_depth_ranges_nomindepth_from_pretrain -c ~/exp_PointNavEmulStretchRoboTHORDistrib_only_pickup_robothor_fixed_depth_ranges_from_pretrain__stage_00__steps_000289507150.pt '
+
+
 
 
 # scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/PointNavEmulStretchDistrib/train_object_nav_with_mask/2022-01-22_00-10-52/exp_PointNavEmulStretchDistrib_train_object_nav_with_mask__stage_00__steps_000002540050.pt ~/

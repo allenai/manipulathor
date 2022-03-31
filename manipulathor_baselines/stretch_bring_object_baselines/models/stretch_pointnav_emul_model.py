@@ -246,7 +246,15 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
             distances = torch.cat([observations['point_nav_emul_source'],observations['arm_point_nav_emul_source']], dim=-1)
             # distances = observations['point_nav_emul_source']
 
-            hacky_visualization(observations, object_mask=intel_mask, gt_mask=kinect_mask, base_directory_to_right_images=self.starting_time, text_to_write=distances)
+            agent_distance_vector_to_viz =  observations['point_nav_emul_source'].clone()
+            agent_distance_vector_to_viz[after_pickup] = observations['point_nav_emul_destination'][after_pickup].clone()
+
+            arm_distance_vector_to_viz =  observations['arm_point_nav_emul_source'].clone()
+            arm_distance_vector_to_viz[after_pickup] = observations['arm_point_nav_emul_destination'][after_pickup].clone()
+
+            distance_vector_to_viz = dict(arm_dist=arm_distance_vector_to_viz, agent_dist=agent_distance_vector_to_viz)
+
+            hacky_visualization(observations, object_mask=intel_mask, gt_mask=kinect_mask, base_directory_to_right_images=self.starting_time, text_to_write=distances, distance_vector_to_viz=distance_vector_to_viz)
 
 
 

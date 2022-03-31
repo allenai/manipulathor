@@ -34,9 +34,13 @@ from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_sensors import DepthSensorThor
 from manipulathor_utils.debugger_util import ForkedPdb
 #
+from utils.calculation_utils import calc_world_coordinates
 from utils.detection_translator_util import THOR2COCO
+from utils.noise_in_motion_util import squeeze_bool_mask
+from utils.real_stretch_utils import get_binary_mask_of_arm, get_mid_point_of_object_from_depth_and_mask
 from utils.stretch_utils.stretch_constants import INTEL_RESIZED_H, INTEL_RESIZED_W, KINECT_REAL_W, KINECT_REAL_H, \
-    MAX_INTEL_DEPTH, MIN_INTEL_DEPTH, MAX_KINECT_DEPTH, MIN_KINECT_DEPTH
+    MAX_INTEL_DEPTH, MIN_INTEL_DEPTH, MAX_KINECT_DEPTH, MIN_KINECT_DEPTH, INTEL_FOV_W, INTEL_FOV_H, KINECT_FOV_W, \
+    KINECT_FOV_H
 
 
 class RealRGBSensorStretchIntel(
@@ -142,7 +146,7 @@ class StretchDetectronObjectMask(Sensor):
             self.cfg.MODEL.DEVICE = "cpu"
         # add project-specific config (e.g., TensorMask) here if you're not running a model in detectron2's core library
         self.cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")) # is this the model we want? Yes it is a pretty good model
-        self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.2  # set threshold for this model #TODO good number?
+        self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.05  # set threshold for this model #TODO good number?
         # Find a model from detectron2's model zoo. You can use the https://dl.fbaipublicfiles... url as well
         self.cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")
         self.predictor = DefaultPredictor(self.cfg)
@@ -159,7 +163,12 @@ class StretchDetectronObjectMask(Sensor):
         im = im[:,:,::-1]
         # the detection requires BGR???
 
-        outputs = self.predictor(im)
+        outputs = self.predictor(im * 255.)
+
+        # #TODO remove
+        # outputs = self.predictor(im * 255.)
+        # cv2.imwrite('my_image.png',im * 255.)
+
         #
         def visualize_detections(im, outputs ):
             v = Visualizer(im[:, :, ::-1], MetadataCatalog.get(self.cfg.DATASETS.TRAIN[0]), scale=1.2)
@@ -180,12 +189,24 @@ class StretchDetectronObjectMask(Sensor):
         class_ind_to_look_for = self.class_labels.index(THOR2COCO[category])
         all_predicted_labels = outputs['instances'].pred_classes
         all_predicted_bbox = outputs['instances'].pred_boxes #TODO switch to segmentation
+
+
+
         mask = torch.zeros((im.shape[0], im.shape[1]))
         valid_boxes = [all_predicted_bbox[i] for i in range(len(all_predicted_labels)) if all_predicted_labels[i] == class_ind_to_look_for]
+
         for box in valid_boxes:
             x1, y1, x2, y2 = [int(x) for x in box.tensor.squeeze()]
             mask[y1:y2, x1:x2] = 1
         mask = torch.nn.functional.interpolate(mask.unsqueeze(0).unsqueeze(0), size=(224, 224)).squeeze(0).squeeze(0)
+
+        #TODO remove
+        print('camera', self.source_camera, 'type', self.type, 'category', category)
+        print('observed objects', [self.class_labels[x] for x in all_predicted_labels])
+
+        #TODO this can be optimized because we are passing this image twice and no point
+
+        # ForkedPdb().set_trace()
         # use these later for visualization purposes?
 
         # plt.imsave('something.png', im)
@@ -285,17 +306,16 @@ class RealStretchPickedUpObjSensor(Sensor):
     ) -> Any:
         return False
 
+class RealKinectArmPointNavEmulSensor(Sensor):
 
-#TODO these need to be redone
-class RealArmPointNavEmulSensor(Sensor):
-
-    def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, uuid: str = "arm_point_nav_emul", **kwargs: Any):
+    def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, arm_mask_sensor:Sensor, uuid: str = "arm_point_nav_emul", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
         self.type = type
         self.mask_sensor = mask_sensor
         self.depth_sensor = depth_sensor
+        self.arm_mask_sensor = arm_mask_sensor
         uuid = '{}_{}'.format(uuid, type)
 
         self.min_xyz = np.zeros((3))
@@ -307,10 +327,52 @@ class RealArmPointNavEmulSensor(Sensor):
     def get_observation(
             self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        return torch.zeros((3))
+        mask = (self.mask_sensor.get_observation(env, task, *args, **kwargs)) #TODO this is called multiple times?
+        depth_frame_original = self.depth_sensor.get_observation(env, task, *args, **kwargs).squeeze(-1)
 
+        # if task.num_steps_taken() == 0:
+        #     self.pointnav_history_aggr = []
+        #     self.real_prev_location = None
+        #     self.belief_prev_location = None
 
-class RealAgentBodyPointNavEmulSensor(Sensor):
+        #TODO all these values need to be checked
+        fov=max(KINECT_FOV_W, KINECT_FOV_H)
+        camera_horizon = 45
+        camera_xyz = np.array([0,0,0])
+        camera_rotation = 0
+
+        if mask.sum() != 0:
+
+            midpoint_agent_coord = get_mid_point_of_object_from_depth_and_mask(mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
+            # self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world), task.num_steps_taken()))
+            arm_mask = self.arm_mask_sensor.get_observation(env, task, *args, **kwargs) #TODO this is also called twice
+            if arm_mask.sum() == 0: #Do we want to do some approximations or no?
+                result = self.dummy_answer
+            else:
+                arm_location_in_camera = get_mid_point_of_object_from_depth_and_mask(arm_mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
+                distance_in_agent_coord = midpoint_agent_coord - arm_location_in_camera
+                result = distance_in_agent_coord.cpu()
+        else:
+            result = self.dummy_answer
+        #TODO we need to implement average so far later
+        return result
+
+class KinectArmMaskSensor(Sensor):
+    def __init__(self, uuid: str = "arm_mask_kinect", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        super().__init__(**prepare_locals_for_super(locals()))
+
+    def get_observation(
+            self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        kinect_raw_value = env.kinect_raw_frame
+        mask = get_binary_mask_of_arm(kinect_raw_value)
+        mask = normalize_real_kinect_image(mask)
+        return np.expand_dims(mask, axis=-1)
+
+class RealIntelAgentBodyPointNavEmulSensor(Sensor):
 
     def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, uuid: str = "point_nav_emul", **kwargs: Any):
         observation_space = gym.spaces.Box(
@@ -331,7 +393,30 @@ class RealAgentBodyPointNavEmulSensor(Sensor):
     def get_observation(
             self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        return torch.zeros((3))
+
+        mask = (self.mask_sensor.get_observation(env, task, *args, **kwargs)) #TODO this is called multiple times?
+
+        # if task.num_steps_taken() == 0:
+        #     self.pointnav_history_aggr = []
+        #     self.real_prev_location = None
+        #     self.belief_prev_location = None
+
+        #TODO all these values need to be checked
+        fov=max(INTEL_FOV_W, INTEL_FOV_H) #TODO are you sure? it should be smaller one I think
+        camera_horizon = 0
+        camera_xyz = np.array([0,0,0])
+        camera_rotation = 0
+
+        if mask.sum() != 0:
+            depth_frame_original = self.depth_sensor.get_observation(env, task, *args, **kwargs).squeeze(-1)
+            middle_of_object = get_mid_point_of_object_from_depth_and_mask(mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
+            # self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world), task.num_steps_taken()))
+
+            result = middle_of_object.cpu()
+        else:
+            result = self.dummy_answer
+        #TODO we need to implement average so far later
+        return result
 #TODO are we sure that we don't need to do anything about the depth normalization? we have to clip depth from intel realsense so that the norms are similar to the depth we get from thor? do we do the postprocessing for depth iamges?
 
 

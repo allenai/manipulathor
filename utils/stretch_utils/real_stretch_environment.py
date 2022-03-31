@@ -175,6 +175,12 @@ class StretchRealEnvironment(StretchManipulaTHOREnvironment):
     def kinect_frame(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
         return normalize_real_kinect_image(self.controller.last_event.frame.copy())
+
+    @property
+    def kinect_raw_frame(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        return (self.controller.last_event.frame.copy())
+
     @property
     def kinect_depth(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
