@@ -22,7 +22,7 @@ def kinect_reshape(frame):
     frame[:int(beginning), :] = 0
     frame[int(end):, :] = 0
     if len(frame.shape) == 2: #it is depth image
-        frame[frame > MAX_KINECT_DEPTH] = 0
+        frame[frame > MAX_KINECT_DEPTH] = MAX_KINECT_DEPTH
         frame[frame < MIN_KINECT_DEPTH] = 0
     return frame
 
@@ -39,7 +39,7 @@ def intel_reshape(frame):
     frame[:,:int(beginning)] = 0
     frame[:,int(end):] = 0
     if len(frame.shape) == 2: #it is depth image
-        frame[frame > MAX_INTEL_DEPTH] = 0
+        frame[frame > MAX_INTEL_DEPTH] = MAX_INTEL_DEPTH
         frame[frame < MIN_INTEL_DEPTH] = 0
     return frame
 

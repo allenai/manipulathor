@@ -27,7 +27,7 @@ def get_binary_mask_of_arm(rgb_image):
         ForkedPdb().set_trace()
     elif len(valid_corners) == 0:
         print('Arm not detected')
-        ForkedPdb().set_trace() #TODO remove this from here
+        # ForkedPdb().set_trace()
         pass #no valid is found
     elif len(valid_corners) == 1:
         corners = valid_corners[0].squeeze(0).astype(int)

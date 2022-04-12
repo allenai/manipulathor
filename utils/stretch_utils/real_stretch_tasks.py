@@ -77,16 +77,21 @@ class RealStretchExploreWiseRewardTask(StretchExploreWiseRewardTask):
         self.manual_action = True
         # self.env.kinect_depth
         if self.manual_action:
-            ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_WRIST_P,MOVE_WRIST_M,MOVE_AHEAD,MOVE_BACK,ROTATE_RIGHT,ROTATE_LEFT,]
-            ARM_SHORTENED_ACTIONS_ORDERED = ['hp','hm','zp','zm','wp','wm','m', 'b','r','l']
+            ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_WRIST_P,MOVE_WRIST_M,MOVE_AHEAD,MOVE_BACK,ROTATE_RIGHT,ROTATE_LEFT,ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL]
+            ARM_SHORTENED_ACTIONS_ORDERED = ['hp','hm','zp','zm','wp','wm','m', 'b','r','l', 'ls', 'rs']
             action = ''
             while(True):
+                print('Agent state')
+                print(self.env.controller.last_event.metadata)
                 ForkedPdb().set_trace()
 
                 # self.env.kinect_frame
                 # import cv2
                 # cv2.imwrite('/Users/kianae/Desktop/kinect_frame_small.png', self.env.kinect_frame[:,:,::-1])
                 # import cv2; cv2.imwrite('/Users/kianae/Desktop/kinect_frame_big.png', self.env.controller.last_event.frame[:,:,::-1])
+                if action == '':
+                    action_str = action_str #Just use model's prediction
+                    break
                 try:
                     action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
                     break

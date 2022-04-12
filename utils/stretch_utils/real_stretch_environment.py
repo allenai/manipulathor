@@ -144,7 +144,7 @@ class StretchRealEnvironment(StretchManipulaTHOREnvironment):
 
         elif action == ROTATE_LEFT_SMALL:
             stretch_action = dict(action='RotateLeftSmall',)
-        elif action == ROTATE_RIGHT_SMALL: #TODO add these actions to the server
+        elif action == ROTATE_RIGHT_SMALL:
             stretch_action = dict(action='RotateRightSmall',)
 
         else:

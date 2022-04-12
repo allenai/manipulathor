@@ -24,6 +24,7 @@ from detectron2.engine import DefaultPredictor
 from detectron2.model_zoo import model_zoo
 from detectron2.utils.visualizer import Visualizer
 import matplotlib.pyplot as plt
+from torch.distributions.utils import lazy_property
 
 from ithor_arm.arm_calculation_utils import (
     convert_world_to_agent_coordinate,
@@ -103,7 +104,7 @@ def normalize_real_intel_image(image,final_size=224):
     end_h = start_h + new_h
     result[start_w:end_w,start_h:end_h] = image
     if len(image.shape) == 2: #it is depth image
-        result[result > MAX_INTEL_DEPTH] = 0
+        result[result > MAX_INTEL_DEPTH] = MAX_INTEL_DEPTH
         result[result < MIN_INTEL_DEPTH] = 0
     return result.astype(image.dtype)
 
@@ -125,7 +126,7 @@ def normalize_real_kinect_image(frame,size=224):
     end_h = start_h + h
     result[start_w:end_w,start_h:end_h] = frame
     if len(frame.shape) == 2: #it is depth image
-        result[result > MAX_KINECT_DEPTH] = 0
+        result[result > MAX_KINECT_DEPTH] = MAX_KINECT_DEPTH
         result[result < MIN_KINECT_DEPTH] = 0
     return result.astype(frame.dtype)
 
@@ -137,10 +138,12 @@ class StretchDetectronObjectMask(Sensor):
         self.type = type
         uuid = '{}_{}'.format(uuid, type)
         self.noise = noise
-        self.cache = None
+        self.cache = {'object_name': '', 'image':None, 'mask':None}
         super().__init__(**prepare_locals_for_super(locals()))
         self.source_camera = source_camera
 
+    @lazy_property
+    def predictor(self):
         self.cfg = get_cfg()
         if platform.system() == "Darwin":
             self.cfg.MODEL.DEVICE = "cpu"
@@ -149,18 +152,35 @@ class StretchDetectronObjectMask(Sensor):
         self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.05  # set threshold for this model #TODO good number?
         # Find a model from detectron2's model zoo. You can use the https://dl.fbaipublicfiles... url as well
         self.cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")
-        self.predictor = DefaultPredictor(self.cfg)
+        # self.predictor = DefaultPredictor(self.cfg)
         self.class_labels = MetadataCatalog.get(self.cfg.DATASETS.TRAIN[0]).thing_classes
+        return DefaultPredictor(self.cfg)
 
 
     def get_observation(
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        if env.last_image_changed is False and self.cache is not None:
-            return self.cache
-        im = self.source_camera.get_observation(env, task, *args, **kwargs)
+
+        if self.type == 'source':
+            info_to_search = 'source_object_id'
+        elif self.type == 'destination':
+            info_to_search = 'goal_object_id'
+            #TODO remove
+            mask = torch.zeros((224,224,1))
+            return mask
+
+        original_im = self.source_camera.get_observation(env, task, *args, **kwargs)
+
+        if info_to_search == self.cache['object_name']:
+            if np.all(self.cache['image'] == original_im):
+                print('Used cached data') #TODO remove
+                return self.cache['mask']
+        else:
+            self.cache = {}
+
+
         # TODO VERYYYYYY IMPORTANT
-        im = im[:,:,::-1]
+        im = original_im[:,:,::-1]
         # the detection requires BGR???
 
         outputs = self.predictor(im * 255.)
@@ -180,10 +200,8 @@ class StretchDetectronObjectMask(Sensor):
             plt.imsave(os.path.join(dir, timestamp), out.get_image()[:, :, ::-1])
         # ForkedPdb().set_trace()
 
-        if self.type == 'source':
-            info_to_search = 'source_object_id'
-        elif self.type == 'destination':
-            info_to_search = 'goal_object_id'
+
+
         category = task.task_info[info_to_search].split('|')[0]
         assert category in THOR2COCO
         class_ind_to_look_for = self.class_labels.index(THOR2COCO[category])
@@ -200,9 +218,10 @@ class StretchDetectronObjectMask(Sensor):
             mask[y1:y2, x1:x2] = 1
         mask = torch.nn.functional.interpolate(mask.unsqueeze(0).unsqueeze(0), size=(224, 224)).squeeze(0).squeeze(0)
 
-        #TODO remove
-        print('camera', self.source_camera, 'type', self.type, 'category', category)
-        print('observed objects', [self.class_labels[x] for x in all_predicted_labels])
+        #TODO save all the masks so we don't pass the image through detectyion multiple timesact
+
+        # print('camera', self.source_camera, 'type', self.type, 'category', category)
+        # print('observed objects', [self.class_labels[x] for x in all_predicted_labels])
 
         #TODO this can be optimized because we are passing this image twice and no point
 
@@ -210,8 +229,10 @@ class StretchDetectronObjectMask(Sensor):
         # use these later for visualization purposes?
 
         # plt.imsave('something.png', im)
+        mask = mask.unsqueeze(-1)
+        self.cache = {'object_name': info_to_search, 'image':original_im, 'mask':mask}
 
-        return mask.unsqueeze(-1)
+        return mask
 
 
 class StretchObjectMask(Sensor):
@@ -324,38 +345,75 @@ class RealKinectArmPointNavEmulSensor(Sensor):
         self.dummy_answer[:] = 4 # is this good enough?
         self.device = torch.device("cpu")
         super().__init__(**prepare_locals_for_super(locals()))
+    def get_camera_int_ext(self,env):
+        #TODO all these values need to be checked
+        fov=max(KINECT_FOV_W, KINECT_FOV_H)#TODO are you sure? it should be smaller one I think
+        agent_state = env.controller.last_event.metadata['agent']
+        camera_horizon = 45
+        camera_xyz = np.array([agent_state['position'][k] for k in ['x','y','z']])
+        camera_rotation = (agent_state['rotation']['y'] + 90) % 360
+        return fov, camera_horizon, camera_xyz, camera_rotation
     def get_observation(
             self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
+        #TODO remove
+        if self.type == 'destination':
+            return self.dummy_answer
         mask = (self.mask_sensor.get_observation(env, task, *args, **kwargs)) #TODO this is called multiple times?
         depth_frame_original = self.depth_sensor.get_observation(env, task, *args, **kwargs).squeeze(-1)
 
-        # if task.num_steps_taken() == 0:
-        #     self.pointnav_history_aggr = []
-        #     self.real_prev_location = None
-        #     self.belief_prev_location = None
+        if task.num_steps_taken() == 0:
+            self.pointnav_history_aggr = []
+            self.real_prev_location = None
+            self.belief_prev_location = None
 
-        #TODO all these values need to be checked
-        fov=max(KINECT_FOV_W, KINECT_FOV_H)
-        camera_horizon = 45
-        camera_xyz = np.array([0,0,0])
-        camera_rotation = 0
+
+        fov, camera_horizon, camera_xyz, camera_rotation = self.get_camera_int_ext(env)
+        arm_world_coord = None
 
         if mask.sum() != 0:
 
             midpoint_agent_coord = get_mid_point_of_object_from_depth_and_mask(mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
-            # self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world), task.num_steps_taken()))
-            arm_mask = self.arm_mask_sensor.get_observation(env, task, *args, **kwargs) #TODO this is also called twice
-            if arm_mask.sum() == 0: #Do we want to do some approximations or no?
-                result = self.dummy_answer
-            else:
-                arm_location_in_camera = get_mid_point_of_object_from_depth_and_mask(arm_mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
-                distance_in_agent_coord = midpoint_agent_coord - arm_location_in_camera
-                result = distance_in_agent_coord.cpu()
+            self.pointnav_history_aggr.append((midpoint_agent_coord.cpu(), 1, task.num_steps_taken()))
+
+        arm_mask = self.arm_mask_sensor.get_observation(env, task, *args, **kwargs) #TODO this is also called twice
+        if arm_mask.sum() == 0: #Do we want to do some approximations or no?
+            arm_world_coord = None #TODO approax for this
         else:
-            result = self.dummy_answer
-        #TODO we need to implement average so far later
+            arm_world_coord = get_mid_point_of_object_from_depth_and_mask(arm_mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
+            # distance_in_agent_coord = midpoint_agent_coord - arm_location_in_camera
+            # result = distance_in_agent_coord.cpu()
+        if arm_mask.sum() != 0 or mask.sum() != 0:
+
+            import cv2
+            cv2.imwrite('/Users/kianae/Desktop/image.png', env.kinect_frame[:,:,::-1])
+            cv2.imwrite('/Users/kianae/Desktop/mask.png', mask.squeeze().numpy() * 255)
+            cv2.imwrite('/Users/kianae/Desktop/arm_mask.png', arm_mask * 255)
+            # ForkedPdb().set_trace() #TODO remove
+        result = self.history_aggregation(camera_xyz, camera_rotation, arm_world_coord, task.num_steps_taken())
         return result
+    def history_aggregation(self, camera_xyz, camera_rotation, arm_world_coord, current_step_number):
+        if len(self.pointnav_history_aggr) == 0 or arm_world_coord is None:
+            return self.dummy_answer
+        else:
+            weights = [1. / (current_step_number + 1 - num_steps) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
+            total_weights = sum(weights)
+            total_sum = [mid * (1. / (current_step_number + 1 - num_steps)) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
+            total_sum = sum(total_sum)
+            midpoint = total_sum / total_weights
+            agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
+            midpoint_position_rotation = dict(position=dict(x=midpoint[0], y=midpoint[1], z=midpoint[2]), rotation=dict(x=0,y=0,z=0))
+            midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
+            midpoint_agent_coord = torch.Tensor([midpoint_agent_coord['position'][k] for k in ['x','y','z']])
+
+            arm_world_coord = dict(position=dict(x=arm_world_coord[0], y=arm_world_coord[1], z=arm_world_coord[2]), rotation=dict(x=0,y=0,z=0))
+            arm_state_agent_coord = convert_world_to_agent_coordinate(arm_world_coord, agent_state)
+            arm_state_agent_coord = torch.Tensor([arm_state_agent_coord['position'][k] for k in ['x','y','z']])
+
+            distance_in_agent_coord = midpoint_agent_coord - arm_state_agent_coord
+
+            return distance_in_agent_coord.cpu()
+
 
 class KinectArmMaskSensor(Sensor):
     def __init__(self, uuid: str = "arm_mask_kinect", **kwargs: Any):
@@ -390,34 +448,63 @@ class RealIntelAgentBodyPointNavEmulSensor(Sensor):
 
 
         super().__init__(**prepare_locals_for_super(locals()))
+    def get_camera_int_ext(self,env):
+        #TODO all these values need to be checked
+        fov=max(INTEL_FOV_W, INTEL_FOV_H) #TODO are you sure? it should be smaller one I think
+        agent_state = env.controller.last_event.metadata['agent']
+        camera_horizon = 0
+        camera_xyz = np.array([agent_state['position'][k] for k in ['x','y','z']])
+        camera_rotation = agent_state['rotation']['y']
+        return fov, camera_horizon, camera_xyz, camera_rotation
+
+
+
+
     def get_observation(
             self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
-        mask = (self.mask_sensor.get_observation(env, task, *args, **kwargs)) #TODO this is called multiple times?
+        mask = (self.mask_sensor.get_observation(env, task, *args, **kwargs))
 
-        # if task.num_steps_taken() == 0:
-        #     self.pointnav_history_aggr = []
-        #     self.real_prev_location = None
-        #     self.belief_prev_location = None
+        if task.num_steps_taken() == 0:
+            self.pointnav_history_aggr = []
+            self.real_prev_location = None
+            self.belief_prev_location = None
 
-        #TODO all these values need to be checked
-        fov=max(INTEL_FOV_W, INTEL_FOV_H) #TODO are you sure? it should be smaller one I think
-        camera_horizon = 0
-        camera_xyz = np.array([0,0,0])
-        camera_rotation = 0
+
+        fov, camera_horizon, camera_xyz, camera_rotation = self.get_camera_int_ext(env)
+
 
         if mask.sum() != 0:
             depth_frame_original = self.depth_sensor.get_observation(env, task, *args, **kwargs).squeeze(-1)
             middle_of_object = get_mid_point_of_object_from_depth_and_mask(mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
-            # self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world), task.num_steps_taken()))
+            self.pointnav_history_aggr.append((middle_of_object.cpu(), 1, task.num_steps_taken()))
 
-            result = middle_of_object.cpu()
-        else:
-            result = self.dummy_answer
-        #TODO we need to implement average so far later
+            # result = middle_of_object.cpu()
+        # else:
+        #     result = self.dummy_answer
+        result = self.history_aggregation(camera_xyz, camera_rotation, task.num_steps_taken())
         return result
-#TODO are we sure that we don't need to do anything about the depth normalization? we have to clip depth from intel realsense so that the norms are similar to the depth we get from thor? do we do the postprocessing for depth iamges?
+    def history_aggregation(self, camera_xyz, camera_rotation, current_step_number):
+        if len(self.pointnav_history_aggr) == 0:
+            return self.dummy_answer
+        else:
+            weights = [1. / (current_step_number + 1 - num_steps) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
+            total_weights = sum(weights)
+            total_sum = [mid * (1. / (current_step_number + 1 - num_steps)) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
+            total_sum = sum(total_sum)
+            midpoint = total_sum / total_weights
+            agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
+            midpoint_position_rotation = dict(position=dict(x=midpoint[0], y=midpoint[1], z=midpoint[2]), rotation=dict(x=0,y=0,z=0))
+            midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
+
+            distance_in_agent_coord = dict(x=midpoint_agent_coord['position']['x'], y=midpoint_agent_coord['position']['y'], z=midpoint_agent_coord['position']['z'])
+
+            agent_centric_middle_of_object = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
+
+            agent_centric_middle_of_object = agent_centric_middle_of_object
+            return agent_centric_middle_of_object
+
 
 
 
