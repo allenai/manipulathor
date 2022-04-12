@@ -173,7 +173,6 @@ class StretchDetectronObjectMask(Sensor):
 
         if info_to_search == self.cache['object_name']:
             if np.all(self.cache['image'] == original_im):
-                print('Used cached data') #TODO remove
                 return self.cache['mask']
         else:
             self.cache = {}
@@ -185,7 +184,7 @@ class StretchDetectronObjectMask(Sensor):
 
         outputs = self.predictor(im * 255.)
 
-        # #TODO remove
+        #  remove
         # outputs = self.predictor(im * 255.)
         # cv2.imwrite('my_image.png',im * 255.)
 

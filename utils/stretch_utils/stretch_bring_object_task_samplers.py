@@ -145,7 +145,7 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
                 # valid_position_adr = "datasets/apnd-dataset/pruned_object_positions/pruned_v3_valid_{}_positions_in_{}.json".format(
                 #     object, scene
                 # )
-                #TODO should we generate kitchens again?
+                # should we generate kitchens again?
                 if scene in KITCHEN_TRAIN + KITCHEN_TEST + KITCHEN_VAL:
                     scene = scene + '_physics'
                 valid_position_adr = "datasets/apnd-dataset/valid_object_positions/valid_{}_positions_in_{}.json".format(
@@ -194,15 +194,16 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
             self.sampler_index = 0
             self.all_test_tasks = []
 
-            #TODO we need to fix this later
+            # we need to fix this later
             # small_objects = ['Spatula', 'Egg']
             small_objects = []
 
 
-            #TODO remove
-            self.all_test_tasks = [i for i in range(1000)]
-            if False:
-                ForkedPdb().set_trace() #TODO implement this
+            #TODO implement this
+            if True:
+                self.all_test_tasks = [i for i in range(1000)]
+            else:
+                ForkedPdb().set_trace()
 
                 for scene in self.scenes:
                     for from_obj in self.objects:

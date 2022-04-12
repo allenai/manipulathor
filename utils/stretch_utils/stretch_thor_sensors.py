@@ -311,7 +311,7 @@ class ArmPointNavEmulSensor(Sensor):
         self.device = torch.device("cpu")
         super().__init__(**prepare_locals_for_super(locals()))
 
-    def get_accurate_locations(self, env): #TODO this is using camera coordinate be aware of that
+    def get_accurate_locations(self, env):
         if len(env.controller.last_event.metadata['thirdPartyCameras']) != 1:
             print('Warning multiple cameras')
         metadata = copy.deepcopy(env.controller.last_event.metadata['thirdPartyCameras'][0])

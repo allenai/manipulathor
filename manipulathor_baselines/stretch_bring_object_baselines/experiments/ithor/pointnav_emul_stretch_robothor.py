@@ -85,7 +85,7 @@ class PointNavEmulStretchRoboTHOR(
     MAX_STEPS = 200
 
     TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
-    TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp #TODO
+    TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp #
 
     NUM_PROCESSES = 30
 

@@ -34,12 +34,12 @@ STRETCH_ENV_ARGS = dict(
     agentMode='stretch',
     renderDepthImage=True,
 )
-#TODO
+# if depth to rgb:
 KINECT_REAL_W, KINECT_REAL_H = 720, 1280
 KINECT_RESIZED_W, KINECT_RESIZED_H = 180, 320
 KINECT_FOV_W, KINECT_FOV_H = 59, 90
 
-#TODO
+# if rgb to depth:
 # KINECT_REAL_W, KINECT_REAL_H = 576, 640
 # KINECT_RESIZED_W, KINECT_RESIZED_H = 288, 320
 # KINECT_FOV_W, KINECT_FOV_H = 65, 75

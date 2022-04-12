@@ -21,7 +21,7 @@ ADITIONAL_ARM_ARGS = {
 ARM_MOVE_CONSTANT = 0.05
 WRIST_ROTATION = 10
 AGENT_ROTATION_DEG = 30
-AGENT_MOVEMENT_CONSTANT = 0.2 #TODO replace with constant equal to real world stuff
+AGENT_MOVEMENT_CONSTANT = 0.2 #
 
 SCENE_INDICES = [i + 1 for i in range(30)] +[i + 1 for i in range(200,230)] +[i + 1 for i in range(300,330)] +[i + 1 for i in range(400,430)]
 SCENE_NAMES = ['FloorPlan{}_physics'.format(i) for i in SCENE_INDICES]
