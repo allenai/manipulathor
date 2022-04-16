@@ -8,6 +8,7 @@ from allenact.embodiedai.sensors.vision_sensors import DepthSensor, Sensor, RGBS
 from allenact.base_abstractions.task import Task
 from allenact.utils.misc_utils import prepare_locals_for_super
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
+from torch import float32
 
 from ithor_arm.arm_calculation_utils import (
     convert_world_to_agent_coordinate,
@@ -58,7 +59,61 @@ class DepthSensorThor(
         #           'mean', sum(self.depth_dict['mean']) / len(self.depth_dict['mean']),
         #           'norm', sum(self.depth_dict['norm']) / len(self.depth_dict['norm'])
         #           )
+
+        # ForkedPdb().set_trace()
         return depth
+
+
+class ToyNoisyDepthSensorThor(
+    DepthSensor[
+        Union[IThorEnvironment],
+        Union[Task[IThorEnvironment]],
+    ]
+):
+    """Sensor for Depth images in THOR.
+
+    Returns from a running IThorEnvironment instance, the current depth
+    frame corresponding to the agent's egocentric view with tunable noise
+    """
+
+    def __init__(
+        self, 
+        clip_thresh: float = np.Inf,
+        gaussian_sigma: float = 0,
+        depthwise_noise_tuning_alpha: float = 0,
+        **kwargs: Any
+    ):
+
+        self.clip_thresh = clip_thresh
+        self.gaussian_sigma = gaussian_sigma
+        self.depthwise_noise_tuning_alpha = depthwise_noise_tuning_alpha
+        
+        super().__init__(**prepare_locals_for_super(locals()))
+
+        
+    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+
+        depth = (env.controller.last_event.depth_frame.copy())
+        clipped_depth = self.clip_depth(depth)
+        noisy_depth = self.add_noise_gaussian(self.add_noise_depthwise(clipped_depth))
+
+        # ForkedPdb().set_trace()
+        return np.clip(noisy_depth,0.1,np.Inf).astype(np.float32)
+
+    def add_noise_gaussian(self, depth):
+        return depth + self.gaussian_sigma * np.random.randn(depth.shape[0], depth.shape[1])
+
+
+    def add_noise_depthwise(self, depth):
+        scale_noise = np.multiply(np.multiply(self.depthwise_noise_tuning_alpha * np.ones(depth.shape),depth),
+                                    np.random.randn(depth.shape[0], depth.shape[1]))
+        noisy_depth = depth + scale_noise
+        # ForkedPdb().set_trace()
+        return noisy_depth
+
+    def clip_depth(self, depth):
+        clipped_depth = np.clip(depth, 0, self.clip_thresh)
+        return clipped_depth
 
 
 class NoVisionSensorThor(
@@ -126,7 +181,8 @@ class RelativeObjectToGoalSensor(Sensor):
         relative_goal_state = convert_world_to_agent_coordinate(
             target_state, agent_state
         )
-        relative_distance = diff_position(relative_current_obj, relative_goal_state)
+        relative_distance = diff_position(
+            relative_current_obj, relative_goal_state)
         result = convert_state_to_tensor(dict(position=relative_distance))
         return result
 
@@ -152,7 +208,8 @@ class InitialObjectToGoalSensor(Sensor):
         relative_goal_state = convert_world_to_agent_coordinate(
             target_state, agent_state
         )
-        relative_distance = diff_position(relative_current_obj, relative_goal_state)
+        relative_distance = diff_position(
+            relative_current_obj, relative_goal_state)
         result = convert_state_to_tensor(dict(position=relative_distance))
         return result
 
@@ -180,7 +237,8 @@ class DistanceObjectToGoalSensor(Sensor):
         relative_goal_state = convert_world_to_agent_coordinate(
             target_state, agent_state
         )
-        relative_distance = diff_position(relative_current_obj, relative_goal_state)
+        relative_distance = diff_position(
+            relative_current_obj, relative_goal_state)
         result = convert_state_to_tensor(dict(position=relative_distance))
 
         result = ((result ** 2).sum()**0.5).view(1)
@@ -207,7 +265,8 @@ class RelativeAgentArmToObjectSensor(Sensor):
         relative_hand_state = convert_world_to_agent_coordinate(
             hand_state, env.controller.last_event.metadata["agent"]
         )
-        relative_distance = diff_position(relative_goal_obj, relative_hand_state)
+        relative_distance = diff_position(
+            relative_goal_obj, relative_hand_state)
         result = convert_state_to_tensor(dict(position=relative_distance))
 
         return result
@@ -233,10 +292,12 @@ class InitialAgentArmToObjectSensor(Sensor):
         relative_hand_state = convert_world_to_agent_coordinate(
             initial_hand_state, env.controller.last_event.metadata["agent"]
         )
-        relative_distance = diff_position(relative_goal_obj, relative_hand_state)
+        relative_distance = diff_position(
+            relative_goal_obj, relative_hand_state)
         result = convert_state_to_tensor(dict(position=relative_distance))
 
         return result
+
 
 class DistanceAgentArmToObjectSensor(Sensor):
     def __init__(self, uuid: str = "distance_agent_arm_to_obj", **kwargs: Any):
@@ -258,7 +319,8 @@ class DistanceAgentArmToObjectSensor(Sensor):
         relative_hand_state = convert_world_to_agent_coordinate(
             hand_state, env.controller.last_event.metadata["agent"]
         )
-        relative_distance = diff_position(relative_goal_obj, relative_hand_state)
+        relative_distance = diff_position(
+            relative_goal_obj, relative_hand_state)
         result = convert_state_to_tensor(dict(position=relative_distance))
 
         result = ((result ** 2).sum()**0.5).view(1)
