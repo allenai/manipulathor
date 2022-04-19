@@ -80,7 +80,11 @@ def reset_the_scene_and_get_reachables(controller, scene_name=None, scene_option
     return get_reachable_positions(controller)
 
 def reset_environment_and_additional_commands(controller, scene_name):
-    controller.reset(scene_name)
+    if scene_name == 'Procedural':
+        # controller.reset() #TODO does this only reset scene or is it messed up?
+        pass
+    else:
+        controller.reset(scene_name)
     controller.step(action="MakeAllObjectsMoveable")
     controller.step(action="MakeObjectsStaticKinematicMassThreshold")
     make_all_objects_unbreakable(controller)
@@ -162,13 +166,13 @@ def execute_command(controller, command,action_dict_addition):
     change_value = change_height
     action_details = {}
 
-    if command == 'hu':
+    if command == 'hp':
         base_position['y'] += change_value
-    elif command == 'hd':
+    elif command == 'hm':
         base_position['y'] -= change_value
-    elif command == 'ao':
+    elif command == 'zp':
         base_position['z'] += change_value
-    elif command == 'ai':
+    elif command == 'zm':
         base_position['z'] -= change_value
     elif command == '/':
         action_details = dict('')
@@ -208,13 +212,13 @@ def execute_command(controller, command,action_dict_addition):
     elif command == 'wp':
         event = controller.step(action='RotateWristRelative', yaw=-WRIST_ROTATION)
         action_details = dict(action='RotateWristRelative', yaw=-WRIST_ROTATION)
-    elif command == 'wn':
+    elif command == 'wm':
         event = controller.step(action='RotateWristRelative', yaw=WRIST_ROTATION)
         action_details = dict(action='RotateWristRelative', yaw=WRIST_ROTATION)
     else:
         action_details = {}
 
-    if command in ['hu', 'hd', 'ao', 'ai']:
+    if command in ['hp', 'hm', 'zp', 'zm']:
 
         event = controller.step(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)
         action_details=dict(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**action_dict_addition)

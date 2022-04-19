@@ -34,8 +34,15 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
 
         episode_success_offset = "succ" if episode_success else "fail"
         pickup_success_offset = "succ" if pickup_success else "fail"
+
+
         source_obj_type = source_object_id.split("|")[0]
         goal_obj_type = goal_object_id.split("|")[0]
+
+        if source_obj_type == 'small':
+            source_obj_type = task_info['source_object_type']
+            goal_obj_type = task_info['goal_object_type']
+
         room_name = task_info['scene_name']
         gif_name = (
                 f"{time_to_write}_room_{room_name}_from_{source_obj_type}_to_{goal_obj_type}_pickup_{pickup_success_offset}_episode_{episode_success_offset}.gif"
@@ -61,22 +68,24 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
         if 'target_location_mask' in episode_info.get_observations():
             additional_observation_goal.append('target_location_mask')
 
-        self.log_start_goal(
-            environment,
-            task_info["visualization_source"],
-            tag="start",
-            img_adr=os.path.join(self.log_dir, time_to_write),
-            additional_observations=additional_observation_start,
-            episode_info=episode_info
-        )
-        self.log_start_goal(
-            environment,
-            task_info["visualization_target"],
-            tag="goal",
-            img_adr=os.path.join(self.log_dir, time_to_write),
-            additional_observations=additional_observation_goal,
-            episode_info=episode_info
-        )
+        if 'visualization_source' in task_info and 'visualization_target' in task_info:
+
+            self.log_start_goal(
+                environment,
+                task_info["visualization_source"],
+                tag="start",
+                img_adr=os.path.join(self.log_dir, time_to_write),
+                additional_observations=additional_observation_start,
+                episode_info=episode_info
+            )
+            self.log_start_goal(
+                environment,
+                task_info["visualization_target"],
+                tag="goal",
+                img_adr=os.path.join(self.log_dir, time_to_write),
+                additional_observations=additional_observation_goal,
+                episode_info=episode_info
+            )
 
         self.log_queue = []
         self.action_queue = []
@@ -136,6 +145,7 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
 
         image_tensor = this_controller.last_event.frame
         obj_name = object_id.split("|")[0]
+
         image_dir = (
                 img_adr + f"_init_{tag}_obj_{obj_name}.png"
         )

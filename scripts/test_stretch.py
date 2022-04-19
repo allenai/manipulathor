@@ -109,8 +109,9 @@ def visualize(controller, save=False, addition_str=''):
         plt.imshow(combined)
         plt.show()
 
-def manual_task(controller, scene_name, logger_number =0, final=False, save_frames = False, init_sequence=[], verbose = False):
-    only_reset_scene(controller, scene_name)
+def manual_task(controller, scene_name=None, logger_number =0, final=False, save_frames = False, init_sequence=[], verbose = False):
+    if scene_name is not None:
+        only_reset_scene(controller, scene_name)
     all_actions = []
     all_action_details = []
     actions_ran_so_far = 0
@@ -133,11 +134,25 @@ def manual_task(controller, scene_name, logger_number =0, final=False, save_fram
 
         # controller.step(action='MoveArm', coordinateSpace="wrist", position=dict(x=0, y=0.2,z=0.2));visualize(controller, save_frames)
         # controller.step(action='RotateWristRelative', yaw=90);visualize(controller, save_frames)
-
-    print(scene_name)
-    print(all_actions)
-    print(all_action_details)
+        #TODO reduce indentation
+        print(scene_name)
+        print(all_actions)
+        print(all_action_details)
     pdb.set_trace()
+#     action?m
+# action?m
+# action?hp
+# action?hp
+# action?hp
+# action?zp
+# zaction?zp
+# zaction?zp
+# action?r
+# action?m
+# action?m
+# action?m
+# m
+
 
 def print_locations(controller):
     location = copy.deepcopy(controller.last_event.metadata['arm']['joints'])

@@ -86,10 +86,10 @@ class RealDepthSensorStretchKinect(
 
 def normalize_real_intel_image(image,final_size=224):
     image = cv2.rotate(image, cv2.cv2.ROTATE_90_CLOCKWISE)
-    if len(image.shape) == 3:
-        image = image[:,:,::-1]
-        #TODO why only rgb is flipped?
-        image = cv2.flip(image,1)
+    # if len(image.shape) == 3:
+    #     image = image[:,:,::-1]
+    #     #TODO why only rgb is flipped?
+    #     image = cv2.flip(image,1)
     assert image.shape[0] / INTEL_RESIZED_W == image.shape[1] / INTEL_RESIZED_H, ForkedPdb().set_trace()
     ratio = max(INTEL_RESIZED_W, INTEL_RESIZED_H) / final_size
     new_w, new_h = int(INTEL_RESIZED_W / ratio), int(INTEL_RESIZED_H / ratio)
