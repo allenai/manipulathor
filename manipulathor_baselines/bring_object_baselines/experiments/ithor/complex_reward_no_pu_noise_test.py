@@ -22,7 +22,7 @@ from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rg
 
 
 
-class ComplexRewardNoPU(
+class ComplexRewardNoPUNoiseTestFineTune(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -44,7 +44,7 @@ class ComplexRewardNoPU(
             use_normalization=True,
             uuid="depth_lowres",
             depthwise_noise_tuning_alpha = 0.05,
-            clip_thresh = 4
+            clip_thresh = 3
         ),
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
