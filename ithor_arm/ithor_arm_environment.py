@@ -7,6 +7,7 @@ import warnings
 from typing import Tuple, Dict, List, Set, Union, Any, Optional
 
 import ai2thor.server
+from cv2 import USAGE_DEFAULT
 import numpy as np
 from ai2thor.controller import Controller
 from allenact_plugins.ithor_plugin.ithor_constants import VISIBILITY_DISTANCE, FOV
@@ -55,6 +56,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
             verbose: bool = False,
             env_args=None,
     ) -> None:
+
         """Initializer.
 
         # Parameters
@@ -83,6 +85,9 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         simplify_physics : Whether or not to simplify physics when applicable. Currently this only simplies object
             interactions when opening drawers (when simplified, objects within a drawer do not slide around on
             their own when the drawer is opened or closed, instead they are effectively glued down).
+        *_noise_meta_dist_params : [mean, variance] defines the normal distribution over which the actual noise parameters
+            for a motion noise distribution will be drawn. Distributions for noise in motion will be re-rolled every scene 
+            reset with new bias and variance values drawn from these meta-distributions.
         """
 
         self._start_player_screen_width = player_screen_width
@@ -111,6 +116,19 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         self._always_return_visible_range = False
         self.simplify_physics = simplify_physics
 
+        if 'motion_noise' in env_args.keys():
+            self.ahead_noise_meta_dist_params = env_args['motion_noise']['ahead_noise_meta_dist_params']
+            self.lateral_noise_meta_dist_params = env_args['motion_noise']['lateral_noise_meta_dist_params']
+            self.turning_noise_meta_dist_params = env_args['motion_noise']['turning_noise_meta_dist_params']
+        else:
+            self.ahead_noise_meta_dist_params = {'bias_dist': [0,0], 'variance_dist': [0,0]}
+            self.lateral_noise_meta_dist_params = {'bias_dist': [0,0], 'variance_dist': [0,0]}
+            self.turning_noise_meta_dist_params = {'bias_dist': [0,0], 'variance_dist': [0,0]}
+
+        self.ahead_noise_params = [0,0]
+        self.lateral_noise_params = [0,0]
+        self.turning_noise_params = [0,0]
+
         self.start(None)
         self.check_controller_version()
 
@@ -119,6 +137,19 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
         self.MEMORY_SIZE = 5
         # self.memory_frames = []
+
+
+    def generate_motion_noise_params(self,meta_dist):
+        bias = np.random.normal(*meta_dist['bias_dist'])
+        variance = np.abs(np.random.normal(*meta_dist['variance_dist']))
+        return [bias,variance]
+
+    
+    def reset_agent_motion_noise_models(self):
+        self.ahead_noise_params = self.generate_motion_noise_params(self.ahead_noise_meta_dist_params)
+        self.lateral_noise_params = self.generate_motion_noise_params(self.lateral_noise_meta_dist_params)
+        self.turning_noise_params = self.generate_motion_noise_params(self.turning_noise_meta_dist_params)
+
 
     def check_controller_version(self):
         if MANIPULATHOR_COMMIT_ID is not None:
@@ -215,6 +246,9 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         self._initially_reachable_points = self.last_action_return
 
         self.list_of_actions_so_far = []
+
+        self.reset_agent_motion_noise_models()
+
 
     def randomize_agent_location(
             self, seed: int = None, partial_position: Optional[Dict[str, float]] = None
@@ -385,15 +419,19 @@ class ManipulaTHOREnvironment(IThorEnvironment):
             action_dict = {**action_dict, **copy_aditions}
             if action in [MOVE_AHEAD]:
                 action_dict["action"] = "MoveAgent"
-                action_dict["ahead"] = 0.2
+                action_dict["ahead"] = 0.2 + np.random.normal(*self.ahead_noise_params)
+                action_dict["right"] = np.random.normal(*self.lateral_noise_params)
 
             elif action in [ROTATE_RIGHT]:
                 action_dict["action"] = "RotateAgent"
-                action_dict["degrees"] = 45
+                action_dict["degrees"] = 45 + np.random.normal(*self.turning_noise_params)
 
             elif action in [ROTATE_LEFT]:
                 action_dict["action"] = "RotateAgent"
-                action_dict["degrees"] = -45
+                action_dict["degrees"] = -45 + np.random.normal(*self.turning_noise_params)
+
+            # print(action_dict)
+            # ForkedPdb().set_trace()
 
         elif "MoveArm" in action:
             copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
