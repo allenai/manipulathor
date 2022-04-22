@@ -116,7 +116,7 @@ class PointNavEmulStretchProcTHOR(
         self.REWARD_CONFIG['object_found'] = 1
         # self.ENV_ARGS = STRETCH_ENV_ARGS
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
-        self.ENV_ARGS['commit_id'] = '0a267135233abfd75e192c3600acde70b9206776'
+        self.ENV_ARGS['commit_id'] = '0d540af71ea6408ead71d94f550d5a324686c7f3'
         #TODO add all procthor elements
         self.ENV_ARGS['renderInstanceSegmentation'] = True
         self.ENV_ARGS['scene'] = 'Procedural'

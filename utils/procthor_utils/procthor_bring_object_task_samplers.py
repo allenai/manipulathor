@@ -167,7 +167,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         for room_ind in ROOMS_TO_USE:
             files = [f for f in glob.glob(dataset_files + str(room_ind) + '_*.json')] #TODO maybe it's better to do this only once
             if len(files) == 0:
-                print(room_ind, 'is missing')
+                # print(room_ind, 'is missing') #TODO
                 continue
             elif len(files) > 1:
                 print(room_ind, 'multiple instance')

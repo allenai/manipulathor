@@ -29,6 +29,7 @@ env_to_work_with = copy.deepcopy(STRETCH_ENV_ARGS)
 #     renderDepthImage=True,
 # )
 env_to_work_with['branch'] = 'nanna-stretch'
+'nanna-culling-stretch' #TODO
 env_to_work_with['scene'] = 'Procedural'
 
 

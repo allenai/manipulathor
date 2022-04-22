@@ -19,6 +19,16 @@ export PYTHONPATH="./"
 allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu
 kill -9 $(ps aux | grep 'ssh -NfL'); ssh -NfL 6006:localhost:6006 aws1; #ssh -NfL 6007:localhost:6006 aws5; ssh -NfL 6008:localhost:6006 aws9;
 
+# remove previous hugging dataset for procthor
+#rm -rf ~/.cache/huggingface
+
+#For installing dataset
+#pip3 install datasets
+#huggingface-cli login
+
+#For solving the segmentation lazy backward uncompatibiliity
+pip3 install --extra-index-url https://ai2thor-pypi.allenai.org  ai2thor==0+dc0f9ecd8672dc2d62651f567ff95c63f3542332
+
 #cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu_randomization_distrib \
 #  --distributed_ip_and_port 34.220.30.46:6060 \
 #  --config_kwargs '{"distributed_nodes":4}' \
