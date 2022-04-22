@@ -62,7 +62,7 @@ def get_room_type_from_id(room_id):
         return ROOM_ID_TO_TYPE[room_id]
     elif room_id.replace('_physics', '') in ROOM_ID_TO_TYPE:
         return ROOM_ID_TO_TYPE[room_id.replace('_physics', '')]
-    elif room_id == 'ProcTHOR':
+    elif 'ProcTHOR' in room_id:
         return 'ProcTHOR'
     else:
         print('Room not found', room_id)

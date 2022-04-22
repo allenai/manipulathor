@@ -3,13 +3,13 @@ import pdb
 
 import ai2thor.controller
 
-from ithor_arm.ithor_arm_constants import ENV_ARGS
+from ithor_arm.ithor_arm_constants import MANIPULATHOR_ENV_ARGS
 from scripts.jupyter_helper import two_dict_equal
 
 # commit_id = '58bf22c0b9aa0d3abe5fd8c3b43479ecc8d2a228'
 # commit_id = '2f8dd9f95e4016db60155a0cc18b834a6339c8e1' # change everywhere
-ENV_ARGS['commit_id'] = commit_id
-controller = ai2thor.controller.Controller(**ENV_ARGS)
+MANIPULATHOR_ENV_ARGS['commit_id'] = commit_id
+controller = ai2thor.controller.Controller(**MANIPULATHOR_ENV_ARGS)
 
 kitchens = [f"FloorPlan{i}" for i in range(1, 31)]
 living_rooms = [f"FloorPlan{200 + i}" for i in range(1, 31)]

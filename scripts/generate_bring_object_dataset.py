@@ -4,14 +4,14 @@ import json
 import pdb
 import random
 
-from ithor_arm.ithor_arm_constants import ENV_ARGS, reset_environment_and_additional_commands, transport_wrapper
+from ithor_arm.ithor_arm_constants import MANIPULATHOR_ENV_ARGS, reset_environment_and_additional_commands, transport_wrapper
 from scripts.jupyter_helper import is_object_in_receptacle, get_parent_receptacles
 
 initial_object = 'Apple'
 initial_scene = 'FloorPlan1_physics'
 goal_object = 'Mug'
 dataset_adr = 'datasets/apnd-dataset'
-controller = ai2thor.controller.Controller(**ENV_ARGS)
+controller = ai2thor.controller.Controller(**MANIPULATHOR_ENV_ARGS)
 
 print('Resolve todos')
 pdb.set_trace()

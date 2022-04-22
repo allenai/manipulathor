@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import LambdaLR
 
 from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor, RelativeArmDistanceToGoal, PreviousActionTaken, IsGoalObjectVisible
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
-from ithor_arm.ithor_arm_constants import ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
+from ithor_arm.ithor_arm_constants import MANIPULATHOR_ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
 from ithor_arm.bring_object_tasks import WPickUPExploreBringObjectTask, ExploreWiseRewardTask
 from ithor_arm.ithor_arm_sensors import (
     InitialAgentArmToObjectSensor,

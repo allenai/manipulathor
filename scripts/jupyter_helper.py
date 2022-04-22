@@ -9,6 +9,7 @@ import ai2thor.fifo_server
 ### CONSTANTS
 # from scripts.utils.ithor_arm_constants import MOVE_THR
 # from ithor_arm.ithor_arm_constants import MOVE_THR
+from manipulathor_utils.debugger_util import ForkedPdb
 
 OBJECT_MOVEMENT_THR = 0.01
 
@@ -124,6 +125,8 @@ def is_object_in_receptacle(event,target_obj,target_receptacle):
     return target_receptacle in all_containing_receptacle
 
 def get_reachable_positions(controller):
+    something
+    ForkedPdb().set_trace() #TODO just to check who is calling this
     event = controller.step('GetReachablePositions')
     # reachable_positions = event.metadata['reachablePositions']
     reachable_positions = event.metadata['actionReturn']

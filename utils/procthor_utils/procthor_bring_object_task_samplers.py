@@ -1,6 +1,8 @@
 """Task Samplers for the task of ArmPointNav"""
+import glob
 import json
 import os
+import platform
 import random
 from typing import Optional, List, Union, Dict, Any
 
@@ -82,7 +84,8 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         )
 
         return env
-
+    def set_reachable_positions(self):
+        pass
     def __init__(
         self,
         scenes: List[str],
@@ -135,54 +138,9 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         self.sampler_mode = kwargs["sampler_mode"]
         self.cap_training = kwargs["cap_training"]
 
-        # possible_initial_locations = (
-        #     "datasets/apnd-dataset/valid_agent_initial_locations.json"
-        # )
-        #
-        # with open(possible_initial_locations) as f:
-        #     self.possible_agent_reachable_poses = json.load(f)
 
-        # self.possible_agent_reachable_poses = {}# slowly load this one
 
-        # self.query_image_dict = self.find_all_query_objects()
-        # self.all_possible_points = {}
-        # for scene in self.scenes:
-        #     for object in self.objects:
-        #         # valid_position_adr = "datasets/apnd-dataset/pruned_object_positions/pruned_v3_valid_{}_positions_in_{}.json".format(
-        #         #     object, scene
-        #         # )
-        #         # should we generate kitchens again?
-        #         if scene in KITCHEN_TRAIN + KITCHEN_TEST + KITCHEN_VAL:
-        #             scene = scene + '_physics'
-        #         valid_position_adr = "datasets/apnd-dataset/valid_object_positions/valid_{}_positions_in_{}.json".format(
-        #             object, scene
-        #         )
-        #         if os.path.exists(valid_position_adr):
-        #             with open(valid_position_adr) as f:
-        #                 data_points = json.load(f)
-        #                 assert len(data_points) == 1
-        #                 only_key = [k for k in data_points][0]
-        #                 data_points = data_points[only_key]
-        #         else:
-        #             continue
-        #
-        #         # if this is too big I can live with not having it and randomly sample each time
-        #         all_locations_matrix = torch.tensor([[d['object_location']['x'], d['object_location']['y'], d['object_location']['z']] for d in data_points])
-        #         self.all_possible_points[(scene, object)] = dict(
-        #             data_point_dict=data_points,
-        #             data_point_matrix=all_locations_matrix
-        #         )
-        #
-        #
-        # scene_names = set([x[0] for x in self.all_possible_points.keys()])
-        #
-        #
-        #
-        # if len(set(scene_names)) < len(self.scenes):
-        #     print("Not all scenes appear")
-        #     print([s for s in self.scenes if s not in scene_names])
 
-        #
 
         self.house_dataset = datasets.load_dataset("allenai/houses", use_auth_token=True)
 
@@ -190,13 +148,49 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
             -1
         )  # Should be > 0 if `ADVANCE_SCENE_ROLLOUT_PERIOD` is `None`
         RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 100
+        if platform.system() == "Darwin":
+            RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 1
         self.resample_same_scene_freq = RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE
         self.episode_index = 0
         self.house_inds_index = 0
         self.reachable_positions_map = {}
         self.house_dataset = self.house_dataset['train'] #TODO separately for test and val
-        self.args_house_inds = [i for i in range(len(self.house_dataset))]
+
+        ROOMS_TO_USE = [i for i in range(100)] #TODO increase
+
+
+
+        self.dataset_files ={}
+        print('Load dataset')
+        dataset_files = 'datasets/procthor_apnd_dataset/room_id_'
+        #TODO we should open this on the fly
+        for room_ind in ROOMS_TO_USE:
+            files = [f for f in glob.glob(dataset_files + str(room_ind) + '_*.json')] #TODO maybe it's better to do this only once
+            if len(files) == 0:
+                print(room_ind, 'is missing')
+                continue
+            elif len(files) > 1:
+                print(room_ind, 'multiple instance')
+                f = random.choice(files)
+            else:
+                f = files[0]
+            with open(f) as file_des:
+                dict = json.load(file_des) #TODO maybe even convert everything into h5py?
+                self.dataset_files[room_ind] = dict
+        # for f in glob.glob(dataset_files):
+        #     room_ind = int(f.split('room_id_')[-1].split('_')[0])
+        #     if room_ind not in ([i for i in range(100)]):
+        #         continue
+        #
+        #     if room_ind in self.dataset_files:
+        #         print(room_ind, 'is there twice')
+        #         continue
+        #
+        print('Finished Loading data')
+
+        self.args_house_inds = list(self.dataset_files.keys())
         random.shuffle(self.args_house_inds)
+
 
         # len_all_data_points = [len(v['data_point_dict']) for v in self.all_possible_points.values()]
         # print(
@@ -256,6 +250,9 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         self.env.controller.reset()
         self.env.controller.step(action="CreateHouse", house=self.house,raise_for_failure=True)
         self.env.controller.step("ResetObjectFilter") #TODO should we do after each reset?
+        #TODO maybe use this after that for speed up
+        # controller.step('SetObjectFilter', objectIds=['Mug|0.1|0.2|0.3|']) only for objects we care about
+
 
         # NOTE: Set reachable positions
         if self.house_index not in self.reachable_positions_map:
@@ -280,6 +277,34 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
     @property
     def house_index(self) -> int:
         return self.args_house_inds[self.house_inds_index]
+    def get_target_locations(self):
+        scene_number = self.house_index
+        data_for_this_scene = self.dataset_files[scene_number]
+
+        house_id_to_room_to_agent_pose = data_for_this_scene['house_id_to_room_to_agent_pose'][str(scene_number)]
+        house_id_to_object_info = data_for_this_scene['house_id_to_object_info'][str(scene_number)]
+        #TODO we can turn this into curriculum leraning later to cover outside scenes as well
+        #TODO right now everyhing is within the same room
+        all_rooms = list(set([o['room_id'] for o in house_id_to_object_info.values()]))
+        random.shuffle(all_rooms)
+        for room in all_rooms:
+
+            #TODO very inefficient
+            valid_objects = [o for o in house_id_to_object_info.values() if o['room_id'] == room]
+
+            if len(valid_objects) < 2 or room not in house_id_to_room_to_agent_pose:
+                continue
+            source_obj, target_obj = random.sample((valid_objects), 2)
+            agent_initial_pose = random.choice(house_id_to_room_to_agent_pose[room])
+            return dict(
+                source_obj=source_obj,
+                target_obj=target_obj,
+                agent_initial_pose=agent_initial_pose,
+                scene_number=scene_number,
+            )
+        print('Failed to find any valid task in', scene_number)
+        return None
+
     def next_task(
             self, force_advance_scene: bool = False
     ) :
@@ -304,19 +329,26 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
             while not self.increment_scene(): #TODO why?
                 pass
 
+        data_point = self.get_target_locations()
+        while data_point is None:
+            self.increment_scene()
+            data_point = self.get_target_locations()
+        source_obj = data_point['source_obj']
+        target_obj = data_point['target_obj']
+        start_pose = data_point['agent_initial_pose']
+        scene_number = data_point['scene_number']
 
-
-        #TODO choose target objects
-        while True:
+        #remove
+        while False:
             try:
                 # NOTE: The loop avoid a very rare edge case where the agent
                 # starts out trapped in some part of the room.
                 # target_object_type, target_object_ids = self.sample_target_object_ids()
 
                 #TODO do we like the other approach?
-                # valid_objects = [k for k in self.env.ob() if k['objectType'] in self.objects]
+                valid_objects = [k for k in self.env.controller.last_event.metadata['objects'] if k['objectType'] in self.objects]
 
-                valid_objects = [k for k in self.env.controller.last_event.metadata['objects'] if k['pickupable']]
+                # valid_objects = [k for k in self.env.controller.last_event.metadata['objects'] if k['pickupable']]
 
                 if len(valid_objects) < 2:
                     print('Not enough pickupable objects', len(valid_objects), 'room', self.house_index)
@@ -344,17 +376,11 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         #     raise_for_failure=True,
         # )
 
-        #TODO choose agent pose
+
         # NOTE: Set agent pose
-        start_pose = random.choice(self.reachable_positions_map[self.house_index])
-        # standing = (
-        #     {}
-        #     if self.args.controller_args["agentMode"] == "locobot"
-        #     else {"standing": True}
-        # )
         starting_pose = AgentPose(
             position=start_pose,
-            rotation=Vector3(x=0, y=random.choice([i for i in range(0,360,AGENT_ROTATION_DEG)]), z=0),
+            rotation=dict(x=0,y=random.choice([i for i in range(0,360,90)]),z=0),
             horizon=0,
             standing=True,
         )
@@ -365,25 +391,16 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
             )
 
         self.episode_index += 1
-        # self.max_tasks -= 1 #TODO is none
+        # self.max_tasks -= 1 #TODO is none decrease when it's inference
 
         scene_name = self.house_index
         def convert_object_info(object_info_dict):
             object_info_dict['object_id'] = object_info_dict['objectId']
             object_info_dict['object_location'] = object_info_dict['position']
-            object_info_dict['scene_name'] = 'ProcTHOR'
+            object_info_dict['scene_name'] = f'ProcTHOR_{scene_number}'
             return object_info_dict
         init_object = convert_object_info(source_obj)
         goal_object = convert_object_info(target_obj)
-        # agent_state = data_point["initial_agent_pose"]
-        # agent_state = {
-        #         "name": "agent",
-        #         "position": starting_pose['position'],
-        #         "rotation": starting_pose['position']['rotation'],
-        #         "horizon": 0,
-        #         "standing": True,
-        # }
-
 
 
         initial_object_info = self.env.get_object_by_id(init_object["object_id"])
@@ -430,22 +447,8 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
     @lazy_property
     def stretch_reachable_positions(self):
         return {}
-        # with open('datasets/apnd-dataset/stretch_init_location.json') as f:
-        #
-        #     scene_name_to_locations_dict = json.load(f)
-        # all_keys = [k for k in scene_name_to_locations_dict.keys()]
-        # for k in all_keys:
-        #     if '_physics' in k:
-        #         scene_name_to_locations_dict[k.replace('_physics', '')] = scene_name_to_locations_dict[k]
-        # return scene_name_to_locations_dict
 
-    # def get_stretch_reachable_positions(self, scene_name):
-    #     if scene_name in self.stretch_reachable_positions:
-    #         return self.stretch_reachable_positions[scene_name]
-    #     else:
-    #         reachable_positions = get_reachable_positions_procthor(self.env.controller)
-    #         self.stretch_reachable_positions[scene_name] = reachable_positions # TODO will this overflow?
-    #         return reachable_positions
+
     @lazy_property
     def cfg(self):
         with open("~/.hydra/config.yaml", "r") as f:

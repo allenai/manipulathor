@@ -7,7 +7,7 @@ import json
 import sys, os
 
 from ithor_arm.arm_calculation_utils import initialize_arm
-from ithor_arm.ithor_arm_constants import TRAIN_OBJECTS, reset_environment_and_additional_commands, transport_wrapper, TEST_OBJECTS, ENV_ARGS
+from ithor_arm.ithor_arm_constants import TRAIN_OBJECTS, reset_environment_and_additional_commands, transport_wrapper, TEST_OBJECTS, MANIPULATHOR_ENV_ARGS
 from scripts.jupyter_helper import is_object_in_receptacle, is_agent_at_position
 
 sys.path.append(os.path.abspath('.'))
@@ -140,7 +140,7 @@ if __name__ == '__main__':
         object_names = OBJECTS_TO_WORK
 
     controller = ai2thor.controller.Controller(
-        **ENV_ARGS
+        **MANIPULATHOR_ENV_ARGS
         # gridSize=0.25,
         # width=224, height=224, agentMode='arm', fieldOfView=100,
         # agentControllerType='mid-level',

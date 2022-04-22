@@ -69,7 +69,23 @@ def make_all_objects_unbreakable(controller):
     for obj_type in all_breakable_objects:
         controller.step(action='MakeObjectsOfTypeUnbreakable', objectType=obj_type)
 
+def get_reachable_positions_stretch(controller):
+    # scene_name = controller.last_event.metadata['sceneName']
+    # if scene_name == 'Procedural':
+    #     something
+    event = controller.step('GetReachablePositions')
+    # reachable_positions = event.metadata['reachablePositions']
+    reachable_positions = event.metadata['actionReturn']
 
+    # if reachable_positions is None or len(reachable_positions) == 0:
+    #     reachable_positions = event.metadata['actionReturn']
+    if reachable_positions is None or len(reachable_positions) == 0:
+        print('Scene name', controller.last_event.metadata['sceneName'])
+        if controller.last_event.metadata['sceneName'] == 'Procedural':
+            return []
+        else:
+            pdb.set_trace()
+    return reachable_positions
 def reset_the_scene_and_get_reachables(controller, scene_name=None, scene_options=None):
     if scene_name is None:
         if scene_options is None:
@@ -79,9 +95,8 @@ def reset_the_scene_and_get_reachables(controller, scene_name=None, scene_option
     only_reset_scene(controller, scene_name)
     return get_reachable_positions(controller)
 
-def reset_environment_and_additional_commands(controller, scene_name):
-    if scene_name == 'Procedural':
-        # controller.reset() #TODO does this only reset scene or is it messed up?
+def reset_environment_and_additional_commands(controller, scene_name = None):
+    if scene_name == 'Procedural' or scene_name is None:
         pass
     else:
         controller.reset(scene_name)

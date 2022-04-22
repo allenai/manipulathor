@@ -12,7 +12,7 @@ from allenact.base_abstractions.sensor import SensorSuite, ExpertActionSensor
 from allenact.base_abstractions.task import TaskSampler, Task
 from allenact.utils.experiment_utils import evenly_distribute_count_into_bins
 
-from ithor_arm.ithor_arm_constants import ENV_ARGS
+from ithor_arm.ithor_arm_constants import MANIPULATHOR_ENV_ARGS
 from ithor_arm.ithor_arm_viz import BringObjImageVisualizer, TestMetricLogger
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_base import BringObjectBaseConfig
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -61,7 +61,7 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
                 and self.VISIBILITY_DISTANCE == 1
                 and self.STEP_SIZE == 0.25
         )
-        self.ENV_ARGS = {**ENV_ARGS, "renderDepthImage": True}
+        self.ENV_ARGS = {**MANIPULATHOR_ENV_ARGS, "renderDepthImage": True}
 
     def machine_params(self, mode="train", **kwargs):
         sampler_devices: Sequence[int] = []

@@ -14,6 +14,7 @@ from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from scripts.hacky_objects_that_move import CONSTANTLY_MOVING_OBJECTS
+from scripts.stretch_jupyter_helper import get_reachable_positions_stretch
 from utils.calculation_utils import position_distance
 
 from utils.stretch_utils.stretch_constants import (
@@ -29,7 +30,6 @@ from utils.stretch_utils.stretch_constants import (
 )
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.dataset_generation.find_categories_to_use import get_room_type_from_id
-from scripts.jupyter_helper import get_reachable_positions
 from utils.hacky_viz_utils import save_quick_frame
 
 class AbstractStretchBringObjectTask(Task[IThorEnvironment]):
@@ -202,7 +202,7 @@ class AbstractStretchBringObjectTask(Task[IThorEnvironment]):
 
             # this ratio can be more than 1?
             if self.object_picked_up:
-                ratio_distance_left = final_obj_distance_from_goal / original_distance
+                ratio_distance_left = final_obj_distance_from_goal / (original_distance + 1e-9)
                 result["metric/average/ratio_distance_left"] = ratio_distance_left
                 result["metric/average/eplen_pickup"] = self.eplen_pickup
             result["metric/average/success_wo_disturb"] = (
@@ -280,7 +280,11 @@ class StretchExploreWiseRewardTask(AbstractStretchBringObjectTask):
         self.agent_body_dist_to_obj = []
 
     def set_reachable_positions(self):
-        all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions(self.env.controller)]
+        all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions_stretch(self.env.controller)]
+        if len(all_locations) == 0:#TODO more investigtaion on this
+            all_locations = [[0,0,0]]
+            print('NO AGENT LOCATION FOUND FOR', self.task_info['scene_name'])
+
         self.all_reachable_positions = torch.Tensor(all_locations)
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
 
@@ -310,19 +314,45 @@ class StretchExploreWiseRewardTask(AbstractStretchBringObjectTask):
         self.env.controller.step('Pass')
         source_receptacle = self.env.get_object_by_id(self.task_info['source_object_id'])['parentReceptacles']
         goal_receptacle = self.env.get_object_by_id(self.task_info['goal_object_id'])['parentReceptacles']
+
+        source_object_type = self.env.get_object_by_id(self.task_info['source_object_id'])['objectType']
+        goal_object_type = self.env.get_object_by_id(self.task_info['goal_object_id'])['objectType']
         print('source_receptacle', source_receptacle,'goal_receptacle', goal_receptacle,)
+
+        try:
+            if len(source_receptacle) > 0:
+                source_receptacle_type = self.env.get_object_by_id(source_receptacle[0])['objectType']
+                print('source_receptacle_type', source_receptacle_type)
+            if len(goal_receptacle) > 0:
+                goal_receptacle_type = self.env.get_object_by_id(goal_receptacle[0])['objectType']
+                print('goal_receptacle_type', goal_receptacle_type)
+
+        except Exception:
+            pass
+
+        print('source_object_type',source_object_type,'goal_object_type', goal_object_type)
         print(self.task_info['source_object_id'], self.task_info['goal_object_id'], 'pickup', self.object_picked_up)
-        save_quick_frame(self.env.controller, '/Users/kianae/Desktop/current_frame.png', top_view=True)
+        if False:
+            save_quick_frame(self.env.controller, '/Users/kianae/Desktop/current_frame.png', top_view=True)
         if event_before_pass.metadata['lastActionSuccess'] is False:
             print(event_before_pass)
-        ForkedPdb().set_trace()
-        if action not in ARM_SHORTENED_ACTIONS_ORDERED:
-            print('Action not FOUND')
-            action = 'm'
+
+
+
+        #TODO remove this
+        if self.env.get_object_by_id(source_receptacle[0])['visible']:
+            ForkedPdb().set_trace()
+        else:
+            action = 'c'
+
+
         self.last_action_manual = action
         if action == 'c':
             action_str = self.class_action_names()[original_action] #keep model's prediction
         else:
+            if action not in ARM_SHORTENED_ACTIONS_ORDERED:
+                print('Action not FOUND')
+                action = 'm'
             action_str = ARM_ACTIONS_ORDERED[ARM_SHORTENED_ACTIONS_ORDERED.index(action)]
         return action_str
 
@@ -484,7 +514,7 @@ class StretchExploreWiseRewardTaskOnlyPickUp(StretchExploreWiseRewardTask):
     def _step(self, action: int) -> RLStepResult:
         action_str = self.class_action_names()[action]
 
-        self.manual = False
+        self.manual = False #TODO
         if self.manual:
             action_str = self.manual_action(action)
 
@@ -547,7 +577,7 @@ class StretchObjectNavTask(StretchExploreWiseRewardTask):
     )
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions(self.env.controller)]
+        all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions_stretch(self.env.controller)]
         self.all_reachable_positions = torch.Tensor(all_locations)
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
         self.source_observed_reward = False
