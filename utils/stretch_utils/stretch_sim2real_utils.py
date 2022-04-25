@@ -9,6 +9,9 @@ import cv2
 def kinect_reshape(frame):
     frame = frame.copy()
 
+    #TODO
+    return frame
+
     desired_w, desired_h = KINECT_RESIZED_W, KINECT_RESIZED_H
     # original_size = desired_h
     assert frame.shape[0] == frame.shape[1]
@@ -34,6 +37,9 @@ def kinect_reshape(frame):
 
 def intel_reshape(frame):
     frame = frame.copy()
+
+    return frame #TODO
+
     desired_w, desired_h = INTEL_RESIZED_W, INTEL_RESIZED_H
     assert frame.shape[0] == frame.shape[1]
     original_size = frame.shape[0]
@@ -53,6 +59,7 @@ remake_mask_prob = 0.1
 PIX_NOISE = 20
 
 def clip_depth_kinect_frame(frame):
+    return frame #TODO
     global DEPTH_KINECT_MASK_FRAMES
     if len(frame.shape) == 2:
         w, h = frame.shape

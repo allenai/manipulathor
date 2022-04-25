@@ -156,7 +156,8 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         self.reachable_positions_map = {}
         self.house_dataset = self.house_dataset['train'] #TODO separately for test and val
 
-        ROOMS_TO_USE = [i for i in range(100)] #TODO increase
+        ROOMS_TO_USE = [i for i in range(6000)] #TODO increase
+
 
 
 
@@ -167,7 +168,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         for room_ind in ROOMS_TO_USE:
             files = [f for f in glob.glob(dataset_files + str(room_ind) + '_*.json')] #TODO maybe it's better to do this only once
             if len(files) == 0:
-                # print(room_ind, 'is missing') #TODO
+                # print(room_ind, 'is missing')
                 continue
             elif len(files) > 1:
                 print(room_ind, 'multiple instance')
