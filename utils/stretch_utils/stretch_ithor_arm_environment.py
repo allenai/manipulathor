@@ -20,7 +20,8 @@ from utils.stretch_utils.stretch_constants import (
 )
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.jupyter_helper import ARM_MOVE_CONSTANT
-from scripts.stretch_jupyter_helper import get_relative_stretch_current_arm_state, WRIST_ROTATION, reset_environment_and_additional_commands, AGENT_ROTATION_DEG, AGENT_MOVEMENT_CONSTANT
+from scripts.stretch_jupyter_helper import get_relative_stretch_current_arm_state, WRIST_ROTATION, \
+    reset_environment_and_additional_commands, AGENT_ROTATION_DEG, AGENT_MOVEMENT_CONSTANT, remove_nan_inf_for_depth
 from utils.stretch_utils.stretch_constants import STRETCH_MANIPULATHOR_COMMIT_ID
 from utils.stretch_utils.stretch_sim2real_utils import kinect_reshape, intel_reshape
 
@@ -239,7 +240,9 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
     @property
     def kinect_depth(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
-        return kinect_reshape(self.controller.last_event.third_party_depth_frames[0].copy())
+        depth_frame = self.controller.last_event.third_party_depth_frames[0].copy()
+        depth_frame = remove_nan_inf_for_depth(depth_frame)
+        return kinect_reshape(depth_frame)
 
     @property
     def intel_frame(self) -> np.ndarray:
@@ -248,7 +251,9 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
     @property
     def intel_depth(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
-        return intel_reshape(self.controller.last_event.depth_frame.copy())
+        depth_frame = self.controller.last_event.depth_frame.copy()
+        depth_frame = remove_nan_inf_for_depth(depth_frame)
+        return intel_reshape(depth_frame)
 
     def get_current_arm_state(self):
         ForkedPdb().set_trace()

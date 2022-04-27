@@ -43,12 +43,6 @@ class PointNavEmulStretchProcTHOR(
     distance_thr = 1.5 # is this a good number?
     only_close_big_masks = True
 
-
-    #TODO change this
-    distance_thr = 2
-    only_close_big_masks = False
-
-
     source_mask_sensor_intel = IntelNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=only_close_big_masks)
     destination_mask_sensor_intel = IntelNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=only_close_big_masks)
     depth_sensor_intel = IntelRawDepthSensor()
@@ -93,15 +87,18 @@ class PointNavEmulStretchProcTHOR(
     MAX_STEPS = 200
 
     if platform.system() == "Darwin":
-        MAX_STEPS = 10
+        MAX_STEPS = 200
 
     TASK_SAMPLER = ProcTHORDiverseBringObjectTaskSampler
     TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp #
 
     NUM_PROCESSES = 30
 
-    TRAIN_SCENES = ['ProcTHOR']
-    TEST_SCENES = ROBOTHOR_VAL
+    TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(6999)]
+    if platform.system() == "Darwin":
+        TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
+
+    TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST
     OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list]))
 
 

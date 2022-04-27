@@ -514,7 +514,7 @@ class StretchExploreWiseRewardTaskOnlyPickUp(StretchExploreWiseRewardTask):
     def _step(self, action: int) -> RLStepResult:
         action_str = self.class_action_names()[action]
 
-        self.manual = False #TODO
+        self.manual = False
         if self.manual:
             action_str = self.manual_action(action)
 

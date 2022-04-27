@@ -22,8 +22,10 @@ from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.dataset_generation.find_categories_to_use import ROBOTHOR_TRAIN, KITCHEN_TRAIN, KITCHEN_TEST, KITCHEN_VAL
 from utils.manipulathor_data_loader_utils import get_random_query_image, get_random_query_feature_from_img_adr
 from utils.procthor_utils.procthor_types import AgentPose, Vector3
+from utils.stretch_utils.stretch_constants import ADITIONAL_ARM_ARGS
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
-from scripts.stretch_jupyter_helper import get_reachable_positions, transport_wrapper, AGENT_ROTATION_DEG
+from scripts.stretch_jupyter_helper import get_reachable_positions, transport_wrapper, AGENT_ROTATION_DEG, \
+    make_all_objects_unbreakable
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
@@ -147,26 +149,28 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN = (
             -1
         )  # Should be > 0 if `ADVANCE_SCENE_ROLLOUT_PERIOD` is `None`
-        RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 100
-        if platform.system() == "Darwin":
-            RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 1
+        # RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 100
+        # if platform.system() == "Darwin":
+        #     RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 1
+
+        RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 1
         self.resample_same_scene_freq = RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE
+        assert self.resample_same_scene_freq == 1 # IMPORTANT IT WON"T WORK FOR 100
         self.episode_index = 0
         self.house_inds_index = 0
         self.reachable_positions_map = {}
         self.house_dataset = self.house_dataset['train'] #TODO separately for test and val
 
-        ROOMS_TO_USE = [i for i in range(6000)] #TODO increase
-
+        ROOMS_TO_USE = [int(scene.replace('ProcTHOR', '')) for scene in self.scenes]
 
 
 
         self.dataset_files ={}
         print('Load dataset')
         dataset_files = 'datasets/procthor_apnd_dataset/room_id_'
-        #TODO we should open this on the fly
+        # TODO we can open this on the fly
         for room_ind in ROOMS_TO_USE:
-            files = [f for f in glob.glob(dataset_files + str(room_ind) + '_*.json')] #TODO maybe it's better to do this only once
+            files = [f for f in glob.glob(dataset_files + str(room_ind) + '_*.json')] # TODO maybe it's better to do this only once
             if len(files) == 0:
                 # print(room_ind, 'is missing')
                 continue
@@ -176,7 +180,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
             else:
                 f = files[0]
             with open(f) as file_des:
-                dict = json.load(file_des) #TODO maybe even convert everything into h5py?
+                dict = json.load(file_des) # TODO maybe even convert everything into h5py?
                 self.dataset_files[room_ind] = dict
         # for f in glob.glob(dataset_files):
         #     room_ind = int(f.split('room_id_')[-1].split('_')[0])
@@ -203,7 +207,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         #     self.sampler_index = 0
         #     self.all_test_tasks = []
         #
-        #     #TODO implement this
+        #     TODO implement this
         #     if True:
         #         self.all_test_tasks = [i for i in range(1000)]
         #     else:
@@ -244,7 +248,6 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         self.increment_scene_index()
 
         # self.controller.step(action="DestroyHouse", raise_for_failure=True)
-        # self.env.controller.reset() #TODO kiana removed this
         self.house_entry = self.house_dataset[self.house_index]
         self.house = pickle.loads(self.house_entry["house"])
         #TODO this probably needs to go on env side
@@ -254,14 +257,28 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         #TODO maybe use this after that for speed up
         # controller.step('SetObjectFilter', objectIds=['Mug|0.1|0.2|0.3|']) only for objects we care about
 
+        #TODO dude this is ugly!
+        pose = self.house["metadata"]["agent"].copy()
+        event = self.env.controller.step(action="TeleportFull", **pose)
+        if not event:
+            get_logger().warning(f"Initial teleport failing in {self.house_index}.")
+            return False #TODO this can mess FPS
+        self.env.controller.step(action="MakeAllObjectsMoveable")
+        self.env.controller.step(action="MakeObjectsStaticKinematicMassThreshold")
+        make_all_objects_unbreakable(self.env.controller)
+        event_init_arm = self.env.controller.step(dict(action="MoveArm", position=dict(x=0,y=0.8,z=0), **ADITIONAL_ARM_ARGS))
+        if event_init_arm.metadata['lastActionSuccess'] is False:
+            print(f"Bring arm up in initialization failed in {self.house_index}")
+            return False
+
 
         # NOTE: Set reachable positions
         if self.house_index not in self.reachable_positions_map:
-            pose = self.house["metadata"]["agent"].copy()
-            event = self.env.controller.step(action="TeleportFull", **pose)
-            if not event:
-                get_logger().warning(f"Initial teleport failing in {self.house_index}.")
-                return False
+            # pose = self.house["metadata"]["agent"].copy()
+            # event = self.env.controller.step(action="TeleportFull", **pose)
+            # if not event:
+            #     get_logger().warning(f"Initial teleport failing in {self.house_index}.")
+            #     return False
             rp_event = self.env.controller.step(action="GetReachablePositions")
             if not rp_event:
                 # NOTE: Skip scenes where GetReachablePositions fails
@@ -327,7 +344,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
             and self.episode_index % self.resample_same_scene_freq == 0
         ):
 
-            while not self.increment_scene(): #TODO why?
+            while not self.increment_scene():
                 pass
 
         data_point = self.get_target_locations()
@@ -339,43 +356,11 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         start_pose = data_point['agent_initial_pose']
         scene_number = data_point['scene_number']
 
-        #remove
-        while False:
-            try:
-                # NOTE: The loop avoid a very rare edge case where the agent
-                # starts out trapped in some part of the room.
-                # target_object_type, target_object_ids = self.sample_target_object_ids()
-
-                #TODO do we like the other approach?
-                valid_objects = [k for k in self.env.controller.last_event.metadata['objects'] if k['objectType'] in self.objects]
-
-                # valid_objects = [k for k in self.env.controller.last_event.metadata['objects'] if k['pickupable']]
-
-                if len(valid_objects) < 2:
-                    print('Not enough pickupable objects', len(valid_objects), 'room', self.house_index)
-                    raise ValueError()
-
-                source_obj, target_obj = random.sample(valid_objects, 2) #TODO this might be invalid
-                source_object_type = source_obj['objectId'], source_obj['objectType']
-                if not (source_obj['pickupable']):
-                    print(f'Source object not pickupable {source_object_type}')
-                    raise ValueError()
-
-                break
-            except ValueError:
-                while not self.increment_scene():
-                    pass
 
         if False and random.random() < self.cfg.procthor.p_randomize_materials: #TODO
             self.env.controller.step(action="RandomizeMaterials", raise_for_failure=True)
         else:
             self.env.controller.step(action="ResetMaterials", raise_for_failure=True)
-
-        # self.env.controller.step( #TODO what is this?
-        #     action="SetObjectFilter",
-        #     objectIds=target_object_ids,
-        #     raise_for_failure=True,
-        # )
 
 
         # NOTE: Set agent pose
@@ -392,7 +377,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
             )
 
         self.episode_index += 1
-        # self.max_tasks -= 1 #TODO is none decrease when it's inference
+        # self.max_tasks -= 1 TODO is none decrease when it's inference
 
         scene_name = self.house_index
         def convert_object_info(object_info_dict):
@@ -455,68 +440,4 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         with open("~/.hydra/config.yaml", "r") as f:
             cfg = OmegaConf.load(f.name)
         return cfg
-    def get_source_target_indices(self): #TODO need to implement this one
-        if self.sampler_mode == "train" or True: #TODO remove or TRUE
 
-            ForkedPdb().set_trace()
-            if False and random.random() < self.cfg.procthor.p_randomize_materials: #TODO
-                self.controller.step(action="RandomizeMaterials", raise_for_failure=True)
-            else:
-                self.controller.step(action="ResetMaterials", raise_for_failure=True)
-            chosen_scene = random.choice(self.house_dataset)
-            all_scenes = [s for (s,o) in self.all_possible_points.keys()]
-
-
-            #randomly choose a scene
-            chosen_scene = random.choice(all_scenes)
-            all_objects = [o for (s, o) in self.all_possible_points.keys() if s == chosen_scene]
-
-            #randomly choosing initial and goal objects, the whole following needs to be changed if working with static objects
-            init_obj, goal_obj = random.sample(all_objects, 2)
-            #randomly choosing an initial location for first object
-            init_object_location = random.choice(self.all_possible_points[(chosen_scene, init_obj)]['data_point_dict'])
-            initial_location = torch.tensor([init_object_location['object_location']['x'], init_object_location['object_location']['y'], init_object_location['object_location']['z']])
-
-            #calulcate distance of initial object location to all the possible target location
-            all_goal_object_locations = self.all_possible_points[(chosen_scene, goal_obj)]['data_point_matrix']
-            all_distances = (all_goal_object_locations - initial_location).norm(2, dim=-1)
-
-            #randomly choosing a target location which is far enough from the initial location therefore chances of collisions and failures are low
-            valid_goal_indices = torch.nonzero(all_distances > 1.0)
-            if len(valid_goal_indices) == 0:
-                print('No far goal was found', chosen_scene, init_obj, goal_obj, 'max distance', all_distances.max())
-                valid_goal_indices = torch.nonzero(all_distances > 0)
-            chosen_goal_instance = random.choice(valid_goal_indices)
-            goal_object_location = self.all_possible_points[(chosen_scene, goal_obj)]['data_point_dict'][chosen_goal_instance]
-
-            data_point = {}
-            data_point['scene_name'] = chosen_scene
-            data_point['init_object'] = init_object_location
-            data_point['goal_object'] = goal_object_location
-            # data_point["initial_agent_pose"] = initial_agent_pose
-
-            #TODO this needs to be fixed for test
-            reachable_positions = self.get_stretch_reachable_positions(data_point['scene_name'])
-            agent_pose = random.choice(reachable_positions)
-
-
-
-            data_point['initial_agent_pose'] = {
-                "name": "agent",
-                "position": dict(x=agent_pose['x'], y=agent_pose['y'], z=agent_pose['z']),
-                "rotation": dict(x=0, y=agent_pose['rotation'], z=0),
-                "cameraHorizon": agent_pose['horizon'],
-                "isStanding": True,
-            }
-
-        else:
-
-            task = self.all_test_tasks[self.sampler_index]
-            self.sampler_index += 1
-
-            data_point = task
-
-
-
-
-        return data_point

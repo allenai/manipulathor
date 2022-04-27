@@ -676,7 +676,7 @@ class AgentRelativeLocationSensor(Sensor):
             relative_agent_state = convert_world_to_agent_coordinate(current_agent_state, agent_initial_state)
 
 
-        #TODO there is something really wrong with convert_world_to_agent_coordinate rotation?
+        # there is something really wrong with convert_world_to_agent_coordinate rotation?
 
         result = convert_state_to_tensor(relative_agent_state)
 

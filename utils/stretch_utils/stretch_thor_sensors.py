@@ -1,4 +1,6 @@
 import copy
+import datetime
+import os
 import random
 
 import torch
@@ -14,7 +16,7 @@ from allenact.utils.misc_utils import prepare_locals_for_super
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 import cv2
-
+from matplotlib import pyplot as plt
 
 from ithor_arm.arm_calculation_utils import (
     convert_world_to_agent_coordinate,
@@ -48,8 +50,10 @@ class DepthSensorStretchIntel(
 
     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
 
-        depth = (env.controller.last_event.depth_frame.copy())
-        return intel_reshape(depth)
+        # depth = (env.controller.last_event.depth_frame.copy())
+        # check_validity(depth, env.controller,scene_number=task.task_info['scene_name']) TODO remove
+        # return intel_reshape(depth)
+        return env.intel_depth
 
 
 class DepthSensorStretchKinect(
@@ -66,8 +70,10 @@ class DepthSensorStretchKinect(
 
     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
 
-        depth = env.controller.last_event.third_party_depth_frames[0].copy()
-        return kinect_reshape(depth)
+        # depth = env.controller.last_event.third_party_depth_frames[0].copy()
+        # check_validity(depth, env.controller,scene_number=task.task_info['scene_name']) TODO remove
+        # return kinect_reshape(depth)
+        return env.kinect_depth
 
 
 class DepthSensorStretchKinectZero(
@@ -423,8 +429,25 @@ class IntelRawDepthSensor(Sensor):
     def get_observation(
             self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        return intel_reshape(env.controller.last_event.depth_frame.copy())
+        return env.intel_depth
+        # depth_frame = env.controller.last_event.depth_frame
+        # check_validity(depth_frame, env.controller,scene_number=task.task_info['scene_name']) # remove
+        #
+        # return intel_reshape(env.controller.last_event.depth_frame.copy())
 
+def check_validity(depth_frame, controller, scene_number=''):
+    if np.any(depth_frame != depth_frame) or np.any(np.isinf(depth_frame)):
+        print('OH THERE IS SOMETHING OFF WITH THIS FRAME', scene_number, depth_frame.min(), depth_frame.max(), depth_frame.mean(), np.linalg.norm(depth_frame))
+        dir_to_save = 'experiment_output/depth_errors'
+        timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f")
+        timestamp = timestamp + '_scene_' + str(scene_number) + '.png'
+        os.makedirs(dir_to_save, exist_ok=True)
+
+        frame_to_save = np.concatenate([controller.last_event.frame, normalize_depth(controller.last_event.depth_frame), controller.last_event.third_party_camera_frames[0], normalize_depth(controller.last_event.third_party_depth_frames[0]),normalize_depth(depth_frame)], axis=1)
+        plt.imsave(os.path.join(dir_to_save, timestamp), np.clip(frame_to_save / 255., 0, 1))
+
+def normalize_depth(depth):
+    return depth[:,:,np.newaxis].repeat(3,axis=2) * (255. / depth.max())
 class KinectRawDepthSensor(Sensor):
 
     def __init__(self, uuid: str = "kinect_raw_depth", **kwargs: Any):
@@ -436,7 +459,10 @@ class KinectRawDepthSensor(Sensor):
     def get_observation(
             self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        return kinect_reshape(env.controller.last_event.third_party_depth_frames[0].copy())
+        return env.kinect_depth
+        # depth_frame = env.controller.last_event.third_party_depth_frames[0]
+        # check_validity(depth_frame, env.controller,scene_number=task.task_info['scene_name']) TODO remove
+        # return kinect_reshape(env.controller.last_event.third_party_depth_frames[0].copy())
 
 
 class IntelNoisyObjectMask(Sensor):

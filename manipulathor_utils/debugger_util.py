@@ -1,7 +1,10 @@
+import datetime
+import os
 import pdb
 import sys
 
 import matplotlib as mpl
+import numpy
 import torch
 
 mpl.use("Agg")
@@ -51,3 +54,13 @@ def is_weight_nan(model):
     print("norms", norms)
     print("total nans", sum(has_nan), "out of", len(has_nan))
     print("total norm", sum(norms) / len(norms))
+
+
+def visualize_current_frames(controller):
+    dir_to_save = 'experiment_output/current_viz'
+    os.makedirs(dir_to_save, exist_ok=True)
+    timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f.png")
+    third_party_frames = [f for f in controller.last_event.third_party_camera_frames]
+    output_image = numpy.concatenate([controller.last_event.frame] + third_party_frames, axis=1)
+    print('saving frame in ', os.path.join(dir_to_save, timestamp))
+    plt.imsave(os.path.join(dir_to_save, timestamp), output_image)

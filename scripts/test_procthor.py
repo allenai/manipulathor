@@ -28,8 +28,7 @@ env_to_work_with = copy.deepcopy(STRETCH_ENV_ARGS)
 #     agentMode='stretch',
 #     renderDepthImage=True,
 # )
-env_to_work_with['branch'] = 'nanna-stretch'
-'nanna-culling-stretch' #TODO
+env_to_work_with['branch'] = 'nanna-culling-stretch' #
 env_to_work_with['scene'] = 'Procedural'
 
 
@@ -48,7 +47,6 @@ rp_event = controller.step(action="GetReachablePositions")
 
 reachable_positions = rp_event.metadata["actionReturn"]
 random_position = random.choice(reachable_positions)
-#TODO how to be efficient
 pdb.set_trace()
 manual_task(controller, save_frames=True)
 visualize(controller, save=True)

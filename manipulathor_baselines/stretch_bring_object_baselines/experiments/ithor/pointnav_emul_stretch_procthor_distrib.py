@@ -9,7 +9,7 @@ from manipulathor_baselines.stretch_bring_object_baselines.experiments.ithor.poi
 class PointNavEmulStretchProcTHORDistrib(
     PointNavEmulStretchProcTHOR
 ):
-    NUM_PROCESSES = 20
+    NUM_PROCESSES = 15 # one them crashed for space?
     def __init__(
             self,
             distributed_nodes: int = 1,
