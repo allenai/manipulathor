@@ -320,15 +320,15 @@ def find_arm_distance_to_obj(controller, object_type):
     distance = sum([(hand_location[k] - object_location[k]) ** 2 for k in hand_location])**0.5
     return distance
 
-def remove_nan_inf_for_depth(depth_frame):
+def remove_nan_inf_for_frames(frame, type_of_frame=''):
 
-    is_nan = (depth_frame != depth_frame)
-    is_inf = np.isinf(depth_frame)
+    is_nan = (frame != frame)
+    is_inf = np.isinf(frame)
     if np.any(is_nan) or np.any(is_inf):
         mask = is_nan + is_inf
-        print('Found nan depth', mask.sum())
-        depth_frame[mask] = 0
-    return depth_frame
+        print('Found nan ', type_of_frame, mask.sum())
+        frame[mask] = 0
+    return frame
 
 
 # def old_execute_command(controller, command,action_dict_addition):
