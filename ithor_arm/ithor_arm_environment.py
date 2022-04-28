@@ -1,5 +1,6 @@
 """A wrapper for engaging with the ManipulaTHOR environment."""
 
+from ast import For
 import copy
 import math
 import typing
@@ -313,9 +314,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         return dict(position=xyz_dict, rotation={"x": 0, "y": 0, "z": 0})
 
     
-    def update_nominal_location(self, action):
-        curr_loc = self.nominal_agent_location
-        new_loc = copy.deepcopy(curr_loc)
+    def update_nominal_location(self, action_dict):
         # location = {
         #     "x": metadata["agent"]["position"]["x"],
         #     "y": metadata["agent"]["position"]["y"],
@@ -324,20 +323,25 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         #     "horizon": metadata["agent"]["cameraHorizon"],
         #     "standing": metadata.get("isStanding", metadata["agent"].get("isStanding")),
         # }
-        if action is ROTATE_LEFT:
-            new_loc["rotation"] += -45 # add some wrapping here
-        elif action is ROTATE_RIGHT:
-            new_loc["rotation"] += 45
-        elif action is MOVE_AHEAD:
-            # Assumption: rotation is relative to the +x axis in the xz plane
-            new_loc["x"] += self.ahead_nominal * np.cos(new_loc["rotation"] * np.pi / 180)
-            new_loc["z"] += self.ahead_nominal * np.sin(new_loc["rotation"] * np.pi / 180)
-        else:
-            print('unknown action')
-            ForkedPdb().set_trace()
-        
-        # ForkedPdb().set_trace()
 
+        curr_loc = self.nominal_agent_location
+        new_loc = copy.deepcopy(curr_loc)
+
+        if action_dict['action'] is 'RotateLeft':
+            new_loc["rotation"] = (new_loc["rotation"] - 45) % 360
+        elif action_dict['action'] is 'RotateRight':
+            new_loc["rotation"] = (new_loc["rotation"] + 45) % 360
+        elif action_dict['action'] is 'MoveAhead':
+            new_loc["x"] += self.ahead_nominal * np.sin(new_loc["rotation"] * np.pi / 180)
+            new_loc["z"] += self.ahead_nominal * np.cos(new_loc["rotation"] * np.pi / 180)
+        elif action_dict['action'] is 'TeleportFull':
+            new_loc["x"] = action_dict['x']
+            new_loc["y"] = action_dict['y']
+            new_loc["z"] = action_dict['z']
+            new_loc["rotation"] = action_dict['rotation']['y']
+            new_loc["horizon"] = action_dict['horizon']
+            # print('Agent teleported, nominal location reset to teleport destination')
+        
         self.nominal_agent_location = new_loc
 
     def get_pickupable_objects(self):
@@ -402,6 +406,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
     ) -> ai2thor.server.Event:
         """Take a step in the ai2thor environment."""
         action = typing.cast(str, action_dict["action"])
+        original_action_dict = copy.deepcopy(action_dict)
 
         skip_render = "renderImage" in action_dict and not action_dict["renderImage"]
         last_frame: Optional[np.ndarray] = None
@@ -473,10 +478,6 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                 action_dict["action"] = "RotateAgent"
                 action_dict["degrees"] = -45 + noise[2]
 
-            # print(action_dict)
-            # ForkedPdb().set_trace()
-            self.update_nominal_location(action)
-
         elif "MoveArm" in action:
             copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
             action_dict = {**action_dict, **copy_aditions}
@@ -511,8 +512,9 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
         sr = self.controller.step(action_dict)
         self.list_of_actions_so_far.append(action_dict)
-        # print(action_dict)
-        # ForkedPdb().set_trace()
+        
+        if sr.metadata["lastActionSuccess"]:
+            self.update_nominal_location(original_action_dict)
 
         if action in SET_OF_ALL_AGENT_ACTIONS:
             self.update_memory()
