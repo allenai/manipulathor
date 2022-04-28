@@ -106,17 +106,17 @@ class PointNavNewModelAndHandWAgentLocationAndMotionNoiseNoReset(
         self.REWARD_CONFIG['object_found'] = 1 # is this too big?
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
 
-        # self.ENV_ARGS['motion_noise_type'] = 'habitat'
-        # self.ENV_ARGS['motion_noise_args'] = dict()
-        # self.ENV_ARGS['motion_noise_args']['multiplier_means'] = [1,1,1,1,1,1]
-        # self.ENV_ARGS['motion_noise_args']['multiplier_sigmas'] = [0,0,0,0,0,0,0]
-        # self.ENV_ARGS['motion_noise_args']['effect_scale'] = 1
-
-        self.ENV_ARGS['motion_noise_type'] = 'simple1d'
+        self.ENV_ARGS['motion_noise_type'] = 'habitat'
         self.ENV_ARGS['motion_noise_args'] = dict()
-        self.ENV_ARGS['motion_noise_args']['ahead_noise_meta_dist_params'] = {'bias_dist': [0,0.02], 'variance_dist': [0,0.5]}
-        self.ENV_ARGS['motion_noise_args']['lateral_noise_meta_dist_params'] = {'bias_dist': [0,0.02], 'variance_dist': [0,0.02]}
-        self.ENV_ARGS['motion_noise_args']['turning_noise_meta_dist_params'] = {'bias_dist': [0,5], 'variance_dist': [0,5]}
+        self.ENV_ARGS['motion_noise_args']['multiplier_means'] = [1,1,1,1,1,1]
+        self.ENV_ARGS['motion_noise_args']['multiplier_sigmas'] = [0.01,0.01,0.01,0.01,0.01,0.01,0.01]
+        self.ENV_ARGS['motion_noise_args']['effect_scale'] = .25
+
+        # self.ENV_ARGS['motion_noise_type'] = 'simple1d'
+        # self.ENV_ARGS['motion_noise_args'] = dict()
+        # self.ENV_ARGS['motion_noise_args']['ahead_noise_meta_dist_params'] = {'bias_dist': [0,0.02], 'variance_dist': [0,0.02]}
+        # self.ENV_ARGS['motion_noise_args']['lateral_noise_meta_dist_params'] = {'bias_dist': [0,0.02], 'variance_dist': [0,0.02]}
+        # self.ENV_ARGS['motion_noise_args']['turning_noise_meta_dist_params'] = {'bias_dist': [0,2], 'variance_dist': [0,2]}
         
 
     @classmethod

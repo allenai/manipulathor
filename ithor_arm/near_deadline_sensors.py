@@ -1,4 +1,5 @@
 """Utility classes and functions for sensory inputs used by the models."""
+from ast import For
 import copy
 import datetime
 import math
@@ -391,12 +392,22 @@ class PointNavEmulSensorDeadReckoning(Sensor):
     def get_agent_belief_state(self,env):
         #TODO all these values need to be checked
         fov=max(KINECT_FOV_W, KINECT_FOV_H)#TODO are you sure? it should be smaller one I think
-        agent_state = env.nominal_agent_location
+        belief_agent_state = env.nominal_agent_location
+        real_agent_state = env.get_agent_location()
         # ForkedPdb().set_trace()
-        camera_horizon = 45
-        camera_xyz = np.array([agent_state[k] for k in ['x','y','z']])
-        camera_rotation = (agent_state['rotation'] + 90) % 360
-        return fov, camera_horizon, camera_xyz, camera_rotation
+
+        belief_camera_horizon = 45
+        belief_camera_xyz = np.array([belief_agent_state[k] for k in ['x','y','z']])
+        belief_camera_rotation = (belief_agent_state['rotation'] + 90) % 360
+
+        real_camera_xyz = np.array([real_agent_state[k] for k in ['x','y','z']])
+        # ForkedPdb().set_trace()
+
+        self.belief_prev_location.append(belief_camera_xyz)
+        self.real_prev_location.append(real_camera_xyz)
+        # ForkedPdb().set_trace()
+        
+        return fov, belief_camera_horizon, belief_camera_xyz, belief_camera_rotation
 
     def get_observation(
             self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
@@ -409,8 +420,8 @@ class PointNavEmulSensorDeadReckoning(Sensor):
 
         if task.num_steps_taken() == 0:
             self.pointnav_history_aggr = []
-            self.real_prev_location = None
-            self.belief_prev_location = None
+            self.real_prev_location = []
+            self.belief_prev_location = []
 
 
         fov, camera_horizon, camera_xyz, camera_rotation = self.get_agent_belief_state(env)
@@ -435,6 +446,30 @@ class PointNavEmulSensorDeadReckoning(Sensor):
         #     cv2.imwrite('/Users/kianae/Desktop/mask.png', mask.squeeze().numpy() * 255)
         #     cv2.imwrite('/Users/kianae/Desktop/arm_mask.png', arm_mask * 255)
         #     # ForkedPdb().set_trace() #TODO remove
+
+        # if len(self.belief_prev_location) > 190:
+        #     import matplotlib
+        #     matplotlib.use('TkAgg')
+        #     import matplotlib.pyplot as plt
+        #     fig = plt.figure()
+        #     ax = fig.add_subplot(projection='3d')
+        #     def draw_points(locations, color):
+        #         xs = [x[0] for x in locations]
+        #         ys = [x[1] for x in locations]
+        #         zs = [x[2] for x in locations]
+        #         ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
+
+        #     def draw(locations, color):
+        #         xs = [x['camera_xyz'][0] for x in locations]
+        #         ys = [x['camera_xyz'][1] for x in locations]
+        #         zs = [x['camera_xyz'][2] for x in locations]
+        #         ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
+
+        #     draw_points(self.real_prev_location, 'g'); draw_points(self.belief_prev_location, 'b'); plt.show()
+        #     ForkedPdb().set_trace()
+
+
+
         result = self.history_aggregation(camera_xyz, camera_rotation, arm_agent_coord, task.num_steps_taken())
         return result
         
