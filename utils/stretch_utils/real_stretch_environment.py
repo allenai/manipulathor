@@ -39,7 +39,7 @@ class StretchRealEnvironment(StretchManipulaTHOREnvironment):
 
 
     def create_controller(self):
-        controller = ai2thor.robot_controller.Controller(host="stretch1.corp.ai2", port=9000, width=1280, height=720)
+        controller = ai2thor.robot_controller.Controller(host="stretch2.corp.ai2", port=9000, width=1280, height=720)
         return controller
 
     def start(

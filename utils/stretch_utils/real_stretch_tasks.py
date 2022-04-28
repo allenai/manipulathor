@@ -74,7 +74,7 @@ class RealStretchExploreWiseRewardTask(StretchExploreWiseRewardTask):
         action_str = self.class_action_names()[action]
         print('Model Said', action_str)
 
-        self.manual_action = True
+        self.manual_action = False
         # self.env.kinect_depth
         if self.manual_action:
             ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_WRIST_P,MOVE_WRIST_M,MOVE_AHEAD,MOVE_BACK,ROTATE_RIGHT,ROTATE_LEFT,ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL]
