@@ -13,6 +13,9 @@ from ai2thor.controller import Controller
 from allenact_plugins.ithor_plugin.ithor_constants import VISIBILITY_DISTANCE, FOV
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 
+from ithor_arm.ithor_arm_noise_models import NoiseInMotionHabitatFlavor, NoiseInMotionSimple1DNormal
+from ithor_arm.arm_calculation_utils import convert_world_to_agent_coordinate
+
 from ithor_arm.ithor_arm_constants import (
     ADITIONAL_ARM_ARGS,
     ARM_MIN_HEIGHT,
@@ -117,18 +120,19 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         self._always_return_visible_range = False
         self.simplify_physics = simplify_physics
 
-        if 'motion_noise' in env_args.keys():
-            self.ahead_noise_meta_dist_params = env_args['motion_noise']['ahead_noise_meta_dist_params']
-            self.lateral_noise_meta_dist_params = env_args['motion_noise']['lateral_noise_meta_dist_params']
-            self.turning_noise_meta_dist_params = env_args['motion_noise']['turning_noise_meta_dist_params']
+        if 'motion_noise_type' in env_args.keys():
+            if env_args['motion_noise_type'] == 'habitat':
+                self.noise_model = NoiseInMotionHabitatFlavor(**env_args['motion_noise_args'])
+            elif env_args['motion_noise_type'] == 'simple1d':
+                self.noise_model = NoiseInMotionSimple1DNormal(**env_args['motion_noise_args'])
+            else:
+                print('Unrecognized motion noise model type')
+                ForkedPdb().set_trace()
         else:
-            self.ahead_noise_meta_dist_params = {'bias_dist': [0,0], 'variance_dist': [0,0]}
-            self.lateral_noise_meta_dist_params = {'bias_dist': [0,0], 'variance_dist': [0,0]}
-            self.turning_noise_meta_dist_params = {'bias_dist': [0,0], 'variance_dist': [0,0]}
+            self.noise_model = NoiseInMotionSimple1DNormal() # without args initializes as trivial/zero-noise
 
-        self.ahead_noise_params = [0,0]
-        self.lateral_noise_params = [0,0]
-        self.turning_noise_params = [0,0]
+        self.ahead_nominal = 0.2
+
 
         self.start(None)
         # self.check_controller_version()
@@ -141,18 +145,6 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         if "quality" not in self.env_args:
             self.env_args["quality"] = self._quality
         # self.memory_frames = []
-
-    def generate_motion_noise_params(self,meta_dist):
-        bias = np.random.normal(*meta_dist['bias_dist'])
-        variance = np.abs(np.random.normal(*meta_dist['variance_dist']))
-        return [bias,variance]
-
-    
-    def reset_agent_motion_noise_models(self):
-        self.ahead_noise_params = self.generate_motion_noise_params(self.ahead_noise_meta_dist_params)
-        self.lateral_noise_params = self.generate_motion_noise_params(self.lateral_noise_meta_dist_params)
-        self.turning_noise_params = self.generate_motion_noise_params(self.turning_noise_meta_dist_params)
-
 
     def check_controller_version(self):
         if MANIPULATHOR_COMMIT_ID is not None:
@@ -262,7 +254,8 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
         self.list_of_actions_so_far = []
 
-        self.reset_agent_motion_noise_models()
+        self.noise_model.reset_noise_model()
+        self.nominal_agent_location = self.get_agent_location()
 
 
     def randomize_agent_location(
@@ -333,6 +326,34 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
         xyz_dict = self.correct_nan_inf(xyz_dict, "absolute hand")
         return dict(position=xyz_dict, rotation={"x": 0, "y": 0, "z": 0})
+
+    
+    def update_nominal_location(self, action):
+        curr_loc = self.nominal_agent_location
+        new_loc = copy.deepcopy(curr_loc)
+        # location = {
+        #     "x": metadata["agent"]["position"]["x"],
+        #     "y": metadata["agent"]["position"]["y"],
+        #     "z": metadata["agent"]["position"]["z"],
+        #     "rotation": metadata["agent"]["rotation"]["y"],
+        #     "horizon": metadata["agent"]["cameraHorizon"],
+        #     "standing": metadata.get("isStanding", metadata["agent"].get("isStanding")),
+        # }
+        if action is ROTATE_LEFT:
+            new_loc["rotation"] += -45 # add some wrapping here
+        elif action is ROTATE_RIGHT:
+            new_loc["rotation"] += 45
+        elif action is MOVE_AHEAD:
+            # Assumption: rotation is relative to the +x axis in the xz plane
+            new_loc["x"] += self.ahead_nominal * np.cos(new_loc["rotation"] * np.pi / 180)
+            new_loc["z"] += self.ahead_nominal * np.sin(new_loc["rotation"] * np.pi / 180)
+        else:
+            print('unknown action')
+            ForkedPdb().set_trace()
+        
+        # ForkedPdb().set_trace()
+
+        self.nominal_agent_location = new_loc
 
     def get_pickupable_objects(self):
 
@@ -431,22 +452,45 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
             copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
 
+            # RH: order matters, nominal action happens last
             action_dict = {**action_dict, **copy_aditions}
             if action in [MOVE_AHEAD]:
+                noise = self.noise_model.get_ahead_drift(self.ahead_nominal)
+
+                action_dict["action"] = "RotateAgent"
+                action_dict["degrees"] = noise[2]
+                sr = self.controller.step(action_dict)
+
+                action_dict = dict()
                 action_dict["action"] = "MoveAgent"
-                action_dict["ahead"] = 0.2 + np.random.normal(*self.ahead_noise_params)
-                action_dict["right"] = np.random.normal(*self.lateral_noise_params)
+                action_dict["ahead"] = self.ahead_nominal + noise[0]
+                action_dict["right"] = noise[1]
 
             elif action in [ROTATE_RIGHT]:
+                noise = self.noise_model.get_rotate_drift()
+                action_dict["action"] = "MoveAgent"
+                action_dict["ahead"] = noise[0]
+                action_dict["right"] = noise[1]
+                sr = self.controller.step(action_dict)
+
+                action_dict = dict()
                 action_dict["action"] = "RotateAgent"
-                action_dict["degrees"] = 45 + np.random.normal(*self.turning_noise_params)
+                action_dict["degrees"] = 45 + noise[2]
 
             elif action in [ROTATE_LEFT]:
+                noise = self.noise_model.get_rotate_drift()
+                action_dict["action"] = "MoveAgent"
+                action_dict["ahead"] = noise[0]
+                action_dict["right"] = noise[1]
+                sr = self.controller.step(action_dict)
+
+                action_dict = dict()
                 action_dict["action"] = "RotateAgent"
-                action_dict["degrees"] = -45 + np.random.normal(*self.turning_noise_params)
+                action_dict["degrees"] = -45 + noise[2]
 
             # print(action_dict)
             # ForkedPdb().set_trace()
+            self.update_nominal_location(action)
 
         elif "MoveArm" in action:
             copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
@@ -480,10 +524,10 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                     k: v for (k, v) in base_position.items() if k in ["x", "y", "z"]
                 }
 
-
-
         sr = self.controller.step(action_dict)
         self.list_of_actions_so_far.append(action_dict)
+        # print(action_dict)
+        # ForkedPdb().set_trace()
 
         if action in SET_OF_ALL_AGENT_ACTIONS:
             self.update_memory()

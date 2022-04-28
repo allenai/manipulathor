@@ -17,7 +17,7 @@ from ithor_arm.ithor_arm_sensors import (
     DepthSensorThor, RelativeAgentArmToObjectSensor, RelativeObjectToGoalSensor,
 )
 from ithor_arm.ithor_arm_viz import MaskImageVisualizer
-from ithor_arm.near_deadline_sensors import PointNavEmulatorSensor
+from ithor_arm.near_deadline_sensors import PointNavEmulatorSensor, PointNavEmulSensorDeadReckoning
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
 from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
@@ -26,7 +26,7 @@ from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rg
 from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
 
 
-class PointNavNewModelAndHandWAgentLocationAndMotionNoiseMoreNoise(
+class PointNavNewModelAndHandWAgentLocationAndMotionNoiseNoReset(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -38,19 +38,21 @@ class PointNavNewModelAndHandWAgentLocationAndMotionNoiseMoreNoise(
     distance_thr = 1.5 # is this a good number?
     source_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr)
     destination_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr)
+    depth_sensor = DepthSensorThor(
+            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            use_normalization=True,
+            uuid="depth_lowres",
+        )
+    
     SENSORS = [
         RGBSensorThor(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
             use_resnet_normalization=True,
             uuid="rgb_lowres",
-        ),
-        DepthSensorThor(
-            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            use_normalization=True,
-            uuid="depth_lowres",
-        ),
+        ), 
+        depth_sensor,
         PickedUpObjSensor(),
         CategorySampleSensor(type='source'),
         CategorySampleSensor(type='destination'),
@@ -58,8 +60,8 @@ class PointNavNewModelAndHandWAgentLocationAndMotionNoiseMoreNoise(
         CategoryFeatureSampleSensor(type='destination'),
         source_mask_sensor,
         destination_mask_sensor,
-        PointNavEmulatorSensor(type='source', mask_sensor=source_mask_sensor, noise=AGENT_LOCATION_NOISE),
-        PointNavEmulatorSensor(type='destination', mask_sensor=destination_mask_sensor, noise=AGENT_LOCATION_NOISE),
+        PointNavEmulSensorDeadReckoning(type='source', mask_sensor=source_mask_sensor, noise=AGENT_LOCATION_NOISE, depth_sensor=depth_sensor),
+        PointNavEmulSensorDeadReckoning(type='destination', mask_sensor=destination_mask_sensor, noise=AGENT_LOCATION_NOISE, depth_sensor=depth_sensor),
         # TempRealArmpointNav(uuid='point_nav_emul',type='source'),
         # TempRealArmpointNav(uuid='point_nav_emul', type='destination'),
     ]
@@ -76,24 +78,24 @@ class PointNavNewModelAndHandWAgentLocationAndMotionNoiseMoreNoise(
 
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavNewModelAndHandWAgentLocationAndMotionNoiseMoreNoise, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavNewModelAndHandWAgentLocationAndMotionNoiseNoReset, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
 
             for pointnav_emul_sensor in sampler_args['sensors']:
-                if isinstance(pointnav_emul_sensor, PointNavEmulatorSensor):
+                if isinstance(pointnav_emul_sensor, PointNavEmulSensorDeadReckoning):
                     pointnav_emul_sensor.device = torch.device(kwargs["devices"][0])
 
         return sampler_args
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavNewModelAndHandWAgentLocationAndMotionNoiseMoreNoise, self).test_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavNewModelAndHandWAgentLocationAndMotionNoiseNoReset, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
 
             for pointnav_emul_sensor in sampler_args['sensors']:
-                if isinstance(pointnav_emul_sensor, PointNavEmulatorSensor):
+                if isinstance(pointnav_emul_sensor, PointNavEmulSensorDeadReckoning):
                     pointnav_emul_sensor.device = torch.device(kwargs["devices"][0])
 
         return sampler_args
@@ -110,11 +112,11 @@ class PointNavNewModelAndHandWAgentLocationAndMotionNoiseMoreNoise(
         # self.ENV_ARGS['motion_noise_args']['multiplier_sigmas'] = [0,0,0,0,0,0,0]
         # self.ENV_ARGS['motion_noise_args']['effect_scale'] = 1
 
-        # self.ENV_ARGS['motion_noise_type'] = 'simple1d'
-        # self.ENV_ARGS['motion_noise_args'] = dict()
-        # self.ENV_ARGS['motion_noise_args']['ahead_noise_meta_dist_params'] = {'bias_dist': [0,0.04], 'variance_dist': [0,0.10]}
-        # self.ENV_ARGS['motion_noise_args']['lateral_noise_meta_dist_params'] = {'bias_dist': [0,0.04], 'variance_dist': [0,0.04]}
-        # self.ENV_ARGS['motion_noise_args']['turning_noise_meta_dist_params'] = {'bias_dist': [0,10], 'variance_dist': [0,10]}
+        self.ENV_ARGS['motion_noise_type'] = 'simple1d'
+        self.ENV_ARGS['motion_noise_args'] = dict()
+        self.ENV_ARGS['motion_noise_args']['ahead_noise_meta_dist_params'] = {'bias_dist': [0,0.02], 'variance_dist': [0,0.5]}
+        self.ENV_ARGS['motion_noise_args']['lateral_noise_meta_dist_params'] = {'bias_dist': [0,0.02], 'variance_dist': [0,0.02]}
+        self.ENV_ARGS['motion_noise_args']['turning_noise_meta_dist_params'] = {'bias_dist': [0,5], 'variance_dist': [0,5]}
         
 
     @classmethod
