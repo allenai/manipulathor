@@ -40,6 +40,7 @@ def get_mid_point_of_object_from_depth_and_mask(mask, depth_frame_original, min_
     mask = squeeze_bool_mask(mask)
     depth_frame_masked = depth_frame_original.copy()
     depth_frame_masked[~mask] = -1
+    depth_frame_masked[depth_frame_masked == 0] = -1 # This means they are either not existing or not valid
     world_space_point_cloud = calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, device, depth_frame_masked)
     valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
     point_in_world = world_space_point_cloud[valid_points]
