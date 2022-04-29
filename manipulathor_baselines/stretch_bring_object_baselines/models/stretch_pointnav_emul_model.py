@@ -167,8 +167,16 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         arm_mask = observations['object_mask_kinect_source'].clone()
         arm_mask[after_pickup] = observations['object_mask_kinect_destination'][after_pickup]
 
+        #TODO remove these after issue is resolved
+        observations['depth_lowres'] = check_for_nan_visual_observations(observations['depth_lowres'], where_it_occured='depth_lowres')
+        observations['rgb_lowres'] = check_for_nan_visual_observations(observations['rgb_lowres'], where_it_occured='rgb_lowres')
+        observations['depth_lowres_arm'] = check_for_nan_visual_observations(observations['depth_lowres_arm'], where_it_occured='depth_lowres_arm')
+        observations['rgb_lowres_arm'] = check_for_nan_visual_observations(observations['rgb_lowres_arm'], where_it_occured='rgb_lowres_arm')
+        arm_mask = check_for_nan_visual_observations(arm_mask, where_it_occured='arm_mask')
+        agent_mask = check_for_nan_visual_observations(agent_mask, where_it_occured='agent_mask')
+
         visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'], agent_mask], dim=-1).float()
-        visual_observation = check_for_nan_visual_observations(visual_observation)
+
         visual_observation_encoding_body = compute_cnn_output(self.full_visual_encoder, visual_observation)
 
         visual_observation_arm = torch.cat([observations['depth_lowres_arm'], observations['rgb_lowres_arm'], arm_mask], dim=-1).float()
