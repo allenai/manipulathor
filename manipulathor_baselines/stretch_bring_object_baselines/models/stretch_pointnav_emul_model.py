@@ -26,6 +26,7 @@ from torch import nn
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.model_utils import LinearActorHeadNoCategory
 from utils.hacky_viz_utils import hacky_visualization
+from utils.stretch_utils.stretch_thor_sensors import check_for_nan_visual_observations
 
 
 class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
@@ -167,9 +168,11 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         arm_mask[after_pickup] = observations['object_mask_kinect_destination'][after_pickup]
 
         visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres'], agent_mask], dim=-1).float()
+        visual_observation = check_for_nan_visual_observations(visual_observation)
         visual_observation_encoding_body = compute_cnn_output(self.full_visual_encoder, visual_observation)
 
         visual_observation_arm = torch.cat([observations['depth_lowres_arm'], observations['rgb_lowres_arm'], arm_mask], dim=-1).float()
+        visual_observation_arm = check_for_nan_visual_observations(visual_observation_arm)
         visual_observation_encoding_arm = compute_cnn_output(self.full_visual_encoder_arm, visual_observation_arm)
 
 

@@ -300,13 +300,19 @@ class AgentBodyPointNavEmulSensor(Sensor):
             agent_centric_middle_of_object = agent_centric_middle_of_object
             return agent_centric_middle_of_object
 
-def check_for_nan_obj_location(object_location, where_it_occurred=''):
+def check_for_nan_obj_location(object_location, where_it_occurred=''): #TODO remove these when the bug issue is resolved
     if torch.any(torch.isinf(object_location) + torch.isnan(object_location)):
-        print('Object location nan in', where_it_occurred, object_location)
+        print('OBJECT LOCATION IS NAN in', where_it_occurred, object_location)
         dummy_answer = torch.zeros(3)
         dummy_answer[:] = 4
         object_location = dummy_answer
     return object_location
+def check_for_nan_visual_observations(tensor, where_it_occured=''): #TODO remove these when the bug issue is resolved
+    should_be_removed = torch.isinf(tensor) + torch.isnan(tensor)
+    if torch.any(should_be_removed):
+        print('VISUAL OBSERVATION IS NAN', where_it_occured)
+        tensor[should_be_removed] = 0
+    return tensor
 class ArmPointNavEmulSensor(Sensor):
 
     def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, uuid: str = "arm_point_nav_emul", **kwargs: Any):
