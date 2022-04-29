@@ -273,9 +273,11 @@ class AgentBodyPointNavEmulSensor(Sensor):
             valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
             point_in_world = world_space_point_cloud[valid_points]
             middle_of_object = point_in_world.mean(dim=0)
+            middle_of_object = check_for_nan_obj_location(middle_of_object, 'calc agent body')
+
             self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world), task.num_steps_taken()))
 
-        return self.average_so_far(camera_xyz, camera_rotation, arm_state, task.num_steps_taken())
+        return check_for_nan_obj_location(self.average_so_far(camera_xyz, camera_rotation, arm_state, task.num_steps_taken()), 'average agent body')
 
     def average_so_far(self, camera_xyz, camera_rotation, arm_state, current_step_number):
         if len(self.pointnav_history_aggr) == 0:
@@ -298,7 +300,13 @@ class AgentBodyPointNavEmulSensor(Sensor):
             agent_centric_middle_of_object = agent_centric_middle_of_object
             return agent_centric_middle_of_object
 
-
+def check_for_nan_obj_location(object_location, where_it_occurred=''):
+    if torch.any(torch.isinf(object_location) + torch.isnan(object_location)):
+        print('Object location nan in', where_it_occurred, object_location)
+        dummy_answer = torch.zeros(3)
+        dummy_answer[:] = 4
+        object_location = dummy_answer
+    return object_location
 class ArmPointNavEmulSensor(Sensor):
 
     def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, uuid: str = "arm_point_nav_emul", **kwargs: Any):
@@ -355,9 +363,10 @@ class ArmPointNavEmulSensor(Sensor):
             valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
             point_in_world = world_space_point_cloud[valid_points]
             middle_of_object = point_in_world.mean(dim=0)
+            middle_of_object = check_for_nan_obj_location(middle_of_object, 'calc arm sensor')
             self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world), task.num_steps_taken()))
 
-        return self.average_so_far(camera_xyz, camera_rotation, arm_state, task.num_steps_taken())
+        return check_for_nan_obj_location(self.average_so_far(camera_xyz, camera_rotation, arm_state, task.num_steps_taken()), 'average arm sensor')
 
     def average_so_far(self, camera_xyz, camera_rotation, arm_state, current_step_number):
         if len(self.pointnav_history_aggr) == 0:
