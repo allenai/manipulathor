@@ -206,9 +206,9 @@ import pdb
 command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/pointnav_emul_stretch_procthor_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag procthor_onlypickup_task_scratch -c ~/exp_PointNavEmulStretchProcTHORDistrib_procthor_full_task_scratch__stage_00__steps_000007569216.pt'
+ --seed 10 --machine_id 0 --extra_tag procthor_onlypickup_task_scratch -c ~/exp_PointNavEmulStretchProcTHORDistrib_procthor_only_pickup_from_pretrain__stage_00__steps_000017658003.pt'
 
-# scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/PointNavEmulStretchProcTHORDistrib/procthor_full_task_scratch/2022-04-25_23-49-02/exp_PointNavEmulStretchProcTHORDistrib_procthor_full_task_scratch__stage_00__steps_000007569216.pt ~/
+# scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/PointNavEmulStretchProcTHORDistrib/procthor_only_pickup_from_pretrain/2022-04-28_22-52-10/exp_PointNavEmulStretchProcTHORDistrib_procthor_only_pickup_from_pretrain__stage_00__steps_000017658003.pt ~/
 
 server_set1 = {
     'servers':[f'aws{i}' for i in range(1,5)],
