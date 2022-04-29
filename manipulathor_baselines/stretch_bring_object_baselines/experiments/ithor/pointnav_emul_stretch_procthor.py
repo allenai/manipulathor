@@ -83,7 +83,7 @@ class PointNavEmulStretchProcTHOR(
             height=desired_screen_size,
             width=desired_screen_size,
             # use_normalization=True, #TODO WHY THO? WHY?
-            mean=np.array(0.5), #TODO DO WE NEED TO DO THIS EVERYWHERE?
+            mean=np.array(0.5), #TODO DO WE NEED TO DO THIS EVERYWHERE? FOR BOTH RGB AND DEPTH
             stdev=np.array(0.25),
             uuid="depth_lowres_arm",
         ),
