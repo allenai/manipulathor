@@ -129,7 +129,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                 print('Unrecognized motion noise model type')
                 ForkedPdb().set_trace()
         else:
-            self.noise_model = NoiseInMotionSimple1DNormal() # without args initializes as trivial/zero-noise
+            self.noise_model = NoiseInMotionHabitatFlavor(effect_scale=0.0) # un-noise model
 
         self.ahead_nominal = 0.2
 
@@ -142,7 +142,6 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
         self.MEMORY_SIZE = 5
         # self.memory_frames = []
-
 
     def check_controller_version(self):
         if MANIPULATHOR_COMMIT_ID is not None:
@@ -340,7 +339,6 @@ class ManipulaTHOREnvironment(IThorEnvironment):
             new_loc["z"] = action_dict['z']
             new_loc["rotation"] = action_dict['rotation']['y']
             new_loc["horizon"] = action_dict['horizon']
-            # print('Agent teleported, nominal location reset to teleport destination')
         
         self.nominal_agent_location = new_loc
 
@@ -513,6 +511,8 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         sr = self.controller.step(action_dict)
         self.list_of_actions_so_far.append(action_dict)
         
+        # RH: Nominal location only updates for successful actions. Note that that drift 
+        # action might succeed even if the "main" action fails
         if sr.metadata["lastActionSuccess"]:
             self.update_nominal_location(original_action_dict)
 

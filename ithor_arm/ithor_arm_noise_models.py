@@ -49,13 +49,20 @@ class NoiseInMotionHabitatFlavor:
     
     def get_ahead_drift(self,*_):
         # returns [ahead change, left/right change, rot change] from an ahead command in [m,m,deg]
+        
+        if self.effect_scale == 0: #speedup for trivial case
+            return [0,0,0]
+        
         rotation_drift = self.effect_scale * self.ahead.rotation.sample()
         linear_drift = self.effect_scale * self.ahead.linear.sample()
-
         return [linear_drift[0], linear_drift[1], rotation_drift[0] * 180 / np.pi]
 
     def get_rotate_drift(self):
         # returns [ahead change, left/right change, rot change] from an ahead command in [m,m,deg]
+
+        if self.effect_scale == 0: #speedup for trivial case
+            return [0,0,0]
+        
         rotation_drift = self.effect_scale * self.rotate.rotation.sample()
         linear_drift = self.effect_scale * self.rotate.linear.sample()
 
