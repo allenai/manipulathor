@@ -26,7 +26,7 @@ from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rg
 from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
 
 
-class PointNavNewModelAndHandWAgentLocationAndMotionNoiseNoReset(
+class PointNavNewModelAndHandWAgentLocationAndMotionNoiseNoResetDebugged(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -78,7 +78,7 @@ class PointNavNewModelAndHandWAgentLocationAndMotionNoiseNoReset(
 
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavNewModelAndHandWAgentLocationAndMotionNoiseNoReset, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavNewModelAndHandWAgentLocationAndMotionNoiseNoResetDebugged, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -89,7 +89,7 @@ class PointNavNewModelAndHandWAgentLocationAndMotionNoiseNoReset(
 
         return sampler_args
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavNewModelAndHandWAgentLocationAndMotionNoiseNoReset, self).test_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavNewModelAndHandWAgentLocationAndMotionNoiseNoResetDebugged, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -110,7 +110,7 @@ class PointNavNewModelAndHandWAgentLocationAndMotionNoiseNoReset(
         self.ENV_ARGS['motion_noise_args'] = dict()
         self.ENV_ARGS['motion_noise_args']['multiplier_means'] = [1,1,1,1,1,1]
         self.ENV_ARGS['motion_noise_args']['multiplier_sigmas'] = [0.01,0.01,0.01,0.01,0.01,0.01,0.01]
-        self.ENV_ARGS['motion_noise_args']['effect_scale'] = .25
+        self.ENV_ARGS['motion_noise_args']['effect_scale'] = .5
 
         # self.ENV_ARGS['motion_noise_type'] = 'simple1d'
         # self.ENV_ARGS['motion_noise_args'] = dict()

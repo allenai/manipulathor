@@ -394,18 +394,15 @@ class PointNavEmulSensorDeadReckoning(Sensor):
         fov=max(KINECT_FOV_W, KINECT_FOV_H)#TODO are you sure? it should be smaller one I think
         belief_agent_state = env.nominal_agent_location
         real_agent_state = env.get_agent_location()
-        # ForkedPdb().set_trace()
 
         belief_camera_horizon = 45
         belief_camera_xyz = np.array([belief_agent_state[k] for k in ['x','y','z']])
         belief_camera_rotation = (belief_agent_state['rotation'] + 90) % 360
 
         real_camera_xyz = np.array([real_agent_state[k] for k in ['x','y','z']])
-        # ForkedPdb().set_trace()
 
         self.belief_prev_location.append(belief_camera_xyz)
         self.real_prev_location.append(real_camera_xyz)
-        # ForkedPdb().set_trace()
         
         return fov, belief_camera_horizon, belief_camera_xyz, belief_camera_rotation
 
@@ -431,21 +428,6 @@ class PointNavEmulSensorDeadReckoning(Sensor):
 
             midpoint_agent_coord = get_mid_point_of_object_from_depth_and_mask(mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
             self.pointnav_history_aggr.append((midpoint_agent_coord.cpu(), 1, task.num_steps_taken()))
-
-        # arm_mask = self.arm_mask_sensor.get_observation(env, task, *args, **kwargs) #TODO this is also called twice
-        # if arm_mask.sum() == 0: #Do we want to do some approximations or no?
-        #     arm_world_coord = None #TODO approax for this
-        # else:
-        #     arm_world_coord = get_mid_point_of_object_from_depth_and_mask(arm_mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
-        #     # distance_in_agent_coord = midpoint_agent_coord - arm_location_in_camera
-        #     # result = distance_in_agent_coord.cpu()
-        # if arm_mask.sum() != 0 or mask.sum() != 0:
-
-        #     import cv2
-        #     cv2.imwrite('/Users/kianae/Desktop/image.png', env.kinect_frame[:,:,::-1])
-        #     cv2.imwrite('/Users/kianae/Desktop/mask.png', mask.squeeze().numpy() * 255)
-        #     cv2.imwrite('/Users/kianae/Desktop/arm_mask.png', arm_mask * 255)
-        #     # ForkedPdb().set_trace() #TODO remove
 
         # if len(self.belief_prev_location) > 190:
         #     import matplotlib
