@@ -370,8 +370,6 @@ class PointNavEmulatorSensorOnlyAgentLocation(PointNavEmulatorSensor):
 #         self.noise = something
 #         return super(PointNavEmulatorSensorwScheduler, self).get_observation(env, task, *args, **kwargs)
 
-<<<<<<< HEAD
-=======
 class PointNavEmulSensorDeadReckoning(Sensor):
 
     def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, uuid: str = "point_nav_emul", **kwargs: Any):
@@ -480,7 +478,6 @@ def calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon,
             fov=fov,
         )
         return world_space_point_cloud
->>>>>>> 222cada (agent motion noise models as imported classes, habitat noise, and agent belief in nominal motion)
 
 def get_mid_point_of_object_from_depth_and_mask(mask, depth_frame_original, min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, device):
     mask = squeeze_bool_mask(mask)
