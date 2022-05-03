@@ -133,6 +133,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
             self.noise_model = NoiseInMotionHabitatFlavor(effect_scale=0.0) # un-noise model
 
         self.ahead_nominal = 0.2
+        self.rotate_nominal = 45
 
 
         self.start(None)
@@ -343,9 +344,9 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         new_loc = copy.deepcopy(curr_loc)
 
         if action_dict['action'] is 'RotateLeft':
-            new_loc["rotation"] = (new_loc["rotation"] - 45) % 360
+            new_loc["rotation"] = (new_loc["rotation"] - self.rotate_nominal) % 360
         elif action_dict['action'] is 'RotateRight':
-            new_loc["rotation"] = (new_loc["rotation"] + 45) % 360
+            new_loc["rotation"] = (new_loc["rotation"] + self.rotate_nominal) % 360
         elif action_dict['action'] is 'MoveAhead':
             new_loc["x"] += self.ahead_nominal * np.sin(new_loc["rotation"] * np.pi / 180)
             new_loc["z"] += self.ahead_nominal * np.cos(new_loc["rotation"] * np.pi / 180)
@@ -479,7 +480,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
                 action_dict = dict()
                 action_dict["action"] = "RotateAgent"
-                action_dict["degrees"] = 45 + noise[2]
+                action_dict["degrees"] = noise[2] + self.rotate_nominal
 
             elif action in [ROTATE_LEFT]:
                 noise = self.noise_model.get_rotate_drift()
@@ -490,7 +491,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
                 action_dict = dict()
                 action_dict["action"] = "RotateAgent"
-                action_dict["degrees"] = -45 + noise[2]
+                action_dict["degrees"] = noise[2] - self.rotate_nominal
 
         elif "MoveArm" in action:
             copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
