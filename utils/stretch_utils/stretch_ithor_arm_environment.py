@@ -376,7 +376,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                 'action': 'Pass'
             } # we have to change the last action success if the pik up fails, we do that in the task now
                 
-        elif action in [MOVE_AHEAD, MOVE_BACK, ROTATE_RIGHT, ROTATE_LEFT]:
+        elif action in [MOVE_AHEAD, MOVE_BACK, ROTATE_RIGHT, ROTATE_LEFT, ROTATE_RIGHT_SMALL, ROTATE_LEFT_SMALL]:
             copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
 
             # RH: order matters, nominal action happens last
@@ -429,6 +429,31 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                 action_dict = dict()
                 action_dict["action"] = "RotateAgent"
                 action_dict["degrees"] = noise[2] - self.rotate_nominal
+            
+            elif action in [ROTATE_RIGHT_SMALL]:
+                # RH: Not scaling noise is deliberate. Small actions are harder to be accurate
+                noise = self.noise_model.get_rotate_drift()
+                action_dict["action"] = "MoveAgent"
+                action_dict["ahead"] = noise[0]
+                action_dict["right"] = noise[1]
+                sr = self.controller.step(action_dict)
+
+                action_dict = dict()
+                action_dict["action"] = "RotateAgent"
+                action_dict["degrees"] = noise[2] + self.rotate_nominal / 5
+
+            elif action in [ROTATE_LEFT_SMALL]:
+                # RH: Not scaling noise is deliberate. Small actions are harder to be accurate
+                noise = self.noise_model.get_rotate_drift()
+                action_dict["action"] = "MoveAgent"
+                action_dict["ahead"] = noise[0]
+                action_dict["right"] = noise[1]
+                sr = self.controller.step(action_dict)
+
+                action_dict = dict()
+                action_dict["action"] = "RotateAgent"
+                action_dict["degrees"] = noise[2] - self.rotate_nominal / 5
+
 
         elif action in [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,]:
             base_position = get_relative_stretch_current_arm_state(self.controller)
@@ -451,12 +476,6 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             action_dict = dict(action='RotateWristRelative', yaw=-WRIST_ROTATION / 5)
         elif action == MOVE_WRIST_M_SMALL:
             action_dict = dict(action='RotateWristRelative', yaw=WRIST_ROTATION / 5)
-        elif action == ROTATE_LEFT_SMALL:
-            action_dict["action"] = "RotateAgent"
-            action_dict["degrees"] = -AGENT_ROTATION_DEG / 5
-        elif action == ROTATE_RIGHT_SMALL:
-            action_dict["action"] = "RotateAgent"
-            action_dict["degrees"] = AGENT_ROTATION_DEG / 5
 
 
         sr = self.controller.step(action_dict)
@@ -466,7 +485,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
         # action might succeed even if the "main" action fails
         if sr.metadata["lastActionSuccess"]:
             self.update_nominal_location(original_action_dict)
-
+        
         if self._verbose:
             print(self.controller.last_event)
 
