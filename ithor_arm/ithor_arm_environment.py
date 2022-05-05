@@ -174,7 +174,8 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
         self._started = True
         self.reset(scene_name=scene_name, move_mag=move_mag, **kwargs)
-
+    def reset_environment_and_additional_commands(self, scene_name):
+        reset_environment_and_additional_commands(self.controller, scene_name)
     def reset(
             self,
             scene_name: Optional[str],
@@ -192,13 +193,13 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         # to solve the crash issue
         # why do we still have this crashing problem?
         try:
-            reset_environment_and_additional_commands(self.controller, scene_name)
+            self.reset_environment_and_additional_commands(scene_name)
         except Exception as e:
             print("RESETTING THE SCENE,", scene_name, 'because of', str(e))
             self.controller = ai2thor.controller.Controller(
                 **self.env_args
             )
-            reset_environment_and_additional_commands(self.controller, scene_name)
+            self.reset_environment_and_additional_commands(scene_name)
 
         if self.object_open_speed != 1.0:
             self.controller.step(

@@ -6,7 +6,8 @@ import torch
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn
 
-from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor, CategoryFeatureSampleSensor
+from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor, \
+    CategoryFeatureSampleSensor, RGBSensorThorNoNan, DepthSensorThorNoNan
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
 from ithor_arm.bring_object_tasks import WPickUPExploreBringObjectTask, ExploreWiseRewardTask
 from ithor_arm.ithor_arm_constants import MANIPULATHOR_ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
@@ -43,13 +44,13 @@ class ObjDisArmPointNavProcTHOR(
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
     SENSORS = [
-        RGBSensorThor(
+        RGBSensorThorNoNan(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
-        DepthSensorThor(
+        DepthSensorThorNoNan(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
             use_normalization=True,

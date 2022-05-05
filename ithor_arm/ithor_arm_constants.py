@@ -89,6 +89,8 @@ def make_all_objects_unbreakable(controller):
 
 
 def reset_environment_and_additional_commands(controller, scene_name):
+    if scene_name == 'Procedural' or scene_name is None:
+        pass
     controller.reset(scene_name)
     controller.step(action="MakeAllObjectsMoveable")
     controller.step(action="MakeObjectsStaticKinematicMassThreshold")

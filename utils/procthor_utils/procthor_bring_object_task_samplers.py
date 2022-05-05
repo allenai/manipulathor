@@ -79,7 +79,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
 
 
     def _create_environment(self, **kwargs) -> StretchManipulaTHOREnvironment:
-        env = StretchManipulaTHOREnvironment(
+        env = self.environment_type(
             make_agents_visible=False,
             object_open_speed=0.05,
             env_args=self.env_args,
@@ -109,6 +109,8 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
     ) -> None:
         self.TASK_TYPE = task_type
         self.rewards_config = rewards_config
+        self.environment_type = env_args['environment_type']
+        del env_args['environment_type']
         self.env_args = env_args
         self.scenes = scenes
         self.grid_size = 0.25

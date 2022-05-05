@@ -18,6 +18,7 @@ from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 
 from ithor_arm.ithor_arm_constants import DONT_USE_ALL_POSSIBLE_OBJECTS_EVER
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
+from ithor_arm.ithor_arm_sensors import DepthSensorThor
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.thor_category_names import thor_possible_objects
@@ -26,6 +27,28 @@ from scripts.thor_category_names import thor_possible_objects
 # from legacy.from_phone_to_sim.thor_frames_to_pointcloud import frames_to_world_points, world_points_to_pointcloud
 from utils.manipulathor_data_loader_utils import get_random_query_image_from_img_adr, get_random_query_feature_from_img_adr
 
+class RGBSensorThorNoNan(RGBSensorThor):
+    def frame_from_env(
+        self, env: IThorEnvironment, task: Task[IThorEnvironment]
+    ) -> np.ndarray:  # type:ignore
+        frame = env.current_frame.copy()
+        frame = remove_nan(frame)
+        return frame
+
+class DepthSensorThorNoNan(DepthSensorThor):
+    def frame_from_env(
+        self, env: IThorEnvironment, task: Task[IThorEnvironment]
+    ) -> np.ndarray:  # type:ignore
+        frame = (env.controller.last_event.depth_frame.copy())
+        frame = remove_nan(frame)
+        return frame
+
+def remove_nan(frame): #TODO inefficient and hacky
+    should_be_removed = np.isinf(frame) + np.isnan(frame)
+    frame[should_be_removed] = 0
+    should_be_removed = np.isinf(frame) + np.isnan(frame)
+    assert should_be_removed.sum() == 0
+    return frame
 
 class RelativeArmDistanceToGoal(Sensor):
     def __init__(self, uuid: str = "relative_arm_dist", **kwargs: Any):

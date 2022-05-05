@@ -63,7 +63,7 @@ class ObjDisArmPointNavITHORAllRooms(
 
     MAX_STEPS = 200
 
-    TASK_SAMPLER = AllRoomsBringObjectTaskSampler
+    TASK_SAMPLER = AllRoomsBringObjectTaskSampler #TODO move the arm up doesn't happen? why does arm start from different places?
     # TASK_TYPE = TestPointNavExploreWiseRewardTask
     TASK_TYPE = ExploreWiseRewardTask
     ENVIRONMENT_TYPE = ManipulaTHOREnvironment
