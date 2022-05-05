@@ -373,7 +373,8 @@ class RealKinectArmPointNavEmulSensor(Sensor):
         if mask.sum() != 0:
 
             midpoint_agent_coord = get_mid_point_of_object_from_depth_and_mask(mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
-            self.pointnav_history_aggr.append((midpoint_agent_coord.cpu(), 1, task.num_steps_taken()))
+            if not torch.any(torch.isnan(midpoint_agent_coord) + torch.isinf(midpoint_agent_coord)):
+                self.pointnav_history_aggr.append((midpoint_agent_coord.cpu(), 1, task.num_steps_taken()))
 
         arm_mask = self.arm_mask_sensor.get_observation(env, task, *args, **kwargs) #TODO this is also called twice
         if arm_mask.sum() == 0: #Do we want to do some approximations or no?
