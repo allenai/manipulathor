@@ -42,7 +42,7 @@ def calc_world_xyz_from_agent_relative(object_xyz_list, agent_xyz, agent_rotatio
             object_xyz_matrix[:,i] = [x,y,z]
         object_xyz_matrix = torch.from_numpy(object_xyz_matrix).to(device)
 
-        world_xyz_matrix = camera_space_xyz_to_world_xyz(object_xyz_matrix, agent_xyz, agent_rotation, horizon=0 ).numpy()
+        world_xyz_matrix = camera_space_xyz_to_world_xyz(object_xyz_matrix, agent_xyz, agent_rotation, horizon=0 ).cpu().numpy()
         world_positions = []
         for i in range(len(object_xyz_list)):
             x,y,z = world_xyz_matrix[:,i]

@@ -182,6 +182,7 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         visual_observation_arm = torch.cat([observations['depth_lowres_arm'], observations['rgb_lowres_arm'], arm_mask], dim=-1).float()
         visual_observation_arm = check_for_nan_visual_observations(visual_observation_arm)
         visual_observation_encoding_arm = compute_cnn_output(self.full_visual_encoder_arm, visual_observation_arm)
+        # ForkedPdb().set_trace()
 
 
         # arm_distance_to_obj_source = observations['point_nav_real_source'].copy()

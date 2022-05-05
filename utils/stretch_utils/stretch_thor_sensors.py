@@ -491,7 +491,6 @@ class AgentBodyPointNavEmulSensorDeadReckoning(Sensor):
             self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
-        # mask = squeeze_bool_mask(self.mask_sensor.get_observation(env, task, *args, **kwargs))
         mask = self.mask_sensor.get_observation(env, task, *args, **kwargs)
         depth_frame = self.depth_sensor.get_observation(env, task, *args, **kwargs)
         if task.num_steps_taken() == 0:
@@ -504,27 +503,6 @@ class AgentBodyPointNavEmulSensorDeadReckoning(Sensor):
         if mask.sum() != 0:
             midpoint_agent_coord = get_mid_point_of_object_from_depth_and_mask(mask, depth_frame, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
             self.pointnav_history_aggr.append((midpoint_agent_coord.cpu(), 1, task.num_steps_taken()))
-
-        # if len(self.belief_prev_location) > 190:
-        #     import matplotlib
-        #     matplotlib.use('TkAgg')
-        #     import matplotlib.pyplot as plt
-        #     fig = plt.figure()
-        #     ax = fig.add_subplot(projection='3d')
-        #     def draw_points(locations, color):
-        #         xs = [x[0] for x in locations]
-        #         ys = [x[1] for x in locations]
-        #         zs = [x[2] for x in locations]
-        #         ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
-
-        #     def draw(locations, color):
-        #         xs = [x['camera_xyz'][0] for x in locations]
-        #         ys = [x['camera_xyz'][1] for x in locations]
-        #         zs = [x['camera_xyz'][2] for x in locations]
-        #         ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
-
-        #     draw_points(self.real_prev_location, 'g'); draw_points(self.belief_prev_location, 'b'); plt.show()
-        #     ForkedPdb().set_trace()
 
         return self.history_aggregation(camera_xyz, camera_rotation, task.num_steps_taken())
     
@@ -614,26 +592,18 @@ class ArmPointNavEmulSensorDeadReckoning(Sensor):
         
         return fov, belief_camera_horizon, belief_camera_xyz, belief_camera_rotation, arm_state
 
-    def get_accurate_locations(self, env):
-        if len(env.controller.last_event.metadata['thirdPartyCameras']) != 1:
-            print('Warning multiple cameras')
-        metadata = copy.deepcopy(env.controller.last_event.metadata['thirdPartyCameras'][0])
-        # ForkedPdb().set_trace()
-        camera_xyz = np.array([metadata["position"][k] for k in ["x", "y", "z"]])
-        # camera_rotation = np.array([metadata["rotation"][k] for k in ["x", "y", "z"]])
-        camera_rotation = metadata['rotation']['y']
-        camera_horizon = metadata['rotation']['x']
-        assert abs(metadata['rotation']['z'] - 0) < 0.1
-        arm_state = env.get_absolute_hand_state()
-        fov = metadata['fieldOfView']
-        return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state, fov=fov)
-
     def get_observation(
             self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
-        mask = (self.mask_sensor.get_observation(env, task, *args, **kwargs))
+        mask = self.mask_sensor.get_observation(env, task, *args, **kwargs)
         depth_frame = self.depth_sensor.get_observation(env, task, *args, **kwargs)
+
+        # catch rare NaN error where tiny mask is lost in 0 missing values
+        squeeze_mask = squeeze_bool_mask(mask)
+        depth_frame_masked = depth_frame.copy()
+        depth_frame_masked[~squeeze_mask] = -1
+        depth_frame_masked[depth_frame_masked == 0] = -1 
         
         if task.num_steps_taken() == 0:
             self.pointnav_history_aggr = []
@@ -642,7 +612,7 @@ class ArmPointNavEmulSensorDeadReckoning(Sensor):
 
         fov, camera_horizon, camera_xyz, camera_rotation, arm_state = self.get_agent_belief_state(env)
 
-        if mask.sum() != 0:
+        if depth_frame_masked[depth_frame_masked>0].sum() != 0:
             midpoint_agent_coord = get_mid_point_of_object_from_depth_and_mask(mask, depth_frame, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
             self.pointnav_history_aggr.append((midpoint_agent_coord.cpu(), 1, task.num_steps_taken()))
 
@@ -664,7 +634,6 @@ class ArmPointNavEmulSensorDeadReckoning(Sensor):
 
             arm_agent_coord = convert_world_to_agent_coordinate(arm_world_coord, agent_state)
             arm_state_agent_coord = torch.Tensor([arm_agent_coord['position'][k] for k in ['x','y','z']])
-            # ForkedPdb().set_trace()
 
             distance_in_agent_coord = midpoint_agent_coord - arm_state_agent_coord
 

@@ -110,7 +110,7 @@ class PointNavEmulStretchAllRooms(
         self.ENV_ARGS['motion_noise_args'] = dict()
         self.ENV_ARGS['motion_noise_args']['multiplier_means'] = [1,1,1,1,1,1]
         self.ENV_ARGS['motion_noise_args']['multiplier_sigmas'] = [0.01,0.01,0.01,0.01,0.01,0.01,0.01]
-        self.ENV_ARGS['motion_noise_args']['effect_scale'] = .1
+        self.ENV_ARGS['motion_noise_args']['effect_scale'] = .25
 
     def test_task_sampler_args(self, **kwargs):
         sampler_args = super(PointNavEmulStretchAllRooms, self).test_task_sampler_args(**kwargs)
