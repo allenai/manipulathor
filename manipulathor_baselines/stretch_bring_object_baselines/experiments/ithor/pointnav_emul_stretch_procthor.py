@@ -23,7 +23,8 @@ from utils.procthor_utils.procthor_bring_object_task_samplers import ProcTHORDiv
 from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask, \
     StretchExploreWiseRewardTaskOnlyPickUp, StretchObjectNavTask
-from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, STRETCH_MANIPULATHOR_COMMIT_ID, INTEL_CAMERA_WIDTH
+from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, STRETCH_MANIPULATHOR_COMMIT_ID, INTEL_CAMERA_WIDTH, \
+    PROCTHOR_COMMIT_ID
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, \
     RGBSensorStretchKinect, DepthSensorStretchKinect, AgentBodyPointNavSensor, AgentBodyPointNavEmulSensor, \
     RGBSensorStretchKinectZero, \
@@ -103,6 +104,7 @@ class PointNavEmulStretchProcTHOR(
 
     if platform.system() == "Darwin":
         MAX_STEPS = 200
+        VISUALIZE = False #TODO remove
 
     TASK_SAMPLER = ProcTHORDiverseBringObjectTaskSampler
     TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp #
@@ -128,7 +130,9 @@ class PointNavEmulStretchProcTHOR(
         self.REWARD_CONFIG['object_found'] = 1
         # self.ENV_ARGS = STRETCH_ENV_ARGS
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
-        self.ENV_ARGS['commit_id'] = '0d540af71ea6408ead71d94f550d5a324686c7f3'
+        # self.ENV_ARGS['commit_id'] = '0d540af71ea6408ead71d94f550d5a324686c7f3'
+        self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
+
         #TODO add all procthor elements
         self.ENV_ARGS['renderInstanceSegmentation'] = True
         self.ENV_ARGS['scene'] = 'Procedural'

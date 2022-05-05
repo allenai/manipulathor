@@ -328,6 +328,7 @@ def remove_nan_inf_for_frames(frame, type_of_frame=''):
         mask = is_nan + is_inf
         print('Found nan ', type_of_frame, mask.sum())
         frame[mask] = 0
+
     return frame
 
 

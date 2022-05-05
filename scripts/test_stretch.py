@@ -135,10 +135,11 @@ def manual_task(controller, scene_name=None, logger_number =0, final=False, save
         # controller.step(action='MoveArm', coordinateSpace="wrist", position=dict(x=0, y=0.2,z=0.2));visualize(controller, save_frames)
         # controller.step(action='RotateWristRelative', yaw=90);visualize(controller, save_frames)
         #TODO reduce indentation
-        print(scene_name)
-        print(all_actions)
-        print(all_action_details)
-    pdb.set_trace()
+        # print(scene_name)
+        # print(all_actions)
+        # print(all_action_details)
+    return all_action_details
+    # pdb.set_trace()
 #     action?m
 # action?m
 # action?hp

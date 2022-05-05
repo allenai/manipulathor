@@ -252,6 +252,8 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         self.house = pickle.loads(self.house_entry["house"])
         #TODO this probably needs to go on env side
         self.env.controller.reset()
+        if platform.system() == "Darwin": #TODO remove
+            print('The house is ', self.house_index)
         self.env.controller.step(action="CreateHouse", house=self.house,raise_for_failure=True)
         self.env.controller.step("ResetObjectFilter") #TODO should we do after each reset?
         #TODO maybe use this after that for speed up

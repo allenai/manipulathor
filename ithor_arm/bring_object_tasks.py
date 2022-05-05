@@ -28,6 +28,7 @@ from ithor_arm.ithor_arm_constants import (
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
+from scripts.dataset_generation.find_categories_to_use import get_room_type_from_id
 from scripts.hacky_objects_that_move import CONSTANTLY_MOVING_OBJECTS
 from scripts.jupyter_helper import get_reachable_positions
 
@@ -668,7 +669,7 @@ class WPickUPExploreBringObjectTask(WPickUpBringObjectTask):
 class ExploreWiseRewardTask(BringObjectTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions(self.env.controller)]
+        all_locations = [[k['x'], k['y'], k['z']] for k in (self.env.get_reachable_positions())]
         self.all_reachable_positions = torch.Tensor(all_locations)
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
         self.source_observed_reward = False
@@ -677,7 +678,13 @@ class ExploreWiseRewardTask(BringObjectTask):
         result = super(ExploreWiseRewardTask, self).metrics()
         if self.is_done():
             result['percent_room_visited'] = self.has_visited.mean().item()
+            room_type = get_room_type_from_id(self.task_info['init_location']['scene_name'])
+            metric_by_room_type = {}
+            for k, v in result.items():
+                if k in ['ep_length', 'reward', 'success', 'metric/average/success_wo_disturb', 'metric/average/final_obj_pickup/total']:
+                    metric_by_room_type[f'by_room/{room_type}/{k}'] = v
 
+            result = {**result, **metric_by_room_type}
         return result
 
     def judge(self) -> float:

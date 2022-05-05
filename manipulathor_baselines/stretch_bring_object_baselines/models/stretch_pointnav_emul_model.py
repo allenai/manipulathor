@@ -191,6 +191,11 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         # pointnav_embedding = arm_distance_to_obj_source_embedding
         # pointnav_embedding[after_pickup] = arm_distance_to_obj_destination_embedding[after_pickup]
 
+        #TODO remove
+        observations['point_nav_emul_source'] = check_for_nan_visual_observations(observations['point_nav_emul_source'], where_it_occured='point_nav_emul_source')
+        observations['point_nav_emul_destination'] = check_for_nan_visual_observations(observations['point_nav_emul_destination'], where_it_occured='point_nav_emul_destination')
+        observations['arm_point_nav_emul_source'] = check_for_nan_visual_observations(observations['arm_point_nav_emul_source'], where_it_occured='arm_point_nav_emul_source')
+        observations['arm_point_nav_emul_destination'] = check_for_nan_visual_observations(observations['arm_point_nav_emul_destination'], where_it_occured='arm_point_nav_emul_destination')
 
         agent_distance_to_obj_source = observations['point_nav_emul_source'].clone()
         agent_distance_to_obj_destination = observations['point_nav_emul_destination'].clone()
@@ -219,12 +224,10 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
 
         # I think we need two model one for pick up and one for drop off
 
-        actor_out_pickup = self.actor_pickup(x_out)
-        critic_out_pickup = self.critic_pickup(x_out)
+        actor_out_final = self.actor_pickup(x_out)
+        critic_out_final = self.critic_pickup(x_out)
 
-
-        actor_out_final = actor_out_pickup
-        critic_out_final = critic_out_pickup
+        actor_out_final = check_for_nan_visual_observations(actor_out_final, where_it_occured='actor_out_final')
 
         actor_out = CategoricalDistr(logits=actor_out_final)
 

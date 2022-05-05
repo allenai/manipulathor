@@ -24,6 +24,7 @@ from ithor_arm.ithor_arm_constants import (
 )
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.hacky_objects_that_move import OBJECTS_MOVE_THR
+from scripts.jupyter_helper import get_reachable_positions
 
 
 class ManipulaTHOREnvironment(IThorEnvironment):
@@ -112,7 +113,7 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         self.simplify_physics = simplify_physics
 
         self.start(None)
-        self.check_controller_version()
+        # self.check_controller_version()
 
         # noinspection PyTypeHints
         self.controller.docker_enabled = docker_enabled  # type: ignore
@@ -120,19 +121,20 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         self.MEMORY_SIZE = 5
         # self.memory_frames = []
 
-    def check_controller_version(self):
-        if MANIPULATHOR_COMMIT_ID is not None:
-            assert (
-                    MANIPULATHOR_COMMIT_ID in self.controller._build.url
-            ), "Build number is not right, {} vs {}, use  pip3 install -e git+https://github.com/allenai/ai2thor.git@{}#egg=ai2thor".format(
-                self.controller._build.url,
-                MANIPULATHOR_COMMIT_ID,
-                MANIPULATHOR_COMMIT_ID,
-            )
-
+    # def check_controller_version(self):
+    #     if MANIPULATHOR_COMMIT_ID is not None:
+    #         assert (
+    #                 MANIPULATHOR_COMMIT_ID in self.controller._build.url
+    #         ), "Build number is not right, {} vs {}, use  pip3 install -e git+https://github.com/allenai/ai2thor.git@{}#egg=ai2thor".format(
+    #             self.controller._build.url,
+    #             MANIPULATHOR_COMMIT_ID,
+    #             MANIPULATHOR_COMMIT_ID,
+    #         )
+    def get_reachable_positions(self):
+        return get_reachable_positions(self.controller)
     def create_controller(self):
+        assert 'commit_id' in self.env_args, 'No commit id is specified'
         controller = Controller(**self.env_args)
-
         return controller
 
     def start(

@@ -32,6 +32,7 @@ from ithor_arm.pointcloud_sensors import rotate_points_to_agent, KianaReachableB
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.thor_category_names import thor_possible_objects
+from utils.calculation_utils import calc_world_coordinates
 from utils.klemens_constants import OMNI_CATEGORIES, OMNI_TO_ITHOR, ITHOR_TO_OMNI
 
 from utils.noise_depth_util_files.sim_depth import RedwoodDepthNoise
