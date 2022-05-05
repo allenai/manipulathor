@@ -15,7 +15,6 @@ from torch.distributions.utils import lazy_property
 
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_noise_models import NoiseInMotionHabitatFlavor, NoiseInMotionSimple1DNormal
-from ithor_arm.arm_calculation_utils import convert_world_to_agent_coordinate
 
 from utils.stretch_utils.stretch_constants import (
     ADITIONAL_ARM_ARGS,
@@ -324,11 +323,18 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
 
         if action_dict['action'] is 'RotateLeft':
             new_loc["rotation"] = (new_loc["rotation"] - self.rotate_nominal) % 360
-        elif action_dict['action'] is 'RotateRight':
+        if action_dict['action'] is 'RotateLeftSmall':
+            new_loc["rotation"] = (new_loc["rotation"] - self.rotate_nominal/5) % 360
+        if action_dict['action'] is 'RotateRight':
             new_loc["rotation"] = (new_loc["rotation"] + self.rotate_nominal) % 360
+        elif action_dict['action'] is 'RotateRightSmall':
+            new_loc["rotation"] = (new_loc["rotation"] + self.rotate_nominal/5) % 360
         elif action_dict['action'] is 'MoveAhead':
             new_loc["x"] += self.ahead_nominal * np.sin(new_loc["rotation"] * np.pi / 180)
             new_loc["z"] += self.ahead_nominal * np.cos(new_loc["rotation"] * np.pi / 180)
+        elif action_dict['action'] is 'MoveBack':
+            new_loc["x"] -= self.ahead_nominal * np.sin(new_loc["rotation"] * np.pi / 180)
+            new_loc["z"] -= self.ahead_nominal * np.cos(new_loc["rotation"] * np.pi / 180)
         elif action_dict['action'] is 'TeleportFull':
             new_loc["x"] = action_dict['x']
             new_loc["y"] = action_dict['y']
@@ -431,28 +437,28 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                 action_dict["degrees"] = noise[2] - self.rotate_nominal
             
             elif action in [ROTATE_RIGHT_SMALL]:
-                # RH: Not scaling noise is deliberate. Small actions are harder to be accurate
+                # RH: lesser scaling noise is deliberate. Small actions are harder to be accurate
                 noise = self.noise_model.get_rotate_drift()
                 action_dict["action"] = "MoveAgent"
-                action_dict["ahead"] = noise[0]
-                action_dict["right"] = noise[1]
+                action_dict["ahead"] = noise[0]/2
+                action_dict["right"] = noise[1]/2
                 sr = self.controller.step(action_dict)
 
                 action_dict = dict()
                 action_dict["action"] = "RotateAgent"
-                action_dict["degrees"] = noise[2] + self.rotate_nominal / 5
+                action_dict["degrees"] = noise[2]/2 + self.rotate_nominal / 5
 
             elif action in [ROTATE_LEFT_SMALL]:
-                # RH: Not scaling noise is deliberate. Small actions are harder to be accurate
+                # RH: lesser scaling noise is deliberate. Small actions are harder to be accurate
                 noise = self.noise_model.get_rotate_drift()
                 action_dict["action"] = "MoveAgent"
-                action_dict["ahead"] = noise[0]
-                action_dict["right"] = noise[1]
+                action_dict["ahead"] = noise[0]/2
+                action_dict["right"] = noise[1]/2
                 sr = self.controller.step(action_dict)
 
                 action_dict = dict()
                 action_dict["action"] = "RotateAgent"
-                action_dict["degrees"] = noise[2] - self.rotate_nominal / 5
+                action_dict["degrees"] = noise[2]/2 - self.rotate_nominal / 5
 
 
         elif action in [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,]:
