@@ -105,6 +105,7 @@ def get_visible_objects_with_their_info(controller, valid_pickupable_objects, ag
     return object_infos
 def generate_dataset_for_scenes(scene_ids):
     env_to_work_with = copy.deepcopy(STRETCH_ENV_ARGS)
+    # env_to_work_with['branch'] = 'nanna-stretch'
     env_to_work_with['branch'] = 'nanna-culling-stretch'
     env_to_work_with['scene'] = 'Procedural'
     env_to_work_with['visibilityDistance'] = 2

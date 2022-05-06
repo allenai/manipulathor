@@ -69,7 +69,6 @@ def hacky_visualization(observations, object_mask, base_directory_to_right_image
             gt_mask = gt_mask.squeeze(0).squeeze(0).repeat(1,1, 3)
             list_of_visualizations.append(gt_mask)
         if distance_vector_to_viz is not None:
-
             arm_dist = distance_vector_to_viz['arm_dist'].squeeze(0).squeeze(0)
             agent_dist = distance_vector_to_viz['agent_dist'].squeeze(0).squeeze(0)
 

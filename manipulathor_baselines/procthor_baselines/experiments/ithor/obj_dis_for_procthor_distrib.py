@@ -1,15 +1,12 @@
 import torch
 
-from manipulathor_baselines.stretch_bring_object_baselines.experiments.ithor.pointnav_emul_stretch_all_rooms import \
-    PointNavEmulStretchAllRooms
-from manipulathor_baselines.stretch_bring_object_baselines.experiments.ithor.pointnav_emul_stretch_procthor import \
-    PointNavEmulStretchProcTHOR
+from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_dis_for_procthor import ObjDisArmPointNavProcTHOR
 
 
-class PointNavEmulStretchProcTHORDistrib(
-    PointNavEmulStretchProcTHOR
+class ObjDisArmPointNavProcTHORDistrib(
+    ObjDisArmPointNavProcTHOR
 ):
-    NUM_PROCESSES = 15 # one them crashed for space?
+    NUM_PROCESSES = 20 # one them crashed for space?
     def __init__(
             self,
             distributed_nodes: int = 1,

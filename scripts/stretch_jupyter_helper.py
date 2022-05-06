@@ -7,9 +7,10 @@ import ai2thor.fifo_server
 
 
 ### CONSTANTS
+import numpy as np
 from pyquaternion import Quaternion
 
-from manipulathor_utils.debugger_util import ForkedPdb
+from manipulathor_utils.debugger_util import ForkedPdb, visualize_current_frames
 from utils.stretch_utils.stretch_constants import INTEL_FOV_W, INTEL_FOV_H, KINECT_FOV_W, KINECT_FOV_H
 
 ADITIONAL_ARM_ARGS = {
@@ -100,16 +101,18 @@ def reset_environment_and_additional_commands(controller, scene_name = None):
         pass
     else:
         controller.reset(scene_name)
-    controller.step(action="MakeAllObjectsMoveable")
-    controller.step(action="MakeObjectsStaticKinematicMassThreshold")
-    make_all_objects_unbreakable(controller)
+        controller.step(action="MakeAllObjectsMoveable")
+        controller.step(action="MakeObjectsStaticKinematicMassThreshold")
+        make_all_objects_unbreakable(controller)
 
-    assert controller.last_event.metadata['fov'] == max(INTEL_FOV_W, INTEL_FOV_H)
-    assert controller.last_event.metadata['thirdPartyCameras'][0]['fieldOfView'] == max(KINECT_FOV_W, KINECT_FOV_H)
+        assert controller.last_event.metadata['fov'] == max(INTEL_FOV_W, INTEL_FOV_H)
+        assert controller.last_event.metadata['thirdPartyCameras'][0]['fieldOfView'] == max(KINECT_FOV_W, KINECT_FOV_H)
+        event_init_arm = controller.step(dict(action="MoveArm", position=dict(x=0,y=0.8,z=0), **ADITIONAL_ARM_ARGS))
 
-    event_init_arm = controller.step(dict(action="MoveArm", position=dict(x=0,y=0.8,z=0), **ADITIONAL_ARM_ARGS))
-    if event_init_arm.metadata['lastActionSuccess'] is False:
-        print('Initialze arm failed')
+        # event_init_arm = controller.step(dict(action="MoveArm", position=dict(x=0,y=10,z=0), **ADITIONAL_ARM_ARGS))
+
+        if event_init_arm.metadata['lastActionSuccess'] is False:
+            print('Initialze arm failed')
     return
 
 def only_reset_scene(controller, scene_name):
@@ -316,6 +319,18 @@ def find_arm_distance_to_obj(controller, object_type):
     hand_location = controller.last_event.metadata['arm']['joints'][-1]['position']
     distance = sum([(hand_location[k] - object_location[k]) ** 2 for k in hand_location])**0.5
     return distance
+
+def remove_nan_inf_for_frames(frame, type_of_frame=''):
+
+    is_nan = (frame != frame)
+    is_inf = np.isinf(frame)
+    if np.any(is_nan) or np.any(is_inf):
+        mask = is_nan + is_inf
+        print('Found nan ', type_of_frame, mask.sum())
+        frame[mask] = 0
+
+    return frame
+
 
 # def old_execute_command(controller, command,action_dict_addition):
 #

@@ -195,6 +195,9 @@ command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTH
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
  --seed 10 --machine_id 0 --extra_tag ithor_train_no_armpointnav'
+#  --seed 10 --machine_id 0 --extra_tag procthor_only_pickup_from_pretrain_big_fov -c ~/exp_PointNavEmulStretchRoboTHORDistrib_only_pickup_robothor_fixed_depth_ranges_from_pretrain__stage_00__steps_000289507150.pt '
+
+#
 
 
 # scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/PointNavEmulStretchProcTHORDistrib/procthor_onlypickup_task_scratch/2022-04-28_16-56-04/exp_PointNavEmulStretchProcTHORDistrib_procthor_onlypickup_task_scratch__stage_00__steps_000010595298.pt ~/
@@ -210,6 +213,27 @@ command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTH
 # scp 18.237.159.252:~/manipulathor/experiment_output/checkpoints/ComplexRewardNoPUwAgentLocationZeroShotDistrib/2021-11-12_19-42-56/exp_ComplexRewardNoPUwAgentLocationZeroShotDistrib__stage_00__steps_000018553490.pt ~/
 # command = 'scp ec2-34-220-30-46.us-west-2.compute.amazonaws.com:~/manipulathor/experiment_output/checkpoints/ComplexRewardNoPUWMemory/2021-10-08_23-12-59/exp_ComplexRewardNoPUWMemory__stage_00__steps_000045112992.pt ~/'
 # list_of_servers = ['aws1', 'aws2', 'aws3', 'aws4', ]
+
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/pointnav_emul_stretch_procthor_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag procthor_onlypickup_task_scratch -c ~/exp_PointNavEmulStretchProcTHORDistrib_procthor_onlypickup_task_scratch__stage_00__steps_000019677434.pt'
+
+# scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/PointNavEmulStretchProcTHORDistrib/procthor_onlypickup_task_scratch/2022-04-29_16-27-40/exp_PointNavEmulStretchProcTHORDistrib_procthor_onlypickup_task_scratch__stage_00__steps_000019677434.pt ~/
+
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/pointnav_emul_stretch_procthor_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag procthor_onlypickup_task_scratch_after_debug'
+
+
+command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_distrib \
+--distributed_ip_and_port IP_ADR:6060 \
+ --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+ --seed 10 --machine_id 0 --extra_tag procthor_armpointnav -c ~/exp_ObjDisArmPointNavProcTHORDistrib_procthor_armpointnav__stage_00__steps_000001006560.pt'
+
+# scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavProcTHORDistrib/procthor_armpointnav/2022-05-05_23-40-21/exp_ObjDisArmPointNavProcTHORDistrib_procthor_armpointnav__stage_00__steps_000001006560.pt ~/
+
 server_set1 = {
     'servers':[f'aws{i}' for i in range(1,5)],
     'ip_adr': '18.237.24.199',

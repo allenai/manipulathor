@@ -2,6 +2,7 @@ import platform
 import random
 
 import gym
+import numpy as np
 import torch
 from torch import nn
 
@@ -22,7 +23,8 @@ from utils.procthor_utils.procthor_bring_object_task_samplers import ProcTHORDiv
 from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask, \
     StretchExploreWiseRewardTaskOnlyPickUp, StretchObjectNavTask
-from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, STRETCH_MANIPULATHOR_COMMIT_ID, INTEL_CAMERA_WIDTH
+from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, STRETCH_MANIPULATHOR_COMMIT_ID, INTEL_CAMERA_WIDTH, \
+    PROCTHOR_COMMIT_ID
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, \
     RGBSensorStretchKinect, DepthSensorStretchKinect, AgentBodyPointNavSensor, AgentBodyPointNavEmulSensor, \
     RGBSensorStretchKinectZero, \
@@ -43,12 +45,6 @@ class PointNavEmulStretchProcTHOR(
     distance_thr = 1.5 # is this a good number?
     only_close_big_masks = True
 
-
-    #TODO change this
-    distance_thr = 2
-    only_close_big_masks = False
-
-
     source_mask_sensor_intel = IntelNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=only_close_big_masks)
     destination_mask_sensor_intel = IntelNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=only_close_big_masks)
     depth_sensor_intel = IntelRawDepthSensor()
@@ -56,26 +52,40 @@ class PointNavEmulStretchProcTHOR(
     source_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=only_close_big_masks)
     destination_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=only_close_big_masks)
     depth_sensor_kinect = KinectRawDepthSensor()
-
+    mean = np.array([0.485, 0.456, 0.406])
+    stdev = np.array([0.229, 0.224, 0.225])
 
     SENSORS = [
         RGBSensorStretchIntel(
             height=desired_screen_size,
             width=desired_screen_size,
-            use_resnet_normalization=True,
+            # use_resnet_normalization=True, #TODO
+            mean=mean,
+            stdev=stdev,
             uuid="rgb_lowres",
         ),
-        DepthSensorStretchIntel(height=desired_screen_size,width=desired_screen_size,use_normalization=True,uuid="depth_lowres",),
+        DepthSensorStretchIntel(
+            height=desired_screen_size,
+            width=desired_screen_size,
+            # use_normalization=True, #TODO
+            mean=np.array(0.5),
+            stdev=np.array(0.25),
+            uuid="depth_lowres",
+            ),
         RGBSensorStretchKinect(
             height=desired_screen_size,
             width=desired_screen_size,
-            use_resnet_normalization=True,
+            # use_resnet_normalization=True, #TODO
+            mean=mean,
+            stdev=stdev,
             uuid="rgb_lowres_arm",
         ),
         DepthSensorStretchKinect(
             height=desired_screen_size,
             width=desired_screen_size,
-            use_normalization=True,
+            # use_normalization=True, #TODO WHY THO? WHY?
+            mean=np.array(0.5), #TODO DO WE NEED TO DO THIS EVERYWHERE? FOR BOTH RGB AND DEPTH
+            stdev=np.array(0.25),
             uuid="depth_lowres_arm",
         ),
         StretchPickedUpObjSensor(),
@@ -93,15 +103,19 @@ class PointNavEmulStretchProcTHOR(
     MAX_STEPS = 200
 
     if platform.system() == "Darwin":
-        MAX_STEPS = 10
+        MAX_STEPS = 200
+        VISUALIZE = False #TODO remove
 
     TASK_SAMPLER = ProcTHORDiverseBringObjectTaskSampler
     TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp #
 
     NUM_PROCESSES = 30
 
-    TRAIN_SCENES = ['ProcTHOR']
-    TEST_SCENES = ROBOTHOR_VAL
+    TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(6999)]
+    if platform.system() == "Darwin":
+        TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
+
+    TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST
     OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list]))
 
 
@@ -116,7 +130,9 @@ class PointNavEmulStretchProcTHOR(
         self.REWARD_CONFIG['object_found'] = 1
         # self.ENV_ARGS = STRETCH_ENV_ARGS
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
-        self.ENV_ARGS['commit_id'] = '0d540af71ea6408ead71d94f550d5a324686c7f3'
+        # self.ENV_ARGS['commit_id'] = '0d540af71ea6408ead71d94f550d5a324686c7f3'
+        self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
+
         #TODO add all procthor elements
         self.ENV_ARGS['renderInstanceSegmentation'] = True
         self.ENV_ARGS['scene'] = 'Procedural'
