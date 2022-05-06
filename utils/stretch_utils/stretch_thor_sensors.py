@@ -488,7 +488,7 @@ class AgentBodyPointNavEmulSensorDeadReckoning(Sensor):
         return fov, belief_camera_horizon, belief_camera_xyz, belief_camera_rotation, arm_state
 
     def get_observation(
-            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
         mask = self.mask_sensor.get_observation(env, task, *args, **kwargs)
@@ -593,7 +593,7 @@ class ArmPointNavEmulSensorDeadReckoning(Sensor):
         return fov, belief_camera_horizon, belief_camera_xyz, belief_camera_rotation, arm_state
 
     def get_observation(
-            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
         mask = self.mask_sensor.get_observation(env, task, *args, **kwargs)

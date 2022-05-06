@@ -387,6 +387,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
 
             # RH: order matters, nominal action happens last
             action_dict = {**action_dict, **copy_aditions}
+            # ForkedPdb().set_trace()
             if action in [MOVE_AHEAD]:
                 noise = self.noise_model.get_ahead_drift(self.ahead_nominal)
 
@@ -394,7 +395,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                 action_dict["degrees"] = noise[2]
                 sr = self.controller.step(action_dict)
 
-                action_dict = dict()
+                action_dict = {**copy_aditions}
                 action_dict["action"] = "MoveAgent"
                 action_dict["ahead"] = noise[0] + self.ahead_nominal
                 action_dict["right"] = noise[1]
@@ -408,7 +409,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                 action_dict["degrees"] = noise[2]
                 sr = self.controller.step(action_dict)
 
-                action_dict = dict()
+                action_dict = {**copy_aditions}
                 action_dict["action"] = "MoveAgent"
                 action_dict["ahead"] = noise[0] - self.ahead_nominal
                 action_dict["right"] = noise[1]
@@ -421,7 +422,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                 action_dict["right"] = noise[1]
                 sr = self.controller.step(action_dict)
 
-                action_dict = dict()
+                action_dict = {**copy_aditions}
                 action_dict["action"] = "RotateAgent"
                 action_dict["degrees"] = noise[2] + self.rotate_nominal
 
@@ -432,7 +433,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                 action_dict["right"] = noise[1]
                 sr = self.controller.step(action_dict)
 
-                action_dict = dict()
+                action_dict = {**copy_aditions}
                 action_dict["action"] = "RotateAgent"
                 action_dict["degrees"] = noise[2] - self.rotate_nominal
             
@@ -444,7 +445,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                 action_dict["right"] = noise[1]/2
                 sr = self.controller.step(action_dict)
 
-                action_dict = dict()
+                action_dict = {**copy_aditions}
                 action_dict["action"] = "RotateAgent"
                 action_dict["degrees"] = noise[2]/2 + self.rotate_nominal / 5
 
@@ -456,7 +457,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                 action_dict["right"] = noise[1]/2
                 sr = self.controller.step(action_dict)
 
-                action_dict = dict()
+                action_dict = {**copy_aditions}
                 action_dict["action"] = "RotateAgent"
                 action_dict["degrees"] = noise[2]/2 - self.rotate_nominal / 5
 
@@ -484,14 +485,14 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             action_dict = dict(action='RotateWristRelative', yaw=WRIST_ROTATION / 5)
 
 
-        sr = self.controller.step(action_dict)
+        sr_nominal = self.controller.step(action_dict)
         self.list_of_actions_so_far.append(action_dict)
 
         # RH: Nominal location only updates for successful actions. Note that that drift 
         # action might succeed even if the "main" action fails
-        if sr.metadata["lastActionSuccess"]:
+        if sr_nominal.metadata["lastActionSuccess"]:
             self.update_nominal_location(original_action_dict)
-        
+
         if self._verbose:
             print(self.controller.last_event)
 
@@ -502,4 +503,18 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             assert last_frame is not None
             self.last_event.frame = last_frame
 
-        return sr
+        if not sr_nominal.metadata["lastActionSuccess"] and action in [MOVE_AHEAD, MOVE_BACK, ROTATE_RIGHT, ROTATE_LEFT, ROTATE_RIGHT_SMALL, ROTATE_LEFT_SMALL]:
+            # if the action fails, sample the noise model for a turn 
+            # does this mess up metadata? and is this reasonable? what action failure modes happen in sim vs real?
+            noise = self.noise_model.get_rotate_drift()
+            action_dict = {**copy.deepcopy(ADITIONAL_ARM_ARGS)}
+            action_dict["action"] = "MoveAgent"
+            action_dict["ahead"] = noise[0]
+            action_dict["right"] = noise[1]
+            sr = self.controller.step(action_dict)
+            action_dict = {**copy.deepcopy(ADITIONAL_ARM_ARGS)}
+            action_dict["action"] = "RotateAgent"
+            action_dict["degrees"] = noise[2]
+            sr = self.controller.step(action_dict)
+
+        return sr_nominal

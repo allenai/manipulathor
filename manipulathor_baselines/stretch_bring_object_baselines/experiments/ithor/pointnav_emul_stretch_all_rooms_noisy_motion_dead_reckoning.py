@@ -101,6 +101,7 @@ class PointNavEmulStretchAllRooms(
         super().__init__()
         self.REWARD_CONFIG['exploration_reward'] = 0.1
         self.REWARD_CONFIG['object_found'] = 1
+        self.REWARD_CONFIG['failed_action_penalty'] = -0.06 # double the current - stretch really likes to back up into things
         # self.ENV_ARGS = STRETCH_ENV_ARGS
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
