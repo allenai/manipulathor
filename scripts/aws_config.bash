@@ -6,7 +6,9 @@ python3 -m venv manipulathor_env
 source ~/manipulathor_env/bin/activate
 pip3 install --upgrade pip
 pip3 install -r aws_requirements.txt
-pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+5afa5633597b12898e12eed528c2332a50bc0f79
+#ai2thor==0+dc0f9ecd8672dc2d62651f567ff95c63f3542332
+#pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+5afa5633597b12898e12eed528c2332a50bc0f79
+pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+dc0f9ecd8672dc2d62651f567ff95c63f3542332
 ssh-keygen; cat ~/.ssh/id_rsa.pub
 cat scripts/public_keys.txt >> ~/.ssh/authorized_keys
 #cat ~/manipulathor/scripts/public_keys.txt >> ~/.ssh/authorized_keys

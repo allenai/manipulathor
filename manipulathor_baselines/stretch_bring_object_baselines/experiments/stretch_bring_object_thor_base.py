@@ -18,6 +18,7 @@ from manipulathor_baselines.stretch_bring_object_baselines.experiments.stretch_b
     StretchBringObjectBaseConfig
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
+from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
@@ -56,10 +57,13 @@ class StretchBringObjectThorBaseConfig(StretchBringObjectBaseConfig, ABC):
 
     NUMBER_OF_TEST_PROCESS = 10
 
+    ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
+
     def __init__(self):
         super().__init__()
         self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
         self.ENV_ARGS['renderDepthImage'] = True
+        self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE
 
 
     def machine_params(self, mode="train", **kwargs):

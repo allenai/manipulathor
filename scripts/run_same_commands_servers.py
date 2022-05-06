@@ -186,10 +186,15 @@ import pdb
 # --distributed_ip_and_port IP_ADR:6060 \
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 --extra_tag procthor_only_pickup_from_pretrain -c ~/exp_PointNavEmulStretchRoboTHORDistrib_only_pickup_robothor_fixed_depth_ranges_from_pretrain__stage_00__steps_000289507150.pt '
-command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/pointnav_emul_stretch_procthor_distrib \
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/pointnav_emul_stretch_procthor_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag procthor_only_pickup_from_pretrain -c ~/exp_PointNavEmulStretchProcTHORDistrib_procthor_onlypickup_task_scratch__stage_00__steps_000010595298.pt '
+
+command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/no_pointnav_stretch_all_rooms_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag procthor_only_pickup_from_pretrain -c ~/exp_PointNavEmulStretchProcTHORDistrib_procthor_onlypickup_task_scratch__stage_00__steps_000010595298.pt '
+ --seed 10 --machine_id 0 --extra_tag ithor_train_no_armpointnav'
 
 
 # scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/PointNavEmulStretchProcTHORDistrib/procthor_onlypickup_task_scratch/2022-04-28_16-56-04/exp_PointNavEmulStretchProcTHORDistrib_procthor_onlypickup_task_scratch__stage_00__steps_000010595298.pt ~/
@@ -211,16 +216,7 @@ server_set1 = {
 }
 server_set2 = {
     'servers':[f'aws{i}' for i in range(5, 9)],
-    'ip_adr': '18.237.159.252',
-}
-
-server_set3 = {
-    'servers':[f'aws{i}' for i in range(9, 13)],
-    'ip_adr': '52.36.184.123',
-}
-server_set_all = {
-    'servers':[f'aws{i}' for i in range(1,9)],
-    'ip_adr': '34.220.30.46',
+    'ip_adr': '52.24.154.159',
 }
 
 
