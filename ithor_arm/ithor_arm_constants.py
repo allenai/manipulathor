@@ -64,7 +64,7 @@ MANIPULATHOR_ENV_ARGS = dict(
     autoSimulation=False,
     autoSyncTransforms=True,
     renderInstanceSegmentation=True,
-    commit_id=MANIPULATHOR_COMMIT_ID,
+    # commit_id=MANIPULATHOR_COMMIT_ID,
 )
 
 ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_X_P,MOVE_ARM_X_M,MOVE_ARM_Y_P,MOVE_ARM_Y_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_AHEAD,ROTATE_RIGHT,ROTATE_LEFT]
@@ -89,13 +89,16 @@ def make_all_objects_unbreakable(controller):
 
 
 def reset_environment_and_additional_commands(controller, scene_name):
-    controller.reset(scene_name)
-    controller.step(action="MakeAllObjectsMoveable")
-    controller.step(action="MakeObjectsStaticKinematicMassThreshold")
-    make_all_objects_unbreakable(controller)
-    # controller.step('ToggleMagnetVisibility')  do we want to have this here or do we want to have it during training and only change it for obejct detection part?
-    # controller.step(action='SetHandSphereRadius', radius=0.2)
-    return
+    if scene_name == 'Procedural' or scene_name is None:
+        return
+    else:
+        controller.reset(scene_name)
+        controller.step(action="MakeAllObjectsMoveable")
+        controller.step(action="MakeObjectsStaticKinematicMassThreshold")
+        make_all_objects_unbreakable(controller)
+        # controller.step('ToggleMagnetVisibility')  do we want to have this here or do we want to have it during training and only change it for obejct detection part?
+        # controller.step(action='SetHandSphereRadius', radius=0.2)
+        return
 
 
 def transport_wrapper(controller, target_object, target_location):

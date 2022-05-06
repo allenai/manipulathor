@@ -24,6 +24,7 @@ from ithor_arm.ithor_arm_constants import (
 )
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.hacky_objects_that_move import OBJECTS_MOVE_THR
+from scripts.jupyter_helper import get_reachable_positions
 
 
 class ManipulaTHOREnvironment(IThorEnvironment):
@@ -112,27 +113,31 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         self.simplify_physics = simplify_physics
 
         self.start(None)
-        self.check_controller_version()
+        # self.check_controller_version()
 
         # noinspection PyTypeHints
         self.controller.docker_enabled = docker_enabled  # type: ignore
 
         self.MEMORY_SIZE = 5
+
+        if "quality" not in self.env_args:
+            self.env_args["quality"] = self._quality
         # self.memory_frames = []
 
-    def check_controller_version(self):
-        if MANIPULATHOR_COMMIT_ID is not None:
-            assert (
-                    MANIPULATHOR_COMMIT_ID in self.controller._build.url
-            ), "Build number is not right, {} vs {}, use  pip3 install -e git+https://github.com/allenai/ai2thor.git@{}#egg=ai2thor".format(
-                self.controller._build.url,
-                MANIPULATHOR_COMMIT_ID,
-                MANIPULATHOR_COMMIT_ID,
-            )
-
+    # def check_controller_version(self):
+    #     if MANIPULATHOR_COMMIT_ID is not None:
+    #         assert (
+    #                 MANIPULATHOR_COMMIT_ID in self.controller._build.url
+    #         ), "Build number is not right, {} vs {}, use  pip3 install -e git+https://github.com/allenai/ai2thor.git@{}#egg=ai2thor".format(
+    #             self.controller._build.url,
+    #             MANIPULATHOR_COMMIT_ID,
+    #             MANIPULATHOR_COMMIT_ID,
+    #         )
+    def get_reachable_positions(self):
+        return get_reachable_positions(self.controller)
     def create_controller(self):
+        assert 'commit_id' in self.env_args, 'No commit id is specified'
         controller = Controller(**self.env_args)
-
         return controller
 
     def start(
@@ -172,7 +177,8 @@ class ManipulaTHOREnvironment(IThorEnvironment):
 
         self._started = True
         self.reset(scene_name=scene_name, move_mag=move_mag, **kwargs)
-
+    def reset_environment_and_additional_commands(self, scene_name):
+        reset_environment_and_additional_commands(self.controller, scene_name)
     def reset(
             self,
             scene_name: Optional[str],
@@ -190,13 +196,13 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         # to solve the crash issue
         # why do we still have this crashing problem?
         try:
-            reset_environment_and_additional_commands(self.controller, scene_name)
+            self.reset_environment_and_additional_commands(scene_name)
         except Exception as e:
             print("RESETTING THE SCENE,", scene_name, 'because of', str(e))
             self.controller = ai2thor.controller.Controller(
                 **self.env_args
             )
-            reset_environment_and_additional_commands(self.controller, scene_name)
+            self.reset_environment_and_additional_commands(scene_name)
 
         if self.object_open_speed != 1.0:
             self.controller.step(

@@ -1,5 +1,6 @@
 """Task Definions for the task of ArmPointNav"""
 import copy
+import math
 from typing import Dict, Tuple, List, Any, Optional
 
 import gym
@@ -28,6 +29,7 @@ from ithor_arm.ithor_arm_constants import (
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
+from scripts.dataset_generation.find_categories_to_use import get_room_type_from_id
 from scripts.hacky_objects_that_move import CONSTANTLY_MOVING_OBJECTS
 from scripts.jupyter_helper import get_reachable_positions
 
@@ -205,7 +207,7 @@ class AbstractBringObjectTask(Task[ManipulaTHOREnvironment]):
 
             # this ratio can be more than 1?
             if self.object_picked_up:
-                ratio_distance_left = final_obj_distance_from_goal / original_distance
+                ratio_distance_left = final_obj_distance_from_goal / (original_distance + 1e-9)
                 result["metric/average/ratio_distance_left"] = ratio_distance_left
                 result["metric/average/eplen_pickup"] = self.eplen_pickup
             result["metric/average/success_wo_disturb"] = (
@@ -412,6 +414,8 @@ class BringObjectTask(AbstractBringObjectTask):
             )
         self.last_obj_to_goal_distance = current_obj_to_goal_distance
         reward += delta_obj_to_goal_distance_reward
+
+
 
         # add collision cost, maybe distance to goal objective,...
 
@@ -668,7 +672,7 @@ class WPickUPExploreBringObjectTask(WPickUpBringObjectTask):
 class ExploreWiseRewardTask(BringObjectTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        all_locations = [[k['x'], k['y'], k['z']] for k in get_reachable_positions(self.env.controller)]
+        all_locations = [[k['x'], k['y'], k['z']] for k in (self.env.get_reachable_positions())]
         self.all_reachable_positions = torch.Tensor(all_locations)
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
         self.source_observed_reward = False
@@ -677,7 +681,13 @@ class ExploreWiseRewardTask(BringObjectTask):
         result = super(ExploreWiseRewardTask, self).metrics()
         if self.is_done():
             result['percent_room_visited'] = self.has_visited.mean().item()
+            room_type = get_room_type_from_id(self.task_info['init_location']['scene_name'])
+            metric_by_room_type = {}
+            for k, v in result.items():
+                if k in ['ep_length', 'reward', 'success', 'metric/average/success_wo_disturb', 'metric/average/final_obj_pickup/total']:
+                    metric_by_room_type[f'by_room/{room_type}/{k}'] = v
 
+            result = {**result, **metric_by_room_type}
         return result
 
     def judge(self) -> float:
@@ -754,6 +764,13 @@ class ExploreWiseRewardTask(BringObjectTask):
         reward += delta_obj_to_goal_distance_reward
 
         # add collision cost, maybe distance to goal objective,...
+
+        #TODO remove as soon as bug is resolved
+        if math.isinf(reward) or math.isnan(reward):
+            print('reward is none', reward)
+            print('delta_obj_to_goal_distance_reward', delta_obj_to_goal_distance_reward)
+            print('delta_arm_to_obj_distance_reward', delta_arm_to_obj_distance_reward)
+            print('room', self.task_info['scene_name'])
 
         return float(reward)
 

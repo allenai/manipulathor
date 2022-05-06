@@ -144,9 +144,7 @@ class BringObjImageVisualizer(LoggerVisualizer):
         concat_all_images = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
         save_image_list_to_gif(concat_all_images, gif_name, self.log_dir)
         this_controller = environment.controller
-        scene = this_controller.last_event.metadata[
-            "sceneName"
-        ]
+        scene = this_controller.last_event.metadata["sceneName"]
         reset_environment_and_additional_commands(this_controller, scene)
 
         additional_observation_start = []
@@ -156,22 +154,24 @@ class BringObjImageVisualizer(LoggerVisualizer):
         if 'target_location_mask' in episode_info.get_observations():
             additional_observation_goal.append('target_location_mask')
 
-        self.log_start_goal(
-            environment,
-            task_info["visualization_source"],
-            tag="start",
-            img_adr=os.path.join(self.log_dir, time_to_write),
-            additional_observations=additional_observation_start,
-            episode_info=episode_info
-        )
-        self.log_start_goal(
-            environment,
-            task_info["visualization_target"],
-            tag="goal",
-            img_adr=os.path.join(self.log_dir, time_to_write),
-            additional_observations=additional_observation_goal,
-            episode_info=episode_info
-        )
+        if 'visualization_source' in task_info and 'visualization_target' in task_info:
+
+            self.log_start_goal(
+                environment,
+                task_info["visualization_source"],
+                tag="start",
+                img_adr=os.path.join(self.log_dir, time_to_write),
+                additional_observations=additional_observation_start,
+                episode_info=episode_info
+            )
+            self.log_start_goal(
+                environment,
+                task_info["visualization_target"],
+                tag="goal",
+                img_adr=os.path.join(self.log_dir, time_to_write),
+                additional_observations=additional_observation_goal,
+                episode_info=episode_info
+            )
 
         self.log_queue = []
         self.action_queue = []

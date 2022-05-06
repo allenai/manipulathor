@@ -1,8 +1,9 @@
 import copy
+import datetime
+import os
 import random
 
 import torch
-from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 from typing import Any, Union, Optional
 
 import gym
@@ -11,10 +12,9 @@ import numpy as np
 from allenact.embodiedai.sensors.vision_sensors import DepthSensor, Sensor, RGBSensor
 from allenact.base_abstractions.task import Task
 from allenact.utils.misc_utils import prepare_locals_for_super
-from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 import cv2
-
+from matplotlib import pyplot as plt
 
 from ithor_arm.arm_calculation_utils import (
     convert_world_to_agent_coordinate,
@@ -22,13 +22,14 @@ from ithor_arm.arm_calculation_utils import (
     diff_position,
 )
 # from ithor_arm.bring_object_sensors import NoisyObjectMask, add_mask_noise
-# from ithor_arm.ithor_arm_environment import IThorEnvironment
+# from ithor_arm.ithor_arm_environment import StretchManipulaTHOREnvironment
 # from ithor_arm.ithor_arm_sensors import DepthSensorThor
 # from ithor_arm.near_deadline_sensors import calc_world_coordinates
 from utils.calculation_utils import calc_world_coordinates
 
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.noise_in_motion_util import squeeze_bool_mask
+from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 from utils.stretch_utils.stretch_sim2real_utils import kinect_reshape, intel_reshape
 
 
@@ -36,53 +37,57 @@ from utils.stretch_utils.stretch_sim2real_utils import kinect_reshape, intel_res
 
 class DepthSensorStretchIntel(
     DepthSensor[
-        Union[IThorEnvironment],
-        Union[Task[IThorEnvironment]],
+        Union[StretchManipulaTHOREnvironment],
+        Union[Task[StretchManipulaTHOREnvironment]],
     ]
 ):
     """Sensor for Depth images in THOR.
 
-    Returns from a running IThorEnvironment instance, the current RGB
+    Returns from a running StretchManipulaTHOREnvironment instance, the current RGB
     frame corresponding to the agent's egocentric view.
     """
 
-    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+    def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
 
-        depth = (env.controller.last_event.depth_frame.copy())
-        return intel_reshape(depth)
+        # depth = (env.controller.last_event.depth_frame.copy())
+        # check_validity(depth, env.controller,scene_number=task.task_info['scene_name']) TODO remove
+        # return intel_reshape(depth)
+        return env.intel_depth
 
 
 class DepthSensorStretchKinect(
     DepthSensor[
-        Union[IThorEnvironment],
-        Union[Task[IThorEnvironment]],
+        Union[StretchManipulaTHOREnvironment],
+        Union[Task[StretchManipulaTHOREnvironment]],
     ]
 ):
     """Sensor for Depth images in THOR.
 
-    Returns from a running IThorEnvironment instance, the current RGB
+    Returns from a running StretchManipulaTHOREnvironment instance, the current RGB
     frame corresponding to the agent's egocentric view.
     """
 
-    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+    def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
 
-        depth = env.controller.last_event.third_party_depth_frames[0].copy()
-        return kinect_reshape(depth)
+        # depth = env.controller.last_event.third_party_depth_frames[0].copy()
+        # check_validity(depth, env.controller,scene_number=task.task_info['scene_name']) TODO remove
+        # return kinect_reshape(depth)
+        return env.kinect_depth
 
 
 class DepthSensorStretchKinectZero(
     DepthSensor[
-        Union[IThorEnvironment],
-        Union[Task[IThorEnvironment]],
+        Union[StretchManipulaTHOREnvironment],
+        Union[Task[StretchManipulaTHOREnvironment]],
     ]
 ):
     """Sensor for Depth images in THOR.
 
-    Returns from a running IThorEnvironment instance, the current RGB
+    Returns from a running StretchManipulaTHOREnvironment instance, the current RGB
     frame corresponding to the agent's egocentric view.
     """
 
-    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+    def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
 
         depth = env.controller.last_event.third_party_depth_frames[0].copy()
         depth[:] = 0
@@ -93,11 +98,11 @@ class RGBSensorStretchKinect(
 ):
     """Sensor for RGB images in THOR.
 
-    Returns from a running IThorEnvironment instance, the current RGB
+    Returns from a running StretchManipulaTHOREnvironment instance, the current RGB
     frame corresponding to the agent's egocentric view.
     """
 
-    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+    def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
 
         rgb = env.controller.last_event.third_party_camera_frames[0].copy()
         return kinect_reshape(rgb)
@@ -108,11 +113,11 @@ class RGBSensorStretchKinectZero(
 ):
     """Sensor for RGB images in THOR.
 
-    Returns from a running IThorEnvironment instance, the current RGB
+    Returns from a running StretchManipulaTHOREnvironment instance, the current RGB
     frame corresponding to the agent's egocentric view.
     """
 
-    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+    def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
 
         rgb = env.controller.last_event.third_party_camera_frames[0].copy()
         rgb[:] = 0
@@ -123,11 +128,11 @@ class RGBSensorStretchIntel(
 ):
     """Sensor for RGB images in THOR.
 
-    Returns from a running IThorEnvironment instance, the current RGB
+    Returns from a running StretchManipulaTHOREnvironment instance, the current RGB
     frame corresponding to the agent's egocentric view.
     """
 
-    def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+    def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
 
         rgb = (env.controller.last_event.frame.copy())
 
@@ -147,11 +152,11 @@ class RGBSensorStretchIntel(
 # ):
 #     """Sensor for RGB images in THOR.
 #
-#     Returns from a running IThorEnvironment instance, the current RGB
+#     Returns from a running StretchManipulaTHOREnvironment instance, the current RGB
 #     frame corresponding to the agent's egocentric view.
 #     """
 #
-#     def frame_from_env(self, env: IThorEnvironment, task: Optional[Task]) -> np.ndarray:
+#     def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
 #         print('take care of resizing because of the kinect vs intel')
 #         ForkedPdb().set_trace()
 #
@@ -201,7 +206,7 @@ class AgentBodyPointNavSensor(Sensor):
 
 
     def get_observation(
-            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
         if self.type == 'source':
             info_to_search = 'source_object_id'
@@ -243,7 +248,7 @@ class AgentBodyPointNavEmulSensor(Sensor):
         return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state, fov=fov)
 
     def get_observation(
-            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
         mask = squeeze_bool_mask(self.mask_sensor.get_observation(env, task, *args, **kwargs))
@@ -268,9 +273,11 @@ class AgentBodyPointNavEmulSensor(Sensor):
             valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
             point_in_world = world_space_point_cloud[valid_points]
             middle_of_object = point_in_world.mean(dim=0)
+            middle_of_object = check_for_nan_obj_location(middle_of_object, 'calc agent body')
+
             self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world), task.num_steps_taken()))
 
-        return self.average_so_far(camera_xyz, camera_rotation, arm_state, task.num_steps_taken())
+        return check_for_nan_obj_location(self.average_so_far(camera_xyz, camera_rotation, arm_state, task.num_steps_taken()), 'average agent body')
 
     def average_so_far(self, camera_xyz, camera_rotation, arm_state, current_step_number):
         if len(self.pointnav_history_aggr) == 0:
@@ -293,7 +300,19 @@ class AgentBodyPointNavEmulSensor(Sensor):
             agent_centric_middle_of_object = agent_centric_middle_of_object
             return agent_centric_middle_of_object
 
-
+def check_for_nan_obj_location(object_location, where_it_occurred=''): #TODO remove these when the bug issue is resolved
+    if torch.any(torch.isinf(object_location) + torch.isnan(object_location)):
+        print('OBJECT LOCATION IS NAN in', where_it_occurred, object_location)
+        dummy_answer = torch.zeros(3)
+        dummy_answer[:] = 4
+        object_location = dummy_answer
+    return object_location
+def check_for_nan_visual_observations(tensor, where_it_occured=''): #TODO remove these when the bug issue is resolved
+    should_be_removed = torch.isinf(tensor) + torch.isnan(tensor)
+    if torch.any(should_be_removed):
+        print('VISUAL OBSERVATION IS NAN', where_it_occured, should_be_removed.sum())
+        tensor[should_be_removed] = 0
+    return tensor
 class ArmPointNavEmulSensor(Sensor):
 
     def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, uuid: str = "arm_point_nav_emul", **kwargs: Any):
@@ -326,7 +345,7 @@ class ArmPointNavEmulSensor(Sensor):
         return dict(camera_xyz=camera_xyz, camera_rotation=camera_rotation, camera_horizon=camera_horizon, arm_state=arm_state, fov=fov)
 
     def get_observation(
-            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
         mask = squeeze_bool_mask(self.mask_sensor.get_observation(env, task, *args, **kwargs))
@@ -351,9 +370,10 @@ class ArmPointNavEmulSensor(Sensor):
             valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
             point_in_world = world_space_point_cloud[valid_points]
             middle_of_object = point_in_world.mean(dim=0)
+            middle_of_object = check_for_nan_obj_location(middle_of_object, 'calc arm sensor')
             self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world), task.num_steps_taken()))
 
-        return self.average_so_far(camera_xyz, camera_rotation, arm_state, task.num_steps_taken())
+        return check_for_nan_obj_location(self.average_so_far(camera_xyz, camera_rotation, arm_state, task.num_steps_taken()), 'average arm sensor')
 
     def average_so_far(self, camera_xyz, camera_rotation, arm_state, current_step_number):
         if len(self.pointnav_history_aggr) == 0:
@@ -408,7 +428,7 @@ class ArmPointNavEmulSensor(Sensor):
 #         super().__init__(**prepare_locals_for_super(locals()))
 #
 #     def get_observation(
-#             self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+#             self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
 #     ) -> Any:
 #         metadata = copy.deepcopy(env.controller.last_event.metadata['agent'])
 #         return metadata
@@ -423,10 +443,27 @@ class IntelRawDepthSensor(Sensor):
         super().__init__(**prepare_locals_for_super(locals()))
 
     def get_observation(
-            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        return intel_reshape(env.controller.last_event.depth_frame.copy())
+        return env.intel_depth
+        # depth_frame = env.controller.last_event.depth_frame
+        # check_validity(depth_frame, env.controller,scene_number=task.task_info['scene_name']) # remove
+        #
+        # return intel_reshape(env.controller.last_event.depth_frame.copy())
 
+def check_validity(depth_frame, controller, scene_number=''):
+    if np.any(depth_frame != depth_frame) or np.any(np.isinf(depth_frame)):
+        print('OH THERE IS SOMETHING OFF WITH THIS FRAME', scene_number, depth_frame.min(), depth_frame.max(), depth_frame.mean(), np.linalg.norm(depth_frame))
+        dir_to_save = 'experiment_output/depth_errors'
+        timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f")
+        timestamp = timestamp + '_scene_' + str(scene_number) + '.png'
+        os.makedirs(dir_to_save, exist_ok=True)
+
+        frame_to_save = np.concatenate([controller.last_event.frame, normalize_depth(controller.last_event.depth_frame), controller.last_event.third_party_camera_frames[0], normalize_depth(controller.last_event.third_party_depth_frames[0]),normalize_depth(depth_frame)], axis=1)
+        plt.imsave(os.path.join(dir_to_save, timestamp), np.clip(frame_to_save / 255., 0, 1))
+
+def normalize_depth(depth):
+    return depth[:,:,np.newaxis].repeat(3,axis=2) * (255. / depth.max())
 class KinectRawDepthSensor(Sensor):
 
     def __init__(self, uuid: str = "kinect_raw_depth", **kwargs: Any):
@@ -436,9 +473,12 @@ class KinectRawDepthSensor(Sensor):
         super().__init__(**prepare_locals_for_super(locals()))
 
     def get_observation(
-            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        return kinect_reshape(env.controller.last_event.third_party_depth_frames[0].copy())
+        return env.kinect_depth
+        # depth_frame = env.controller.last_event.third_party_depth_frames[0]
+        # check_validity(depth_frame, env.controller,scene_number=task.task_info['scene_name']) TODO remove
+        # return kinect_reshape(env.controller.last_event.third_party_depth_frames[0].copy())
 
 
 class IntelNoisyObjectMask(Sensor):
@@ -457,7 +497,7 @@ class IntelNoisyObjectMask(Sensor):
         assert self.noise == 0
 
     def get_observation(
-            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
         if self.type == 'source':
@@ -518,7 +558,7 @@ class KinectNoisyObjectMask(Sensor):
         assert self.noise == 0
 
     def get_observation(
-            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+            self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
 
         if self.type == 'source':
@@ -567,6 +607,6 @@ class StretchPickedUpObjSensor(Sensor):
         super().__init__(**prepare_locals_for_super(locals()))
 
     def get_observation(
-        self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+        self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
         return task.object_picked_up

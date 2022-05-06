@@ -32,6 +32,7 @@ from ithor_arm.pointcloud_sensors import rotate_points_to_agent, KianaReachableB
 from manipulathor_baselines.bring_object_baselines.models.detection_model import ConditionalDetectionModel
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.thor_category_names import thor_possible_objects
+from utils.calculation_utils import calc_world_coordinates
 from utils.klemens_constants import OMNI_CATEGORIES, OMNI_TO_ITHOR, ITHOR_TO_OMNI
 
 from utils.noise_depth_util_files.sim_depth import RedwoodDepthNoise
@@ -627,13 +628,9 @@ class RealPointNavSensor(Sensor):
         real_agent_state = self.real_prev_location
         belief_agent_state = self.belief_prev_location
 
+        relative_goal_obj = convert_world_to_agent_coordinate(real_object_info, belief_agent_state)
+        relative_hand_state = convert_world_to_agent_coordinate(real_hand_state, real_agent_state)
 
-        relative_goal_obj = convert_world_to_agent_coordinate(
-            real_object_info, belief_agent_state
-        )
-        relative_hand_state = convert_world_to_agent_coordinate(
-            real_hand_state, real_agent_state
-        )
         relative_distance = diff_position(relative_goal_obj, relative_hand_state)
         result = convert_state_to_tensor(dict(position=relative_distance))
 
@@ -676,7 +673,7 @@ class AgentRelativeLocationSensor(Sensor):
             relative_agent_state = convert_world_to_agent_coordinate(current_agent_state, agent_initial_state)
 
 
-        #TODO there is something really wrong with convert_world_to_agent_coordinate rotation?
+        # there is something really wrong with convert_world_to_agent_coordinate rotation?
 
         result = convert_state_to_tensor(relative_agent_state)
 
