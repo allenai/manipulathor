@@ -12,7 +12,7 @@ from manipulathor_utils.debugger_util import ForkedPdb
 from utils.stretch_utils.stretch_constants import MOVE_AHEAD, ROTATE_LEFT ,ROTATE_RIGHT ,MOVE_ARM_HEIGHT_P ,MOVE_ARM_HEIGHT_M ,MOVE_ARM_X_P ,MOVE_ARM_X_M ,MOVE_ARM_Y_P ,MOVE_ARM_Y_M ,MOVE_ARM_Z_P ,MOVE_ARM_Z_M ,PICKUP ,DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL
 
 
-def hacky_visualization(observations, object_mask, base_directory_to_right_images, query_objects=None, gt_mask=None, text_to_write=None, distance_vector_to_viz=None):
+def hacky_visualization(observations, object_mask=None, base_directory_to_right_images='', query_objects=None, gt_mask=None, text_to_write=None, distance_vector_to_viz=None):
     def unnormalize_image(img):
         # img = img.squeeze(0).squeeze(0)
         mean=torch.Tensor([0.485, 0.456, 0.406]).to(img.device)
@@ -20,15 +20,31 @@ def hacky_visualization(observations, object_mask, base_directory_to_right_image
         img = (img * std + mean)
         img = torch.clamp(img, 0, 1)
         return img
-    depth = observations['depth_lowres']
+
     if 'only_detection_rgb_lowres' in observations:
         viz_image = observations['only_detection_rgb_lowres']
     elif 'rgb_lowres' in observations:
         viz_image = observations['rgb_lowres']
     else:
-        viz_image = depth
-    predicted_masks = object_mask
+        if 'depth_lowres' in observations:
+            depth = observations['depth_lowres']
+            viz_image = depth
+        else:
+            raise Exception('Nothing was found')
+
+
     bsize, seqlen, w, h, c = viz_image.shape
+
+    if 'depth_lowres' in observations:
+        depth = observations['depth_lowres']
+    else:
+        depth = torch.zeros(bsize, seqlen, w, h, 1)
+
+    if object_mask is not None:
+        predicted_masks = object_mask
+    else:
+        predicted_masks = torch.zeros(bsize, seqlen, w, h, 1)
+
     if bsize == 1 and seqlen == 1:
         viz_image = viz_image.squeeze(0).squeeze(0)
         viz_image = unnormalize_image(viz_image)

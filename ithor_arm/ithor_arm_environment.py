@@ -334,16 +334,16 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                 moved_objects.append(object_id)
 
         return moved_objects
-    def update_memory(self):
-        rgb = self.controller.last_event.frame.copy()
-        depth = self.controller.last_event.depth_frame.copy()
-        event = copy.deepcopy(self.controller.last_event.metadata)
-        # depth = depth[...,np.newaxis]
-        current_frame = {
-            'rgb': rgb,
-            'depth': depth,
-            'event':event,
-        }
+    # def update_memory(self):
+    #     rgb = self.controller.last_event.frame.copy()
+    #     depth = self.controller.last_event.depth_frame.copy()
+    #     event = copy.deepcopy(self.controller.last_event.metadata)
+    #     # depth = depth[...,np.newaxis]
+    #     current_frame = {
+    #         'rgb': rgb,
+    #         'depth': depth,
+    #         'event':event,
+    #     }
         # if len(self.memory_frames) == 0:
         #     self.memory_frames = [current_frame for _ in range(self.MEMORY_SIZE)]
         # else:
@@ -438,8 +438,8 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         sr = self.controller.step(action_dict)
         self.list_of_actions_so_far.append(action_dict)
 
-        if action in SET_OF_ALL_AGENT_ACTIONS:
-            self.update_memory()
+        # if action in SET_OF_ALL_AGENT_ACTIONS:
+        #     self.update_memory()
 
         if self._verbose:
             print(self.controller.last_event)
