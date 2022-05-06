@@ -3,4 +3,5 @@
 THOR2COCO = {
     'Apple': 'apple',
     'Mug': 'bowl', #TODO WTF
+    'bowl': 'bowl',
 }

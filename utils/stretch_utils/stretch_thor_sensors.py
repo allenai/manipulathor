@@ -254,6 +254,7 @@ class AgentBodyPointNavEmulSensor(Sensor):
         mask = squeeze_bool_mask(self.mask_sensor.get_observation(env, task, *args, **kwargs))
         depth_frame = self.depth_sensor.get_observation(env, task, *args, **kwargs)#env.controller.last_event.depth_frame.copy()
         depth_frame[~mask] = -1
+        depth_frame[depth_frame == 0] = -1
         if task.num_steps_taken() == 0:
             self.pointnav_history_aggr = []
             self.real_prev_location = None
@@ -350,6 +351,7 @@ class ArmPointNavEmulSensor(Sensor):
         mask = squeeze_bool_mask(self.mask_sensor.get_observation(env, task, *args, **kwargs))
         depth_frame = self.depth_sensor.get_observation(env, task, *args, **kwargs)#env.controller.last_event.depth_frame.copy()
         depth_frame[~mask] = -1
+        depth_frame[depth_frame == 0] = -1
         if task.num_steps_taken() == 0:
             self.pointnav_history_aggr = []
             self.real_prev_location = None

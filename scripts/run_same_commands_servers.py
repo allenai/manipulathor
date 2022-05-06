@@ -189,7 +189,8 @@ import pdb
 
 #
 
-# scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/PointNavEmulStretchDistrib/train_object_nav_with_mask/2022-01-22_00-10-52/exp_PointNavEmulStretchDistrib_train_object_nav_with_mask__stage_00__steps_000002540050.pt ~/
+
+# scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/PointNavEmulStretchProcTHORDistrib/procthor_onlypickup_task_scratch/2022-04-28_16-56-04/exp_PointNavEmulStretchProcTHORDistrib_procthor_onlypickup_task_scratch__stage_00__steps_000010595298.pt ~/
 # pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+5afa5633597b12898e12eed528c2332a50bc0f79
 
 # scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/PointNavEmulStretchAllRoomsDistrib/train_only_pickup_all_ithor_rooms_scratch/2022-03-03_21-40-29/exp_PointNavEmulStretchAllRoomsDistrib_train_only_pickup_all_ithor_rooms_scratch__stage_00__steps_000016639355.pt ~/

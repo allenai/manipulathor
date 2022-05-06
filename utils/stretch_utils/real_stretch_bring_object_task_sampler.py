@@ -62,6 +62,7 @@ class RealStretchDiverseBringObjectTaskSampler(StretchDiverseBringObjectTaskSamp
         self.env.reset(scene_name='RealRobothor')
         #TODO change these later
         init_object = {'object_id': 'Apple|1|1|1'}
+        # init_object = {'object_id': 'bowl|1|1|1'}
         goal_object = {'object_id': 'Mug|1|1|1'}
 
 
