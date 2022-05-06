@@ -17,7 +17,7 @@ from ithor_arm.ithor_arm_sensors import (
     InitialAgentArmToObjectSensor,
     InitialObjectToGoalSensor,
     PickedUpObjSensor,
-    DepthSensorThor, RelativeAgentArmToObjectSensor, RelativeObjectToGoalSensor,
+    DepthSensorThor, RelativeAgentArmToObjectSensor, RelativeObjectToGoalSensor, SceneNumberSensor,
 )
 from ithor_arm.ithor_arm_viz import MaskImageVisualizer
 from ithor_arm.near_deadline_sensors import PointNavEmulatorSensor, RealPointNavSensor
@@ -63,6 +63,7 @@ class ObjDisArmPointNavProcTHOR(
             uuid="depth_lowres",
         ),
         PickedUpObjSensor(),
+        SceneNumberSensor(), #TODO remove as soon as bug is resolved
         RealPointNavSensor(type='source', uuid='arm_point_nav'),
         RealPointNavSensor(type='destination', uuid='arm_point_nav'),
         # TempRealArmpointNav(uuid='point_nav_emul',type='source'),

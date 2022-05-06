@@ -1,5 +1,6 @@
 """Task Definions for the task of ArmPointNav"""
 import copy
+import math
 from typing import Dict, Tuple, List, Any, Optional
 
 import gym
@@ -206,7 +207,7 @@ class AbstractBringObjectTask(Task[ManipulaTHOREnvironment]):
 
             # this ratio can be more than 1?
             if self.object_picked_up:
-                ratio_distance_left = final_obj_distance_from_goal / original_distance
+                ratio_distance_left = final_obj_distance_from_goal / (original_distance + 1e-9)
                 result["metric/average/ratio_distance_left"] = ratio_distance_left
                 result["metric/average/eplen_pickup"] = self.eplen_pickup
             result["metric/average/success_wo_disturb"] = (
@@ -413,6 +414,8 @@ class BringObjectTask(AbstractBringObjectTask):
             )
         self.last_obj_to_goal_distance = current_obj_to_goal_distance
         reward += delta_obj_to_goal_distance_reward
+
+
 
         # add collision cost, maybe distance to goal objective,...
 
@@ -761,6 +764,13 @@ class ExploreWiseRewardTask(BringObjectTask):
         reward += delta_obj_to_goal_distance_reward
 
         # add collision cost, maybe distance to goal objective,...
+
+        #TODO remove as soon as bug is resolved
+        if math.isinf(reward) or math.isnan(reward):
+            print('reward is none', reward)
+            print('delta_obj_to_goal_distance_reward', delta_obj_to_goal_distance_reward)
+            print('delta_arm_to_obj_distance_reward', delta_arm_to_obj_distance_reward)
+            print('room', self.task_info['scene_name'])
 
         return float(reward)
 

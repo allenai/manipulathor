@@ -119,6 +119,9 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         self.controller.docker_enabled = docker_enabled  # type: ignore
 
         self.MEMORY_SIZE = 5
+
+        if "quality" not in self.env_args:
+            self.env_args["quality"] = self._quality
         # self.memory_frames = []
 
     # def check_controller_version(self):

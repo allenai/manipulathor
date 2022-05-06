@@ -190,6 +190,12 @@ class ObjDisPointNavModel(ActorCriticModel[CategoricalDistr]):
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
+        #TODO remove as soon as bug is resolved
+        actor_is_nan = torch.isinf(actor_out_final) + torch.isnan(actor_out_final)
+        if torch.any(actor_is_nan):
+            print('actor is nan', actor_is_nan.sum())
+            print('scene number', observations['scene_number'])
+
         # TODO really bad design
         if self.visualize:
             arm_distance_to_obj_source = observations['arm_point_nav_source']
