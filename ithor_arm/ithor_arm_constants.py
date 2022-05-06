@@ -90,14 +90,15 @@ def make_all_objects_unbreakable(controller):
 
 def reset_environment_and_additional_commands(controller, scene_name):
     if scene_name == 'Procedural' or scene_name is None:
-        pass
-    controller.reset(scene_name)
-    controller.step(action="MakeAllObjectsMoveable")
-    controller.step(action="MakeObjectsStaticKinematicMassThreshold")
-    make_all_objects_unbreakable(controller)
-    # controller.step('ToggleMagnetVisibility')  do we want to have this here or do we want to have it during training and only change it for obejct detection part?
-    # controller.step(action='SetHandSphereRadius', radius=0.2)
-    return
+        return
+    else:
+        controller.reset(scene_name)
+        controller.step(action="MakeAllObjectsMoveable")
+        controller.step(action="MakeObjectsStaticKinematicMassThreshold")
+        make_all_objects_unbreakable(controller)
+        # controller.step('ToggleMagnetVisibility')  do we want to have this here or do we want to have it during training and only change it for obejct detection part?
+        # controller.step(action='SetHandSphereRadius', radius=0.2)
+        return
 
 
 def transport_wrapper(controller, target_object, target_location):

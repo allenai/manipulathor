@@ -144,9 +144,7 @@ class BringObjImageVisualizer(LoggerVisualizer):
         concat_all_images = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
         save_image_list_to_gif(concat_all_images, gif_name, self.log_dir)
         this_controller = environment.controller
-        scene = this_controller.last_event.metadata[
-            "sceneName"
-        ]
+        scene = this_controller.last_event.metadata["sceneName"]
         reset_environment_and_additional_commands(this_controller, scene)
 
         additional_observation_start = []

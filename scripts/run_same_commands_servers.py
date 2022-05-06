@@ -210,10 +210,18 @@ import pdb
 
 # scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/PointNavEmulStretchProcTHORDistrib/procthor_onlypickup_task_scratch/2022-04-29_16-27-40/exp_PointNavEmulStretchProcTHORDistrib_procthor_onlypickup_task_scratch__stage_00__steps_000019677434.pt ~/
 
-command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/pointnav_emul_stretch_procthor_distrib \
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/pointnav_emul_stretch_procthor_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag procthor_onlypickup_task_scratch_after_debug'
+
+
+command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag procthor_onlypickup_task_scratch_after_debug'
+ --seed 10 --machine_id 0 --extra_tag procthor_armpointnav -c ~/exp_ObjDisArmPointNavProcTHORDistrib_procthor_armpointnav__stage_00__steps_000001006560.pt'
+
+# scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavProcTHORDistrib/procthor_armpointnav/2022-05-05_23-40-21/exp_ObjDisArmPointNavProcTHORDistrib_procthor_armpointnav__stage_00__steps_000001006560.pt ~/
 
 server_set1 = {
     'servers':[f'aws{i}' for i in range(1,5)],

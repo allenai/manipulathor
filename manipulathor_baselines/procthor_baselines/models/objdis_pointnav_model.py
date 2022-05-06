@@ -156,6 +156,11 @@ class ObjDisPointNavModel(ActorCriticModel[CategoricalDistr]):
         arm_distance_to_obj_destination_embedding = self.pointnav_embedding(arm_distance_to_obj_destination)
         pointnav_embedding = arm_distance_to_obj_source_embedding
         pointnav_embedding[after_pickup] = arm_distance_to_obj_destination_embedding[after_pickup]
+
+        #TODO remove as soon as the bug is resolved
+        assert not torch.any(torch.isinf(pointnav_embedding) + torch.isnan(pointnav_embedding)), 'pointnav_embedding is nan'
+        assert not torch.any(torch.isinf(visual_observation) + torch.isnan(visual_observation)), 'visual_observation is nan'
+
         # arm_distance_to_obj = arm_distance_to_obj_source
         # arm_distance_to_obj[after_pickup] = arm_distance_to_obj_destination[after_pickup]
         # pointnav_embedding = self.pointnav_embedding(arm_distance_to_obj)

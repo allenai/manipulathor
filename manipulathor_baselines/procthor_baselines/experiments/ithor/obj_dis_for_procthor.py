@@ -2,6 +2,7 @@ import platform
 import random
 
 import gym
+import numpy as np
 import torch
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn
@@ -43,17 +44,22 @@ class ObjDisArmPointNavProcTHOR(
     input."""
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
+    mean = np.array([0.485, 0.456, 0.406])
+    stdev = np.array([0.229, 0.224, 0.225])
     SENSORS = [
         RGBSensorThorNoNan(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            use_resnet_normalization=True,
+            width=BringObjectiThorBaseConfig.SCREEN_SIZE,# use_resnet_normalization=True, #TODO
+            mean=mean,
+            stdev=stdev,
             uuid="rgb_lowres",
         ),
         DepthSensorThorNoNan(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            use_normalization=True,
+            # use_normalization=True, #TODO
+            mean=np.array(0.5),
+            stdev=np.array(0.25),
             uuid="depth_lowres",
         ),
         PickedUpObjSensor(),
@@ -102,6 +108,8 @@ class ObjDisArmPointNavProcTHOR(
         self.REWARD_CONFIG['object_found'] = 1 # is this too big?
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
+        self.ENV_ARGS['scene'] = 'Procedural'
+        self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
         self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
 
 

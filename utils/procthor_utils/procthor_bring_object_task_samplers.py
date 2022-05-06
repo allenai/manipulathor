@@ -237,9 +237,9 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
 
 
     def reset_scene(self):
-        self.env.reset( #TODO are these the correct values?
+        self.env.reset(
             scene_name='Procedural',
-            agentMode="stretch", agentControllerType="mid-level"
+            agentMode=self.env_args['agentMode'], agentControllerType=self.env_args['agentControllerType']
         )
     def increment_scene(self) -> bool:
         """Increment the current scene.
@@ -274,7 +274,6 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         if event_init_arm.metadata['lastActionSuccess'] is False:
             print(f"Bring arm up in initialization failed in {self.house_index}")
             return False
-
 
         # NOTE: Set reachable positions
         if self.house_index not in self.reachable_positions_map:
@@ -359,6 +358,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         target_obj = data_point['target_obj']
         start_pose = data_point['agent_initial_pose']
         scene_number = data_point['scene_number']
+
 
 
         if False and random.random() < self.cfg.procthor.p_randomize_materials: #TODO

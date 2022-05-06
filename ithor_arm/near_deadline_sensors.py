@@ -628,12 +628,9 @@ class RealPointNavSensor(Sensor):
         real_agent_state = self.real_prev_location
         belief_agent_state = self.belief_prev_location
 
+        relative_goal_obj = convert_world_to_agent_coordinate(real_object_info, belief_agent_state)
+        relative_hand_state = convert_world_to_agent_coordinate(real_hand_state, real_agent_state)
 
-        try: #TODO remove
-            relative_goal_obj = convert_world_to_agent_coordinate(real_object_info, belief_agent_state        )
-            relative_hand_state = convert_world_to_agent_coordinate(real_hand_state, real_agent_state        )
-        except Exception:
-            ForkedPdb().set_trace() #TODO I think someone is resetting the scene
         relative_distance = diff_position(relative_goal_obj, relative_hand_state)
         result = convert_state_to_tensor(dict(position=relative_distance))
 
