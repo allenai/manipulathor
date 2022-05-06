@@ -121,6 +121,10 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
         self.MEMORY_SIZE = 5
         # self.memory_frames = []
 
+
+        if "quality" not in self.env_args:
+            self.env_args["quality"] = self._quality
+
         # directory_to_save = "experiment_output/logging_debugging"
         # import os
         # os.makedirs(directory_to_save, exist_ok=True)
