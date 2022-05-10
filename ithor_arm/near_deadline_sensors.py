@@ -134,7 +134,7 @@ class PointNavEmulatorSensor(Sensor):
         #     return samples
         # samples = get_samples(1000)
         # np.absolute(samples * 2).mean(axis=0)
-=        super().__init__(**prepare_locals_for_super(locals()))
+        super().__init__(**prepare_locals_for_super(locals()))
 
 
     def get_accurate_locations(self, env):
@@ -363,7 +363,7 @@ class PointNavEmulatorSensorOnlyAgentLocation(PointNavEmulatorSensor):
 #     def get_observation(
 #             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
 #     ) -> Any:
-=#         self.noise = something
+#         self.noise = something
 #         return super(PointNavEmulatorSensorwScheduler, self).get_observation(env, task, *args, **kwargs)
 
 

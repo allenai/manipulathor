@@ -32,7 +32,6 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
     NUM_PROCESSES: Optional[int] = None
     TRAIN_GPU_IDS = list(range(torch.cuda.device_count()))
     SAMPLER_GPU_IDS = TRAIN_GPU_IDS
-    #TODO what is the plan?
     VALID_GPU_IDS = []
     TEST_GPU_IDS = []
     # VALID_GPU_IDS = [torch.cuda.device_count() - 1]

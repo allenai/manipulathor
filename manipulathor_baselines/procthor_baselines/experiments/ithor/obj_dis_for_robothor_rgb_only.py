@@ -28,7 +28,8 @@ from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_mode
 from manipulathor_baselines.procthor_baselines.models.objdis_pointnav_model import ObjDisPointNavModel
 from manipulathor_baselines.procthor_baselines.models.objdis_pointnav_only_rgb_model import ObjDisPointNavOnlyRGBModel
 from scripts.dataset_generation.find_categories_to_use import KITCHEN_TRAIN, BEDROOM_TRAIN, BATHROOM_TRAIN, \
-    BATHROOM_TEST, BEDROOM_TEST, LIVING_ROOM_TEST, KITCHEN_TEST, LIVING_ROOM_TRAIN, FULL_LIST_OF_OBJECTS
+    BATHROOM_TEST, BEDROOM_TEST, LIVING_ROOM_TEST, KITCHEN_TEST, LIVING_ROOM_TRAIN, FULL_LIST_OF_OBJECTS, \
+    ROBOTHOR_TRAIN, ROBOTHOR_VAL
 from utils.procthor_utils.all_rooms_obj_dis_task_sampler import AllRoomsBringObjectTaskSampler
 from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, STRETCH_MANIPULATHOR_COMMIT_ID
 
@@ -58,21 +59,21 @@ class ObjDisArmPointNavITHORAllRoomsRGBOnly(
 
     MAX_STEPS = 200
 
-    TASK_SAMPLER = AllRoomsBringObjectTaskSampler #TODO move the arm up doesn't happen? why does arm start from different places?
+    TASK_SAMPLER = AllRoomsBringObjectTaskSampler
     # TASK_TYPE = TestPointNavExploreWiseRewardTask
     TASK_TYPE = ExploreWiseRewardTask
     ENVIRONMENT_TYPE = ManipulaTHOREnvironment
 
     NUM_PROCESSES = 30
 
-    TRAIN_SCENES = KITCHEN_TRAIN + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN
-    TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST
-    OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ != 'robothor']))
+    TRAIN_SCENES = ROBOTHOR_TRAIN
+    TEST_SCENES = ROBOTHOR_VAL
+    OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ == 'robothor']))
 
     random.shuffle(TRAIN_SCENES)
 
-    if platform.system() == "Darwin":
-        MAX_STEPS = 10
+    # if platform.system() == "Darwin":
+    #     MAX_STEPS = 10
 
     # remove
     #

@@ -144,6 +144,8 @@ def initialize_environment():
     env_to_work_with['scene'] = 'Procedural'
     env_to_work_with['visibilityDistance'] = 2
     env_to_work_with['commit_id'] = PROCTHOR_COMMIT_ID
+    env_to_work_with['renderInstanceSegmentation'] = False
+
     controller = Controller(**env_to_work_with)
     return controller
 def generate_dataset_for_scenes(scene_ids):
@@ -203,44 +205,7 @@ def generate_dataset_for_scenes(scene_ids):
 
             }, f)
 
-def quick_test():
-    env_to_work_with = {'gridSize': 0.25, 'width': 224, 'height': 224, 'visibilityDistance': 2, 'agentMode': 'arm', 'fieldOfView': 100, 'agentControllerType': 'mid-level', 'useMassThreshold': True, 'massThreshold': 10, 'autoSimulation': False, 'autoSyncTransforms': True, 'renderInstanceSegmentation': True, 'scene': 'Procedural', 'commit_id': '996a369b5484c7037d3737906be81b84a52473a0'}
-
-    controller = Controller(**env_to_work_with)
-
-    house_dataset = datasets.load_dataset("allenai/houses", use_auth_token=True)
-    house_entry = house_dataset["train"][0]
-    house = pickle.loads(house_entry["house"])
-    controller.reset()
-    controller.step(action="CreateHouse", house=house)
-    controller.step("ResetObjectFilter")
-    event_init_teleport = controller.step(action="TeleportFull", **house["metadata"]["agent"])
-    # controller.step(action="MakeAllObjectsMoveable")
-    # controller.step(action="MakeObjectsStaticKinematicMassThreshold")
-    # make_all_objects_unbreakable(controller)
-    # event_init_arm = controller.step(dict(action="MoveArm", position=dict(x=0,y=0.8,z=0), **ADITIONAL_ARM_ARGS))
-    print(event_init_teleport)
-    rp_event = controller.step(action="GetReachablePositions")
-    reachable_positions = rp_event.metadata["actionReturn"]
-    pose = reachable_positions[0]
-    print(pose)
-    agent_pose = {'horizon': 0, 'position': {'x': 0, 'y': 0, 'z': 0}, 'rotation': {'x': 0, 'y': 0, 'z': 0}, 'standing': True}
-    agent_pose['position'] = pose
-    possible_rotations = [i for i in range(0, 360, 90)]
-    for rotation in possible_rotations:
-        agent_pose['rotation']['y'] = rotation
-        print(agent_pose)
-        event = controller.step(action='TeleportFull', **agent_pose)
-        if event.metadata['lastActionSuccess']:
-            img_dir = '/Users/kianae/Desktop'
-            os.makedirs(img_dir, exist_ok=True)
-            import matplotlib.pyplot as plt
-            now = datetime.now()
-            time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f")
-            plt.imsave(os.path.join(img_dir, f'{time_to_write}.png'), controller.last_event.frame)
-            break
-
 if __name__ == '__main__':
-    quick_test()
-    # starting_ind = int(sys.argv[-1])
-    # generate_dataset_for_scenes([i for i in range(starting_ind,starting_ind + 1000)])
+
+    starting_ind = int(sys.argv[-1])
+    generate_dataset_for_scenes([i for i in range(starting_ind,starting_ind + 1000)])

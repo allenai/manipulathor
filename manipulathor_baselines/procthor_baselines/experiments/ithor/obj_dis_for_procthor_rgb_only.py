@@ -45,15 +45,13 @@ class ObjDisArmPointNavRGBOnlyProcTHOR(
     input."""
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
-    # mean = np.array([0.485, 0.456, 0.406])
-    # stdev = np.array([0.229, 0.224, 0.225])
+
     SENSORS = [
         RGBSensorThorNoNan(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            use_resnet_normalization=True, #TODO_NOW Using the one below affects the quality negatively!
-            # mean=mean,
-            # stdev=stdev,
+            use_resnet_normalization=True,
+
             uuid="rgb_lowres",
         ),
         PickedUpObjSensor(),

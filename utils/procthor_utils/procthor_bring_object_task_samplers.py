@@ -383,10 +383,10 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
             get_logger().warning(
                 f"Teleport failing in {self.house_index} at {starting_pose}"
             )
-        else:
-            get_logger().warning(
-                f"Teleport succeeded in {self.house_index} at {starting_pose}"
-            )
+        # else:
+        #     get_logger().warning(
+        #         f"Teleport succeeded in {self.house_index} at {starting_pose}"
+        #     )
 
         self.episode_index += 1
         # self.max_tasks -= 1 TODO is none decrease when it's inference

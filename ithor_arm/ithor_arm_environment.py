@@ -259,6 +259,14 @@ class ManipulaTHOREnvironment(IThorEnvironment):
                 return o
         return None
 
+    def get_object_by_type(self, object_type: str) -> Optional[Dict[str, Any]]:
+        result = []
+        for o in self.last_event.metadata["objects"]:
+            if o["objectType"] == object_type:
+                result.append(o)
+
+        return result
+
     def get_current_arm_state(self):
         h_min = ARM_MIN_HEIGHT
         h_max = ARM_MAX_HEIGHT

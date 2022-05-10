@@ -52,40 +52,31 @@ class PointNavEmulStretchProcTHOR(
     source_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=only_close_big_masks)
     destination_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=only_close_big_masks)
     depth_sensor_kinect = KinectRawDepthSensor()
-    mean = np.array([0.485, 0.456, 0.406])
-    stdev = np.array([0.229, 0.224, 0.225])
+
 
     SENSORS = [
         RGBSensorStretchIntel(
             height=desired_screen_size,
             width=desired_screen_size,
-            # use_resnet_normalization=True, #TODO
-            mean=mean,
-            stdev=stdev,
+            use_resnet_normalization=True, #
             uuid="rgb_lowres",
         ),
         DepthSensorStretchIntel(
             height=desired_screen_size,
             width=desired_screen_size,
-            # use_normalization=True, #TODO
-            mean=np.array(0.5),
-            stdev=np.array(0.25),
+            use_normalization=True,
             uuid="depth_lowres",
             ),
         RGBSensorStretchKinect(
             height=desired_screen_size,
             width=desired_screen_size,
-            # use_resnet_normalization=True, #TODO
-            mean=mean,
-            stdev=stdev,
+            use_resnet_normalization=True,
             uuid="rgb_lowres_arm",
         ),
         DepthSensorStretchKinect(
             height=desired_screen_size,
             width=desired_screen_size,
-            # use_normalization=True, #TODO WHY THO? WHY?
-            mean=np.array(0.5), #TODO DO WE NEED TO DO THIS EVERYWHERE? FOR BOTH RGB AND DEPTH
-            stdev=np.array(0.25),
+            use_normalization=True,
             uuid="depth_lowres_arm",
         ),
         StretchPickedUpObjSensor(),

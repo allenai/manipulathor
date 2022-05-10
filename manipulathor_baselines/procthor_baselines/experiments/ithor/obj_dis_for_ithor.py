@@ -96,7 +96,6 @@ class ObjDisArmPointNavITHORAllRooms(
         self.REWARD_CONFIG['object_found'] = 1 # is this too big?
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
-        # self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID #TODO is this giving all those errors?
         self.ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID #
         self.ENV_ARGS['renderInstanceSegmentation'] = False
 
