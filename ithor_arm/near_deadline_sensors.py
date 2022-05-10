@@ -134,8 +134,7 @@ class PointNavEmulatorSensor(Sensor):
         #     return samples
         # samples = get_samples(1000)
         # np.absolute(samples * 2).mean(axis=0)
-        # ForkedPdb().set_trace() TODO remove
-        super().__init__(**prepare_locals_for_super(locals()))
+=        super().__init__(**prepare_locals_for_super(locals()))
 
 
     def get_accurate_locations(self, env):
@@ -364,8 +363,7 @@ class PointNavEmulatorSensorOnlyAgentLocation(PointNavEmulatorSensor):
 #     def get_observation(
 #             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
 #     ) -> Any:
-#         ForkedPdb().set_trace()
-#         self.noise = something
+=#         self.noise = something
 #         return super(PointNavEmulatorSensorwScheduler, self).get_observation(env, task, *args, **kwargs)
 
 
@@ -656,8 +654,7 @@ class AgentRelativeLocationSensor(Sensor):
         current_agent_state = env.controller.last_event.metadata["agent"]
 
         if self.noise != 0:
-            print('Not implemented yet')
-            ForkedPdb().set_trace()
+            raise Exception('Not implemented yet')
         # To avoid gimbal lock
         def is_close_enough(agent_initial_state, current_agent_state, thr = 0.001):
             initial = [agent_initial_state['position'][k] for k in ['x','y','z']] +[agent_initial_state['rotation'][k] for k in ['x','y','z']]

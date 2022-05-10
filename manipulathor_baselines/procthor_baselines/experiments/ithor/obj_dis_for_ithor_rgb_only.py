@@ -26,13 +26,14 @@ from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_mode
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
 from manipulathor_baselines.procthor_baselines.models.objdis_pointnav_model import ObjDisPointNavModel
+from manipulathor_baselines.procthor_baselines.models.objdis_pointnav_only_rgb_model import ObjDisPointNavOnlyRGBModel
 from scripts.dataset_generation.find_categories_to_use import KITCHEN_TRAIN, BEDROOM_TRAIN, BATHROOM_TRAIN, \
     BATHROOM_TEST, BEDROOM_TEST, LIVING_ROOM_TEST, KITCHEN_TEST, LIVING_ROOM_TRAIN, FULL_LIST_OF_OBJECTS
 from utils.procthor_utils.all_rooms_obj_dis_task_sampler import AllRoomsBringObjectTaskSampler
 from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, STRETCH_MANIPULATHOR_COMMIT_ID
 
 
-class ObjDisArmPointNavITHORAllRooms(
+class ObjDisArmPointNavITHORAllRoomsRGBOnly(
     BringObjectiThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -47,12 +48,6 @@ class ObjDisArmPointNavITHORAllRooms(
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
             use_resnet_normalization=True,
             uuid="rgb_lowres",
-        ),
-        DepthSensorThor(
-            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            use_normalization=True,
-            uuid="depth_lowres",
         ),
         PickedUpObjSensor(),
         RealPointNavSensor(type='source', uuid='arm_point_nav'),
@@ -99,10 +94,11 @@ class ObjDisArmPointNavITHORAllRooms(
         # self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID #TODO is this giving all those errors?
         self.ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID #
         self.ENV_ARGS['renderInstanceSegmentation'] = False
+        self.ENV_ARGS['renderDepthImage'] = False
 
     @classmethod
     def create_model(cls, **kwargs) -> nn.Module:
-        return ObjDisPointNavModel(
+        return ObjDisPointNavOnlyRGBModel(
             action_space=gym.spaces.Discrete(
                 len(cls.TASK_TYPE.class_action_names())
             ),

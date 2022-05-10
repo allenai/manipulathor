@@ -213,7 +213,6 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         #     if True:
         #         self.all_test_tasks = [i for i in range(1000)]
         #     else:
-        #         ForkedPdb().set_trace()
         #
         #         for scene in self.scenes:
         #             for from_obj in self.objects:
@@ -283,7 +282,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
             #     get_logger().warning(f"Initial teleport failing in {self.house_index}.")
             #     return False
             rp_event = self.env.controller.step(action="GetReachablePositions")
-            if not rp_event:
+            if not rp_event or len(rp_event.metadata['actionReturn']) == 0:
                 # NOTE: Skip scenes where GetReachablePositions fails
                 get_logger().warning(
                     f"GetReachablePositions failed in {self.house_index}"
@@ -291,6 +290,11 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
                 return False
             reachable_positions = rp_event.metadata["actionReturn"]
             self.reachable_positions_map[self.house_index] = reachable_positions
+        else:
+            reachable_positions = self.env.get_reachable_positions()
+            if len(reachable_positions) == 0:
+                print('no reachable positions' , self.house_index)
+                return False
         return True
 
     def increment_scene_index(self):
@@ -378,6 +382,10 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         if not event:
             get_logger().warning(
                 f"Teleport failing in {self.house_index} at {starting_pose}"
+            )
+        else:
+            get_logger().warning(
+                f"Teleport succeeded in {self.house_index} at {starting_pose}"
             )
 
         self.episode_index += 1

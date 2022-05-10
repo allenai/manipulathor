@@ -233,13 +233,24 @@ import pdb
 #  --seed 10 --machine_id 0 --extra_tag procthor_armpointnav -c ~/exp_ObjDisArmPointNavProcTHORDistrib_procthor_armpointnav__stage_00__steps_000001006560.pt'
 
 
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_rgb_only_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag procthor_armpointnav_rgbonly'
+
 command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_rgb_only_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag procthor_armpointnav_rgbonly'
+ --seed 10 --machine_id 0 --extra_tag procthor_armpointnav_rgbonly -c ~/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_procthor_armpointnav_rgbonly__stage_00__steps_000033128600.pt'
 
-# scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavProcTHORDistrib/procthor_armpointnav/2022-05-05_23-40-21/exp_ObjDisArmPointNavProcTHORDistrib_procthor_armpointnav__stage_00__steps_000001006560.pt ~/
+# scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavRGBOnlyProcTHORDistrib/procthor_armpointnav_rgbonly/2022-05-10_16-19-05/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_procthor_armpointnav_rgbonly__stage_00__steps_000033128600.pt ~/
 
+# command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/no_pointnav_stretch_all_rooms_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag ithor_train_no_armpointnav -c ~/exp_NoPointNavStretchAllRoomsDistrib_ithor_train_no_armpointnav__stage_00__steps_000114436451.pt'
+
+# scp 52.24.154.159:~/manipulathor/experiment_output/checkpoints/NoPointNavStretchAllRoomsDistrib/ithor_train_no_armpointnav/2022-05-09_22-13-53/exp_NoPointNavStretchAllRoomsDistrib_ithor_train_no_armpointnav__stage_00__steps_000114436451.pt ~/
 server_set1 = {
     'servers':[f'aws{i}' for i in range(1,5)],
     'ip_adr': '18.237.24.199',
@@ -264,12 +275,6 @@ def parse_args():
     elif 'aws5' in args.server_set:
         args.servers += server_set2['servers']
         ip_adr = server_set2['ip_adr']
-    elif 'aws9' in args.server_set:
-        args.servers += server_set3['servers']
-        ip_adr = server_set3['ip_adr']
-    elif 'awsall' in args.server_set:
-        args.servers += server_set_all['servers']
-        ip_adr = server_set_all['ip_adr']
     args.command = args.command.replace('IP_ADR', ip_adr)
     args.command = args.command.replace('NUM_MACHINES', str(len(args.servers)))
     return args

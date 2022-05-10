@@ -121,7 +121,6 @@ class FakeMaskDetectorBinaryDistanceGtMaskRGBDModel(ActorCriticModel[Categorical
         #     not_copied = [k for k in rl_model_state_dict if k not in copied]
         #     print('WARNING not copied these for policy', not_copied)
         #
-        #     ForkedPdb().set_trace()
 
 
     @property

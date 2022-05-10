@@ -253,7 +253,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
 
         # #TODO remove
         if np.sum(depth_frame != self.controller.last_event.third_party_depth_frames[0].copy()) > 10:
-            ForkedPdb().set_trace()
+            raise Exception('Depth is nan again even after removing nan?')
 
         return kinect_reshape(depth_frame)
 
@@ -271,7 +271,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
         return intel_reshape(depth_frame)
 
     def get_current_arm_state(self):
-        ForkedPdb().set_trace()
+        raise Exception('not implemented')
 
 
     def get_absolute_hand_state(self):

@@ -341,7 +341,7 @@ class StretchExploreWiseRewardTask(AbstractStretchBringObjectTask):
 
         #TODO remove this
         if self.env.get_object_by_id(source_receptacle[0])['visible']:
-            ForkedPdb().set_trace()
+            raise Exception('what?')
         else:
             action = 'c'
 

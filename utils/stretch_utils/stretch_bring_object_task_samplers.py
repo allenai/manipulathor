@@ -206,7 +206,7 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
             if True:
                 self.all_test_tasks = [i for i in range(1000)]
             else:
-                ForkedPdb().set_trace()
+                raise Exception('not implemented')
 
                 for scene in self.scenes:
                     for from_obj in self.objects:

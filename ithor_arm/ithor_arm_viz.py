@@ -241,7 +241,7 @@ class BringObjImageVisualizer(LoggerVisualizer):
 
 class MaskImageVisualizer(LoggerVisualizer):
     def finish_episode(self, environment, episode_info, task_info):
-        ForkedPdb().set_trace()
+        raise Exception()
         now = datetime.now()
         time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f")
         time_to_write += "log_ind_{}".format(self.logger_index)
@@ -276,7 +276,6 @@ class MaskImageVisualizer(LoggerVisualizer):
         self.action_queue = []
 
     def log(self, environment, action_str):
-        # ForkedPdb().set_trace()
         image_tensor = environment.current_frame
         self.action_queue.append(action_str)
         self.log_queue.append(image_tensor)

@@ -350,7 +350,6 @@ class KianaBinnedPointCloudMapBuilder(object):
 
                 # things_to_show = torch.Tensor(copied_map).nonzero();  show_3d(things_to_show, map_size = copied_map.shape)
                 # print(current_agent_binned_indices)
-                # ForkedPdb().set_trace()
 
             return {
                 "egocentric_update": agent_centric_binned_map.cpu().numpy(),

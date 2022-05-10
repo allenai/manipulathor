@@ -113,7 +113,6 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
 
         # remove
         # print('MACHINE PARAM', 'nprocesses',nprocesses,'devices',gpu_ids,'sampler_devices',sampler_devices,'mode = train',  mode == "train",'gpu ids', gpu_ids,)  # ignored with > 1 gpu_ids)
-        # ForkedPdb().set_trace()
         return MachineParams(nprocesses=nprocesses,
         devices=gpu_ids,
         sampler_devices=sampler_devices if mode == "train" else gpu_ids,  # ignored with > 1 gpu_ids

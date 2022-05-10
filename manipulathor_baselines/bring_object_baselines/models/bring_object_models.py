@@ -52,8 +52,7 @@ class BringObjectBaselineActorCritic(ActorCriticModel[CategoricalDistr]):
 
         See class documentation for parameter definitions.
         """
-        print('Deprecated, check todos')
-        ForkedPdb().set_trace()
+        raise Exception('Deprecated, check todos')
         super().__init__(action_space=action_space, observation_space=observation_space)
 
         self._hidden_size = hidden_size

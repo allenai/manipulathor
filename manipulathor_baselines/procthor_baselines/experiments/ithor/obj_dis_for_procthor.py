@@ -110,7 +110,7 @@ class ObjDisArmPointNavProcTHOR(
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         self.ENV_ARGS['scene'] = 'Procedural'
-        self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
+        self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
 
 

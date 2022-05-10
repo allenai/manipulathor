@@ -163,8 +163,7 @@ class DiverseBringObjectTaskSampler(BringObjectAbstractTaskSampler):
                     with open(valid_position_adr) as f:
                         data_points = json.load(f)
                 except Exception:
-                    print("Failed to load", valid_position_adr)
-                    ForkedPdb().set_trace()
+                    raise Exception("Failed to load", valid_position_adr)
                     continue
 
                 # if this is too big I can live with not having it and randomly sample each time

@@ -66,8 +66,7 @@ class MaskWPointCloudSensor(ActorCriticModel[CategoricalDistr]):
         # sensor_names = self.observation_space.spaces.keys()
         network_args = {'input_channels': 8, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
-        print('resolve todos')
-        ForkedPdb().set_trace()
+        raise Exception('resolve todos')
         #LATER_TODO this is so naive and unintuitive
         network_args = {'input_channels': 11, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(3, 3), (3, 3), (3, 3)], 'strides': [(2, 2), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 10, 'output_width': 10, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.point_cloud_encoder = make_cnn(**network_args)

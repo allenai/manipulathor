@@ -132,8 +132,8 @@ def get_reachable_positions(controller):
     # if reachable_positions is None or len(reachable_positions) == 0:
     #     reachable_positions = event.metadata['actionReturn']
     if reachable_positions is None or len(reachable_positions) == 0:
-        print('Scene name', controller.last_event.metadata['sceneName'])
-        pdb.set_trace()
+        print('NO VALID POSITIONS FOR ', controller.last_event.metadata['sceneName'])
+        reachable_positions = [] #TODO do something about this later?
     return reachable_positions
 def execute_command(controller, command,action_dict_addition=ADITIONAL_ARM_ARGS):
 

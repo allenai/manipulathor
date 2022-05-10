@@ -304,7 +304,6 @@ class SimpleArmPointNavGeneralSampler(AbstractMidLevelArmTaskSampler):
             )
         else:
             result = self.deterministic_data_list[self.sampler_index]["datapoint"]
-            # ForkedPdb().set_trace()
             self.sampler_index += 1
 
         return result

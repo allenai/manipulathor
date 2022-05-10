@@ -144,7 +144,6 @@ class RGBSensorStretchIntel(
 #             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
 #     ) -> Any:
 #         print('take care of resizing because of the kinect vs intel')
-#         ForkedPdb().set_trace()
 #         mask = super().get_observation(env, task, *args, **kwargs)
 #         return clip_frame(mask)
 # class RGBSensorStretch(
@@ -158,7 +157,6 @@ class RGBSensorStretchIntel(
 #
 #     def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
 #         print('take care of resizing because of the kinect vs intel')
-#         ForkedPdb().set_trace()
 #
 #         rgb = (env.controller.last_event.frame.copy())
 #         rgb = clip_frame(rgb) TODO we should add more noise to this as well
@@ -171,7 +169,6 @@ class RGBSensorStretchIntel(
 #
 # def clip_frame(frame):
 #     print('take care of resizing because of the kinect vs intel')
-#     ForkedPdb().set_trace()
 #     TODO should we swap this w and h?
 #     if len(frame.shape) == 2:
 #         w, h = frame.shape
@@ -414,7 +411,6 @@ class ArmPointNavEmulSensor(Sensor):
             #     print('real_distance_in_world_coord', real_distance_in_world_coord, real_distance_in_world_coord.norm())
             #     print('real_distance_in_agent_coord', real_distance_in_agent_coord, real_distance_in_agent_coord.norm())
             #     print('pred_distance_in_agent_coord', pred_distance_in_agent_coord, pred_distance_in_agent_coord.norm())
-            #     # ForkedPdb().set_trace()
 
             return agent_centric_middle_of_object
 

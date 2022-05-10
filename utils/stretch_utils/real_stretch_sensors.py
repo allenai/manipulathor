@@ -89,7 +89,7 @@ def normalize_real_intel_image(image,final_size=224):
     # if len(image.shape) == 3:
     #     image = image[:,:,::-1]
     #     image = cv2.flip(image,1)
-    assert image.shape[0] / INTEL_RESIZED_W == image.shape[1] / INTEL_RESIZED_H, ForkedPdb().set_trace()
+    assert image.shape[0] / INTEL_RESIZED_W == image.shape[1] / INTEL_RESIZED_H, ('Not right side')
     ratio = max(INTEL_RESIZED_W, INTEL_RESIZED_H) / final_size
     new_w, new_h = int(INTEL_RESIZED_W / ratio), int(INTEL_RESIZED_H / ratio)
     image = cv2.resize(image,(new_h, new_w))
@@ -196,7 +196,6 @@ class StretchDetectronObjectMask(Sensor):
             os.makedirs(dir, exist_ok=True)
             print('saving all detections in ', os.path.join(dir, timestamp))
             plt.imsave(os.path.join(dir, timestamp), out.get_image()[:, :, ::-1])
-        # ForkedPdb().set_trace()
 
 
 
@@ -223,7 +222,6 @@ class StretchDetectronObjectMask(Sensor):
 
         #TODO this can be optimized because we are passing this image twice and no point
 
-        # ForkedPdb().set_trace()
         # use these later for visualization purposes?
 
         # plt.imsave('something.png', im)
@@ -297,7 +295,6 @@ class StretchObjectMask(Sensor):
         fig.canvas.mpl_disconnect(cid)
         close_plot()
 
-        # ForkedPdb().set_trace()
 
         self.window_size = 20 #TODO do I want to change the size of this one maybe?
         mask = np.zeros((224, 224, 1))
@@ -382,13 +379,12 @@ class RealKinectArmPointNavEmulSensor(Sensor):
             arm_world_coord = get_mid_point_of_object_from_depth_and_mask(arm_mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
             # distance_in_agent_coord = midpoint_agent_coord - arm_location_in_camera
             # result = distance_in_agent_coord.cpu()
-        if arm_mask.sum() != 0 or mask.sum() != 0:
-
-            import cv2
-            cv2.imwrite('/Users/kianae/Desktop/image.png', env.kinect_frame[:,:,::-1])
-            cv2.imwrite('/Users/kianae/Desktop/mask.png', mask.squeeze().numpy() * 255)
-            cv2.imwrite('/Users/kianae/Desktop/arm_mask.png', arm_mask * 255)
-            # ForkedPdb().set_trace() #TODO remove
+        # if arm_mask.sum() != 0 or mask.sum() != 0:
+        #
+        #     import cv2
+        #     cv2.imwrite('/Users/kianae/Desktop/image.png', env.kinect_frame[:,:,::-1])
+        #     cv2.imwrite('/Users/kianae/Desktop/mask.png', mask.squeeze().numpy() * 255)
+        #     cv2.imwrite('/Users/kianae/Desktop/arm_mask.png', arm_mask * 255)
         result = self.history_aggregation(camera_xyz, camera_rotation, arm_world_coord, task.num_steps_taken())
         return result
     def history_aggregation(self, camera_xyz, camera_rotation, arm_world_coord, current_step_number):

@@ -17,15 +17,23 @@ import pickle
 from shapely.geometry import Point, Polygon
 import numpy as np
 
-from scripts.stretch_jupyter_helper import reset_environment_and_additional_commands
+from ithor_arm.ithor_arm_constants import MANIPULATHOR_ENV_ARGS
+from scripts.stretch_jupyter_helper import reset_environment_and_additional_commands, make_all_objects_unbreakable, \
+    ADITIONAL_ARM_ARGS
 from scripts.test_stretch import visualize, manual_task
-from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
+from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, PROCTHOR_COMMIT_ID
+
 
 def reset_procthor_scene(controller, house):
     controller.reset()
     controller.step(action="CreateHouse", house=house)
-    controller.step(action="TeleportFull", **house["metadata"]["agent"])
-    reset_environment_and_additional_commands(controller)
+    controller.step("ResetObjectFilter")
+    event_init_teleport = controller.step(action="TeleportFull", **house["metadata"]["agent"])
+    controller.step(action="MakeAllObjectsMoveable")
+    controller.step(action="MakeObjectsStaticKinematicMassThreshold")
+    make_all_objects_unbreakable(controller)
+    event_init_arm = controller.step(dict(action="MoveArm", position=dict(x=0,y=0.8,z=0), **ADITIONAL_ARM_ARGS))
+    return event_init_teleport, event_init_arm
 
 def get_rooms_polymap(house):
     room_poly_map = {}
@@ -103,23 +111,52 @@ def get_visible_objects_with_their_info(controller, valid_pickupable_objects, ag
                 plt.imsave(os.path.join(img_dir, f'{time_to_write}_{obj_type}.png'), controller.last_event.frame)
     print('number of valid objects', len(object_infos))
     return object_infos
-def generate_dataset_for_scenes(scene_ids):
-    env_to_work_with = copy.deepcopy(STRETCH_ENV_ARGS)
+def get_valid_rotations(controller, room_id_to_agent_locations):
+    pruned_agent_poses = {}
+    for room in room_id_to_agent_locations:
+        for pose in room_id_to_agent_locations[room]:
+            agent_pose = {'horizon': 20, 'position': {'x': 0, 'y': 0, 'z': 0}, 'rotation': {'x': 0, 'y': 0, 'z': 0}, 'standing': True}
+            agent_pose['position'] = pose
+            possible_rotations = [i for i in range(0, 360, 90)]
+            random.shuffle(possible_rotations) #to have variety
+            for rotation in possible_rotations:
+                agent_pose['rotation']['y'] = rotation
+                event = controller.step(action='TeleportFull', **agent_pose)
+                if event.metadata['lastActionSuccess']:
+                    pruned_agent_poses.setdefault(room, [])
+                    pruned_agent_poses[room].append(agent_pose)
+                    if platform.system() == "Darwin":
+                        img_dir = '/Users/kianae/Desktop/agent_pose_images'
+                        os.makedirs(img_dir, exist_ok=True)
+                        import matplotlib.pyplot as plt
+                        now = datetime.now()
+                        time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f")
+                        plt.imsave(os.path.join(img_dir, f'{time_to_write}_{room}.png'), controller.last_event.frame)
+                    break
+    return pruned_agent_poses
+
+def initialize_environment():
+    # env_to_work_with = copy.deepcopy(STRETCH_ENV_ARGS)
     # env_to_work_with['branch'] = 'nanna-stretch'
-    env_to_work_with['branch'] = 'nanna-culling-stretch'
+    # env_to_work_with['branch'] = 'nanna-culling-stretch'
+    # env_to_work_with['branch'] = 'nanna'
+    env_to_work_with = copy.deepcopy(MANIPULATHOR_ENV_ARGS) #TODO back to stretch?
     env_to_work_with['scene'] = 'Procedural'
     env_to_work_with['visibilityDistance'] = 2
+    env_to_work_with['commit_id'] = PROCTHOR_COMMIT_ID
     controller = Controller(**env_to_work_with)
+    return controller
+def generate_dataset_for_scenes(scene_ids):
+    controller = initialize_environment()
     house_dataset = datasets.load_dataset("allenai/houses", use_auth_token=True)
 
 
 
     for scene in scene_ids:
         house_id_to_room_to_agent_pose = {}
-        house_id_to_object_info = {}
 
 
-        dataset_dir = 'datasets/procthor_apnd_dataset'
+        dataset_dir = 'datasets/procthor_apnd_dataset/agent_poses/'
         previously_done = [f for f in glob.glob(os.path.join(dataset_dir, f'room_id_{scene}_*.json'))]
         if len(previously_done) > 0:
             print('already done with ', scene)
@@ -129,8 +166,13 @@ def generate_dataset_for_scenes(scene_ids):
         # Load the house
         house_entry = house_dataset["train"][scene]
         house = pickle.loads(house_entry["house"])
-        reset_procthor_scene(controller, house)
-        #TODO should we reset or create house  for every object?
+        event_init_teleport, event_init_arm = reset_procthor_scene(controller, house)
+        if event_init_teleport.metadata['lastActionSuccess'] is False:
+            print('Failed to teleport agent for room ', scene)
+            continue
+        if event_init_arm.metadata['lastActionSuccess'] is False:
+            print('Failed to init arm for agent for room ', scene)
+            continue
         room_polymap = get_rooms_polymap(house)
         # get reachable positions room index
         room_id_to_agent_locations, reachable_positions_matrix, agent_location_to_room_id = get_reachable_positions_with_room_id(controller, room_polymap)
@@ -139,16 +181,18 @@ def generate_dataset_for_scenes(scene_ids):
             print('No reachable position for', scene)
             continue
 
-        valid_pickupable_objects = [obj for obj in controller.last_event.metadata['objects'] if obj['pickupable']]
-        # each data point is objtype, obj id, rooms_ind, agent location that can see it, room that is in
-        print('possible agent location', len(reachable_positions_matrix), 'possible objects', len(valid_pickupable_objects))
-        house_id_to_object_info[scene] = get_visible_objects_with_their_info(controller, valid_pickupable_objects, reachable_positions_matrix, agent_location_to_room_id)
-
-        house_id_to_room_to_agent_pose[scene] = room_id_to_agent_locations
 
 
+        # record rotation for each reachable position while arm is up
+        pruned_reachable_positions = get_valid_rotations(controller, room_id_to_agent_locations)
 
-        dataset_dir = 'datasets/procthor_apnd_dataset'
+
+        remained_locations = [len(v) for (k,v) in pruned_reachable_positions.items()]
+
+        print('possible agent location', len(reachable_positions_matrix), 'possible real locations', sum(remained_locations))
+
+        house_id_to_room_to_agent_pose[scene] = pruned_reachable_positions
+
         os.makedirs(dataset_dir, exist_ok=True)
         now = datetime.now()
         time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f")
@@ -156,9 +200,47 @@ def generate_dataset_for_scenes(scene_ids):
         with open(os.path.join(dataset_dir, f'room_id_{scene}_{time_to_write}.json'), 'w') as f:
             json.dump({
                 'house_id_to_room_to_agent_pose': house_id_to_room_to_agent_pose,
-                'house_id_to_object_info': house_id_to_object_info,
+
             }, f)
 
+def quick_test():
+    env_to_work_with = {'gridSize': 0.25, 'width': 224, 'height': 224, 'visibilityDistance': 2, 'agentMode': 'arm', 'fieldOfView': 100, 'agentControllerType': 'mid-level', 'useMassThreshold': True, 'massThreshold': 10, 'autoSimulation': False, 'autoSyncTransforms': True, 'renderInstanceSegmentation': True, 'scene': 'Procedural', 'commit_id': '996a369b5484c7037d3737906be81b84a52473a0'}
+
+    controller = Controller(**env_to_work_with)
+
+    house_dataset = datasets.load_dataset("allenai/houses", use_auth_token=True)
+    house_entry = house_dataset["train"][0]
+    house = pickle.loads(house_entry["house"])
+    controller.reset()
+    controller.step(action="CreateHouse", house=house)
+    controller.step("ResetObjectFilter")
+    event_init_teleport = controller.step(action="TeleportFull", **house["metadata"]["agent"])
+    # controller.step(action="MakeAllObjectsMoveable")
+    # controller.step(action="MakeObjectsStaticKinematicMassThreshold")
+    # make_all_objects_unbreakable(controller)
+    # event_init_arm = controller.step(dict(action="MoveArm", position=dict(x=0,y=0.8,z=0), **ADITIONAL_ARM_ARGS))
+    print(event_init_teleport)
+    rp_event = controller.step(action="GetReachablePositions")
+    reachable_positions = rp_event.metadata["actionReturn"]
+    pose = reachable_positions[0]
+    print(pose)
+    agent_pose = {'horizon': 0, 'position': {'x': 0, 'y': 0, 'z': 0}, 'rotation': {'x': 0, 'y': 0, 'z': 0}, 'standing': True}
+    agent_pose['position'] = pose
+    possible_rotations = [i for i in range(0, 360, 90)]
+    for rotation in possible_rotations:
+        agent_pose['rotation']['y'] = rotation
+        print(agent_pose)
+        event = controller.step(action='TeleportFull', **agent_pose)
+        if event.metadata['lastActionSuccess']:
+            img_dir = '/Users/kianae/Desktop'
+            os.makedirs(img_dir, exist_ok=True)
+            import matplotlib.pyplot as plt
+            now = datetime.now()
+            time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f")
+            plt.imsave(os.path.join(img_dir, f'{time_to_write}.png'), controller.last_event.frame)
+            break
+
 if __name__ == '__main__':
-    starting_ind = int(sys.argv[-1])
-    generate_dataset_for_scenes([i for i in range(starting_ind,starting_ind + 1000)])
+    quick_test()
+    # starting_ind = int(sys.argv[-1])
+    # generate_dataset_for_scenes([i for i in range(starting_ind,starting_ind + 1000)])

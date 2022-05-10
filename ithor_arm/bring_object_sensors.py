@@ -271,8 +271,8 @@ def add_mask_noise(real_mask, fake_mask, noise):
 
     random_prob = random.random()
     if noise > 0:
-        print('remove todo')
-        ForkedPdb().set_trace()
+        raise Exception('remove todo')
+
     if random_prob < REMOVE_RATE:
         result[:] = 0.
         is_real_mask = False
@@ -363,7 +363,6 @@ class TempAllMasksSensor(Sensor):
 #         self.memory_size = memory_size
 #         super().__init__(**prepare_locals_for_super(locals()))
 #         print('resolve todo')
-#         ForkedPdb().set_trace()
 #
 #
 #
@@ -394,7 +393,6 @@ class TempAllMasksSensor(Sensor):
 #             #     save_pointcloud_to_file(pc, os.path.join(dir_to_save, timesmap))
 #             #     print('saved pointcloud', os.path.join(dir_to_save, timesmap))
 #             # #LATER_TODO we probably need to convert this back to agent's coordinate frame
-#             # ForkedPdb().set_trace()
 #         return 10
 
 
@@ -592,8 +590,7 @@ class PredictedTargetObjectMask(Sensor): #LATER_TODO if this is too slow then ch
         super().__init__(**prepare_locals_for_super(locals()))
         self.mask_predictor = ConditionalDetectionModel() #LATER_TODO can we have only one for both of target object and location and also save it in one place. this might explode
         self.mask_predictor.eval()
-        print('resolve todos?')
-        ForkedPdb().set_trace()
+        raise Exception('resolve todos?')
         #LATER_TODO load weights into this
 
     def get_observation(

@@ -47,7 +47,8 @@ class PredictBoxBCELsss(AbstractActorCriticLoss):
         tensor in order to compute a gradient update to the ActorCriticModel's parameters.
         """
 
-        ForkedPdb().set_trace()
+        raise Exception('Ancient and not working?')
+
 
         observations = cast(Dict[str, torch.Tensor], batch["observations"])
         extra_model_outputs = actor_critic_output.extras
@@ -60,7 +61,6 @@ class PredictBoxBCELsss(AbstractActorCriticLoss):
 
         assert gt_relative_agent_arm_to_obj.shape == pred_agent_arm_to_obj.shape
         assert gt_relative_obj_to_goal.shape == pred_obj_to_goal.shape
-        ForkedPdb().set_trace()
         loss_function = torch.nn.SmoothL1Loss() #LATER_TODO is this a good choice?
         arm_to_obj_loss = loss_function(gt_relative_agent_arm_to_obj, pred_agent_arm_to_obj)
         obj_to_goal_loss = loss_function(gt_relative_obj_to_goal, pred_obj_to_goal)
@@ -80,6 +80,7 @@ class BinaryArmDistanceLoss(AbstractActorCriticLoss):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.criterion = torch.nn.CrossEntropyLoss()
+        raise Exception('ancient and not working')
 
         # TODO this is literally a nightmare but oh well
         # self.average = {'closer':[], 'further':[]}
@@ -114,7 +115,6 @@ class BinaryArmDistanceLoss(AbstractActorCriticLoss):
 
 
 
-        ForkedPdb().set_trace()
         observations = cast(Dict[str, torch.Tensor], batch["observations"])
         #LATER_TODO double check this
 
@@ -220,7 +220,6 @@ class FakeMaskDetectorLoss(AbstractActorCriticLoss):
             self.criterion = torch.nn.CrossEntropyLoss(self.weights.to(is_real_mask_pred.device))
 
         total_loss = self.criterion(is_real_mask_pred, is_real_mask_gt)
-        ForkedPdb().set_trace()
 
         #LATER_TODO do we want to take care of cases where there is no mask and it's all zero? if yes should we change the weight?
 
@@ -245,7 +244,6 @@ class MaskLoss(AbstractActorCriticLoss):
         """
 
 
-        ForkedPdb().set_trace()
         observations = cast(Dict[str, torch.Tensor], batch["observations"])
         extra_model_outputs = actor_critic_output.extras
 
@@ -258,7 +256,6 @@ class MaskLoss(AbstractActorCriticLoss):
         gt_masks = gt_masks_source
         gt_masks[pickup_sensor] = gt_masks_destination[pickup_sensor]
 
-        ForkedPdb().set_trace()
         # all_masks = observations['all_masks_sensor'] TODO use this and object_category_source and object_category_destination for more failure analysis later
 
         intersection = (gt_masks + predicted_mask) == 2
@@ -276,7 +273,6 @@ class MaskLoss(AbstractActorCriticLoss):
         #
         # assert gt_relative_agent_arm_to_obj.shape == pred_agent_arm_to_obj.shape
         # assert gt_relative_obj_to_goal.shape == pred_obj_to_goal.shape
-        # ForkedPdb().set_trace()
         # loss_function = torch.nn.SmoothL1Loss() #LATER_TODO is this a good choice?
         # arm_to_obj_loss = loss_function(gt_relative_agent_arm_to_obj, pred_agent_arm_to_obj)
         # obj_to_goal_loss = loss_function(gt_relative_obj_to_goal, pred_obj_to_goal)

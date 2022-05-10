@@ -675,6 +675,7 @@ class ExploreWiseRewardTask(BringObjectTask):
         all_locations = [[k['x'], k['y'], k['z']] for k in (self.env.get_reachable_positions())]
         self.all_reachable_positions = torch.Tensor(all_locations)
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
+        assert len(self.all_reachable_positions) > 0, 'no reachable positions to calculate reward'
         self.source_observed_reward = False
         self.goal_observed_reward = False
     def metrics(self) -> Dict[str, Any]:

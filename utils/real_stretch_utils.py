@@ -24,10 +24,9 @@ def get_binary_mask_of_arm(rgb_image):
     arm_mask = np.zeros((rgb_image.shape[0], rgb_image.shape[1]))
     if len(valid_corners) > 1:
         print('Multiple Valid corners')
-        ForkedPdb().set_trace()
-    elif len(valid_corners) == 0:
+        valid_corners = valid_corners[0]
+    if len(valid_corners) == 0:
         print('Arm not detected')
-        # ForkedPdb().set_trace()
         pass #no valid is found
     elif len(valid_corners) == 1:
         corners = valid_corners[0].squeeze(0).astype(int)

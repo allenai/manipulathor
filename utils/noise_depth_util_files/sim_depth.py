@@ -80,8 +80,7 @@ class RedwoodDepthNoise:
         plt.imshow(b); plt.savefig('/Users/kianae/Desktop/before.png')
         plt.imshow(a); plt.savefig('/Users/kianae/Desktop/after.png')
 
-        ForkedPdb().set_trace()
-
+        raise Exception('what?')
     def add_noise(self, depth, depth_normalizer=1):
 
         a = depth / depth_normalizer
