@@ -2,7 +2,8 @@ import glob
 import pickle
 import random
 from collections import Counter
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 
 import gym
 import datasets
@@ -67,8 +68,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.scene_period: Optional[
             Union[str, int]
         ] = scene_period  # default makes a random choice
-        self.max_tasks: Optional[int] = None
-        self.reset_tasks = max_tasks
+
 
         self._last_sampled_task: Optional[Task] = None
 
@@ -78,7 +78,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         if deterministic_cudnn:
             set_deterministic_cudnn()
 
-        self.reset()
+        
         self.visualizers = visualizers
         self.sampler_mode = kwargs["sampler_mode"]
         self.cap_training = kwargs["cap_training"]
@@ -99,6 +99,40 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.house_inds_index = 0
         self.reachable_positions_map = {}
         self.house_dataset = self.house_dataset['train'] #TODO separately for test and val
+
+        self.args_house_inds = list(range(len(self.house_dataset)))
+        self.valid_rotations = [0,30,60,90,120,150,180,210,240,270,300,330]
+        self.distance_type = "l2"
+        self.distance_cache = DynamicDistanceCache(rounding=1)
+        self.target_object_types_set = set(self.objects)
+        self.obj_type_counter = Counter(
+            {obj_type: 0 for obj_type in self.objects}
+        )
+        self.reachable_positions_map: Dict[int, Vector3] = dict()
+        self.objects_in_scene_map: Dict[str, List[str]] = dict()
+        self.max_tasks = max_tasks if max_tasks is not None else len(self.args_house_inds)
+        self.reset_tasks = self.max_tasks
+        self.reset()
+        # ForkedPdb().set_trace()
+        # if total_processes > len(self.house_dataset):
+        #     if not allow_oversample:
+        #         raise RuntimeError(
+        #             f"Cannot have `total_processes > len(self.house_dataset)`"
+        #             f" ({total_processes} > {len(self.house_dataset)}) when `allow_oversample` is `False`."
+        #         )
+
+        #     if total_processes % len(self.house_dataset) != 0:
+        #         get_logger().warning(oversample_warning)
+        #     house_inds = house_inds * ceil(total_processes / len(self.house_dataset))
+        #     house_inds = house_inds[
+        #         : total_processes * (len(house_inds) // total_processes)
+        #     ]
+        # elif len(self.house_dataset) % total_processes != 0:
+        #     get_logger().warning(oversample_warning)
+
+        # inds = self._partition_inds(len(house_inds), total_processes)
+        # house_inds = house_inds[inds[process_ind] : inds[process_ind + 1]]
+
 
         # ROOMS_TO_USE = [int(scene.replace('ProcTHOR', '')) for scene in self.scenes]
 
@@ -163,8 +197,8 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         return self._last_sampled_task
 
     def close(self) -> None:
-        if self.controller is not None:
-            self.controller.stop()
+        if self.env.controller is not None:
+            self.env.controller.stop()
 
     @property
     def all_observation_spaces_equal(self) -> bool:
@@ -192,7 +226,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
 
     @property
     def house_index(self) -> int:
-        return self.args.house_inds[self.house_inds_index]
+        return self.args_house_inds[self.house_inds_index]
 
     def is_object_visible(self, object_id: str) -> bool:
         """Return True if object_id is visible without any interaction in the scene.
@@ -209,7 +243,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
             self.visible_objects_cache[self.house_index] = dict()
 
         # NOTE: Get the visibility points on the object
-        visibility_points = self.controller.step(
+        visibility_points = self.env.controller.step(
             action="GetVisibilityPoints", objectId=object_id, raise_for_failure=True
         ).metadata["actionReturn"]
 
@@ -225,7 +259,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 agent_pos["y"] = self.get_nearest_agent_height(
                     y_coordinate=vis_point["y"]
                 )
-                event = self.controller.step(
+                event = self.env.controller.step(
                     action="PerformRaycast",
                     origin=agent_pos,
                     destination=vis_point,
@@ -248,7 +282,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         if self.house_index in self.objects_in_scene_map:
             return self.objects_in_scene_map[self.house_index]
 
-        event = self.controller.step(action="ResetObjectFilter", raise_for_failure=True)
+        event = self.env.controller.step(action="ResetObjectFilter", raise_for_failure=True)
         objects = event.metadata["objects"]
         out = {}
         for obj in objects:
@@ -300,32 +334,37 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
     def reachable_positions(self) -> List[Vector3]:
         """Return the reachable positions in the current house."""
         return self.reachable_positions_map[self.house_index]
+    
+    def reset_scene(self):
+        self.env.reset(
+            scene_name='Procedural',
+            agentMode=self.env_args['agentMode'], agentControllerType=self.env_args['agentControllerType']
+        )    
 
     def increment_scene(self) -> bool:
         """Increment the current scene.
         Returns True if the scene works with reachable positions, False otherwise.
         """
         self.increment_scene_index()
+        self.reset_scene()
 
-        # self.controller.step(action="DestroyHouse", raise_for_failure=True)
-        self.controller.reset()
-        self.house_entry = self.args.houses[self.house_index]
+        # self.env.controller.step(action="DestroyHouse", raise_for_failure=True)
+        self.env.controller.reset()
+        self.house_entry = self.house_dataset[self.house_index]
         self.house = pickle.loads(self.house_entry["house"])
 
-        self.controller.step(
+        self.env.controller.step(
             action="CreateHouse", house=self.house, raise_for_failure=True
         )
 
         # NOTE: Set reachable positions
         if self.house_index not in self.reachable_positions_map:
-            pose = self.house["metadata"]["agent"].copy()
-            if self.args.controller_args["agentMode"] == "locobot":
-                del pose["standing"]
-            event = self.controller.step(action="TeleportFull", **pose)
-            if not event:
-                get_logger().warning(f"Initial teleport failing in {self.house_index}.")
-                return False
-            rp_event = self.controller.step(action="GetReachablePositions")
+            # pose = self.house["metadata"]["agent"].copy()
+            # event = self.env.controller.step(action="TeleportFull", **pose)
+            # if not event:
+            #     get_logger().warning(f"Initial teleport failing in {self.house_index}.")
+            #     return False
+            rp_event = self.env.controller.step(action="GetReachablePositions")
             if not rp_event:
                 # NOTE: Skip scenes where GetReachablePositions fails
                 get_logger().warning(
@@ -337,19 +376,23 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         return True
 
     def increment_scene_index(self):
-        self.house_inds_index = (self.house_inds_index + 1) % len(self.args.house_inds)
+        self.house_inds_index = (self.house_inds_index + 1) % len(self.args_house_inds)
 
     def next_task(self, force_advance_scene: bool = False) -> Optional[ProcTHORObjectNavTask]:
+        
+        if self.env is None:
+            self.env = self._create_environment()
+        
         # NOTE: Stopping condition
-        if self.args.max_tasks <= 0:
+        if self.max_tasks <= 0:
             return None
 
-        # NOTE: Setup the Controller
-        if self.controller is None:
-            self.controller = Controller(**self.args.controller_args)
-            get_logger().info(
-                f"Using Controller commit id: {self.controller._build.commit_id}"
-            )
+        # # NOTE: Setup the Controller
+        # if self.env.controller is None:
+        #     self.env.controller = Controller(**self.args.controller_args)
+        #     get_logger().info(
+        #         f"Using Controller commit id: {self.env.controller._build.commit_id}"
+        #     )
 
         # NOTE: determine if the house should be changed.
         if force_advance_scene or (
@@ -371,58 +414,53 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                     pass
 
         if False and random.random() < 0.8: #TODO
-            self.controller.step(action="RandomizeMaterials", raise_for_failure=True)
+            self.env.controller.step(action="RandomizeMaterials", raise_for_failure=True)
         else:
-            self.controller.step(action="ResetMaterials", raise_for_failure=True)
+            self.env.controller.step(action="ResetMaterials", raise_for_failure=True)
 
-        self.controller.step(
+        self.env.controller.step(
             action="SetObjectFilter",
             objectIds=target_object_ids,
             raise_for_failure=True,
         )
 
         # NOTE: Set agent pose
-        standing = (
-            {}
-            if self.args.controller_args["agentMode"] == "locobot"
-            else {"standing": True}
-        )
         starting_pose = AgentPose(
             position=random.choice(self.reachable_positions),
             rotation=Vector3(x=0, y=random.choice(self.valid_rotations), z=0),
-            horizon=30,
-            **standing,
+            horizon=0,
+            standing=True,
         )
-        event = self.controller.step(action="TeleportFull", **starting_pose)
+        event = self.env.controller.step(action="TeleportFull", **starting_pose)
         if not event:
             get_logger().warning(
                 f"Teleport failing in {self.house_index} at {starting_pose}"
             )
 
         self.episode_index += 1
-        self.args.max_tasks -= 1
+        self.max_tasks -= 1
 
-        self._last_sampled_task = ProcTHORObjectNavTask(
-            controller=self.controller,
-            sensors=self.args.sensors,
-            max_steps=self.args.max_steps,
-            reward_config=self.args.reward_config,
-            distance_type=self.args.distance_type,
+        self._last_sampled_task = self.TASK_TYPE(
+            controller=self.env.controller,
+            sensors=self.sensors,
+            max_steps=self.max_steps,
+            reward_config=self.rewards_config,
+            distance_type=self.distance_type,
             distance_cache=self.distance_cache,
             task_info={
-                "mode": self.args.mode,
-                "process_ind": self.args.process_ind,
+                # "mode": self.args.mode,
+                # "process_ind": self.process_ind,
                 "house_name": str(self.house_index),
                 "rooms": self.house_entry["rooms"],
                 "target_object_ids": target_object_ids,
                 "object_type": target_object_type,
                 "starting_pose": starting_pose,
-                "mirrored": self.args.allow_flipping and random.random() > 0.5,
+                # "mirrored": self.args.allow_flipping and random.random() > 0.5,
             },
         )
         return self._last_sampled_task
 
     def reset(self):
         self.episode_index = 0
-        self.args.max_tasks = self.reset_tasks
+        self.max_tasks = self.reset_tasks
         self.house_inds_index = 0

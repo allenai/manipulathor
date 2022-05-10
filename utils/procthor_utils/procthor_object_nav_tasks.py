@@ -1,7 +1,7 @@
-import pickle
 import random
 from collections import Counter
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
+from typing_extensions import Literal
 
 import gym
 import numpy as np
@@ -10,7 +10,7 @@ from allenact.base_abstractions.misc import RLStepResult
 from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import Task
 from allenact.utils.cache_utils import DynamicDistanceCache
-from allenact.utils.experiment_utils import set_deterministic_cudnn, set_seed
+# from allenact.utils.experiment_utils import set_deterministic_cudnn, set_seed
 from allenact.utils.system import get_logger
 # from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 
@@ -63,7 +63,7 @@ class ProcTHORObjectNavTask(Task[Controller]):
         self.reward_config = reward_config
         self._took_end_action: bool = False
         self._success: Optional[bool] = False
-        self.mirror = task_info["mirrored"]
+        self.mirror = False #task_info["mirrored"]
 
         self._rewards: List[float] = []
         self._distance_to_goal: List[float] = []

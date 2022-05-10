@@ -1,4 +1,5 @@
-from typing import Dict, List, Literal, Optional, TypedDict
+from typing import Dict, List, Optional
+from typing_extensions import Literal
 import math
 
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -121,3 +122,21 @@ def distance_to_object_id(
         target=object_id,
         native_distance_function=retry_dist,
     )
+
+def spl_metric(
+    success: bool, optimal_distance: float, travelled_distance: float
+) -> Optional[float]:
+    # TODO: eventually should be -> float
+    if optimal_distance < 0:
+        # TODO: update when optimal_distance must be >= 0.
+        # raise ValueError(
+        #     f"optimal_distance must be >= 0. You gave: {optimal_distance}."
+        # )
+        # return None
+        return 0.0
+    elif not success:
+        return 0.0
+    elif optimal_distance == 0:
+        return 1.0 if travelled_distance == 0 else 0.0
+    else:
+        return optimal_distance / max(travelled_distance, optimal_distance)
