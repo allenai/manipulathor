@@ -5,7 +5,6 @@ from typing_extensions import Literal
 
 import gym
 import numpy as np
-# from ai2thor.controller import Controller
 from allenact.base_abstractions.misc import RLStepResult
 from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import Task
@@ -39,7 +38,6 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
     )
     def __init__(
         self,
-        # controller: Controller,
         env: StretchManipulaTHOREnvironment,
         sensors: List[Sensor],
         task_info: Dict[str, Any],
@@ -57,7 +55,6 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
             max_steps=max_steps,
             **kwargs,
         )
-        # self.env.controller = controller
         self.reward_config = reward_config
         self._took_end_action: bool = False
         self._success: Optional[bool] = False
@@ -72,7 +69,7 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         self.travelled_distance = 0.0
 
         self.task_info["followed_path"] = [
-            self.env.controller.last_event.metadata["agent"]["position"]
+            self.env.last_event.metadata["agent"]["position"]
         ]
         self.task_info["taken_actions"] = []
         self.task_info["action_successes"] = []
@@ -96,7 +93,7 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
             if visualize is not None
             else (self.task_info["mode"] == "eval" or random.random() < 1 / 1000)
         )
-        self.observations = [self.env.controller.last_event.frame]
+        self.observations = [self.env.last_event.frame]
         self._metrics = None
 
     def min_l2_distance_to_target(self) -> float:
@@ -107,14 +104,14 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         min_dist = float("inf")
         obj_id_to_obj_pos = {
             o["objectId"]: o["axisAlignedBoundingBox"]["center"]
-            for o in self.env.controller.last_event.metadata["objects"]
+            for o in self.env.last_event.metadata["objects"]
         }
         for object_id in self.task_info["target_object_ids"]:
             min_dist = min(
                 min_dist,
                 StretchManipulaTHOREnvironment.position_dist(
                     obj_id_to_obj_pos[object_id],
-                    self.env.controller.last_event.metadata["agent"]["position"],
+                    self.env.last_event.metadata["agent"]["position"],
                 ),
             )
         if min_dist == float("inf"):
@@ -133,7 +130,7 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         min_dist = None
         for object_id in self.task_info["target_object_ids"]:
             geo_dist = distance_to_object_id(
-                controller=self.env.controller,
+                env=self.env,
                 distance_cache=self.distance_cache,
                 object_id=object_id,
                 house_name=self.task_info["house_name"],
@@ -158,17 +155,10 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         return cls._actions
 
     def close(self) -> None:
-        self.env.controller.stop()
+        self.env.stop()
 
     def _step(self, action: int) -> RLStepResult:
         action_str = self.class_action_names()[action]
-        ForkedPdb().set_trace()
-
-        if self.mirror:
-            if action_str == "RotateRight":
-                action_str = "RotateLeft"
-            elif action_str == "RotateLeft":
-                action_str = "RotateRight"
 
         self.task_info["taken_actions"].append(action_str)
 
@@ -178,10 +168,11 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
             self.last_action_success = self._success
             self.task_info["action_successes"].append(True)
         else:
-            self.env.controller.step(action=action_str)
-            self.last_action_success = bool(self.env.controller.last_event)
+            action_dict = {"action": action_str}
+            self.env.step(action_dict)
+            self.last_action_success = bool(self.env.last_event)
 
-            position = self.env.controller.last_event.metadata["agent"]["position"]
+            position = self.env.last_event.metadata["agent"]["position"]
             self.path.append(position)
             self.task_info["followed_path"].append(position)
             self.task_info["action_successes"].append(self.last_action_success)
@@ -192,7 +183,7 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
             )
 
         if self.visualize:
-            self.observations.append(self.env.controller.last_event.frame)
+            self.observations.append(self.env.last_event.frame)
 
         step_result = RLStepResult(
             observation=self.get_observations(),
@@ -206,9 +197,9 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         self, mode: Literal["rgb", "depth"] = "rgb", *args, **kwargs
     ) -> np.ndarray:
         if mode == "rgb":
-            frame = self.env.controller.last_event.frame.copy()
+            frame = self.env.last_event.frame.copy()
         elif mode == "depth":
-            frame = self.env.controller.last_event.depth_frame.copy()
+            frame = self.env.last_event.depth_frame.copy()
         else:
             raise NotImplementedError(f"Mode '{mode}' is not supported.")
 
@@ -220,7 +211,7 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
     def _is_goal_in_range(self) -> bool:
         return any(
             obj
-            for obj in self.env.controller.last_event.metadata["objects"]
+            for obj in self.env.last_event.metadata["objects"]
             if obj["visible"] and obj["objectType"] == self.task_info["object_type"]
         )
 
@@ -297,16 +288,16 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
             dict(x=p["x"], y=0.25, z=p["z"])
             for p in self._metrics["task_info"]["followed_path"]
         ]
-        if not self.env.controller.last_event.third_party_camera_frames:
+        if not self.env.last_event.third_party_camera_frames:
             # assumes this is the only third party camera
-            event = self.env.controller.step(action="GetMapViewCameraProperties")
+            event = self.env.step(action="GetMapViewCameraProperties")
             cam = event.metadata["actionReturn"].copy()
             cam["orthographicSize"] += 1
-            self.env.controller.step(
+            self.env.step(
                 action="AddThirdPartyCamera", skyboxColor="white", **cam
             )
-        event = self.env.controller.step(action="VisualizePath", positions=agent_path)
-        self.env.controller.step(action="HideVisualizedPath")
+        event = self.env.step(action="VisualizePath", positions=agent_path)
+        self.env.step(action="HideVisualizedPath")
 
         return {
             "observations": self.observations,

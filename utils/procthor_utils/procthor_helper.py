@@ -4,7 +4,8 @@ import math
 
 from manipulathor_utils.debugger_util import ForkedPdb
 from omegaconf import DictConfig, OmegaConf
-from ai2thor.controller import Controller
+# from ai2thor.controller import Controller
+from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 from ai2thor.util import metrics
 from allenact.utils.cache_utils import DynamicDistanceCache
 from allenact.utils.system import get_logger
@@ -48,7 +49,7 @@ def position_dist(
 
 
 def distance_to_object_id(
-    controller: Controller,
+    env: StretchManipulaTHOREnvironment,
     distance_cache: DynamicDistanceCache,
     object_id: str,
     house_name: str,

@@ -353,7 +353,6 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.house_inds_index = (self.house_inds_index + 1) % len(self.args_house_inds)
 
     def next_task(self, force_advance_scene: bool = False) -> Optional[ProcTHORObjectNavTask]:
-        
         if self.env is None:
             self.env = self._create_environment()
         
