@@ -37,7 +37,7 @@ class ProcTHORObjectNavRGBOnly(
         ),
     ]
 
-    MAX_STEPS = 200
+    MAX_STEPS = 500
     if platform.system() == "Darwin":
         MAX_STEPS = 10
 
@@ -62,12 +62,13 @@ class ProcTHORObjectNavRGBOnly(
 
 
     def __init__(self):
-        super().__init__()
-        self.REWARD_CONFIG['exploration_reward'] = 0.1 
-        self.REWARD_CONFIG['goal_success_reward'] = 1 
-        self.REWARD_CONFIG['step_penalty'] = -0.1 
-        self.REWARD_CONFIG['failed_stop_reward'] = -1 
-        self.REWARD_CONFIG['reached_horizon_reward'] = 0.5 # TODO what
+        super().__init__() 
+        self.REWARD_CONFIG['goal_success_reward'] = 10.0 
+        self.REWARD_CONFIG['step_penalty'] = -0.01 
+        self.REWARD_CONFIG['failed_stop_reward'] = 0.0 
+        self.REWARD_CONFIG['reached_horizon_reward'] = 0.0
+        self.REWARD_CONFIG['shaping_weight'] = 1.0
+        
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         self.ENV_ARGS['scene'] = 'Procedural'

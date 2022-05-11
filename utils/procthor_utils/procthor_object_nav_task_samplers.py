@@ -393,10 +393,10 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
             standing=True,
         )
         event = self.env.controller.step(action="TeleportFull", **starting_pose)
-        if not event:
-            get_logger().warning(
-                f"Teleport failing in {self.house_index} at {starting_pose}"
-            )
+        # if not event:
+            # get_logger().warning(
+            #     f"Teleport failing in {self.house_index} at {starting_pose}"
+            # )
 
         self.episode_index += 1
         self.max_tasks -= 1
