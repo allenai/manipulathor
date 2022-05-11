@@ -47,9 +47,9 @@ class ProcTHORObjectNavRGBOnly(
 
     NUM_PROCESSES = 20
 
-    TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(2)] # 6999
-    # if platform.system() == "Darwin":
-    #     TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
+    TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(6999)] # 6999
+    if platform.system() == "Darwin":
+        TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
 
     TEST_SCENES = [f'ProcTHOR{i}' for i in range(1)]
     OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list]))
@@ -68,7 +68,7 @@ class ProcTHORObjectNavRGBOnly(
         self.REWARD_CONFIG['failed_stop_reward'] = 0.0 
         self.REWARD_CONFIG['reached_horizon_reward'] = 0.0
         self.REWARD_CONFIG['shaping_weight'] = 1.0
-        
+
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         self.ENV_ARGS['scene'] = 'Procedural'
