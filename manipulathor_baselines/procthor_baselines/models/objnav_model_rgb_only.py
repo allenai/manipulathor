@@ -141,8 +141,8 @@ class ObjNavOnlyRGBModel(ActorCriticModel[CategoricalDistr]):
 
         #we really need to switch to resnet now that visual features are actually important
 
-        pickup_bool = observations["pickedup_object"]
-        after_pickup = pickup_bool == 1
+        # pickup_bool = observations["pickedup_object"]
+        # after_pickup = pickup_bool == 1
 
         visual_observation = observations['rgb_lowres']
 
@@ -196,15 +196,15 @@ class ObjNavOnlyRGBModel(ActorCriticModel[CategoricalDistr]):
             print('actor is nan', actor_is_nan.sum())
             print('scene number', observations['scene_number'])
 
-        # TODO really bad design
-        if self.visualize:
-            arm_distance_to_obj_source = observations['arm_point_nav_source']
-            arm_distance_to_obj_destination = observations['arm_point_nav_destination']
-            distance_vector_to_viz = arm_distance_to_obj_source.clone()
-            distance_vector_to_viz[after_pickup] = arm_distance_to_obj_destination.clone()[after_pickup]
-            distance_vector_to_viz = dict(arm_dist=distance_vector_to_viz, agent_dist=distance_vector_to_viz)
+        # # TODO really bad design
+        # if self.visualize:
+        #     arm_distance_to_obj_source = observations['arm_point_nav_source']
+        #     arm_distance_to_obj_destination = observations['arm_point_nav_destination']
+        #     distance_vector_to_viz = arm_distance_to_obj_source.clone()
+        #     distance_vector_to_viz[after_pickup] = arm_distance_to_obj_destination.clone()[after_pickup]
+        #     distance_vector_to_viz = dict(arm_dist=distance_vector_to_viz, agent_dist=distance_vector_to_viz)
 
-            hacky_visualization(observations, base_directory_to_right_images=self.starting_time, distance_vector_to_viz=distance_vector_to_viz)
+        #     hacky_visualization(observations, base_directory_to_right_images=self.starting_time, distance_vector_to_viz=distance_vector_to_viz)
 
 
         return (

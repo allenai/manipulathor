@@ -3,26 +3,13 @@ import random
 
 import gym
 import numpy as np
-import torch
-# from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from torch import nn
 
 from ithor_arm.bring_object_sensors import RGBSensorThorNoNan
-# from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
-# from ithor_arm.bring_object_tasks import WPickUPExploreBringObjectTask, ExploreWiseRewardTask
-# from ithor_arm.ithor_arm_constants import MANIPULATHOR_ENV_ARGS, TRAIN_OBJECTS, TEST_OBJECTS
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 from ithor_arm.ithor_arm_sensors import SceneNumberSensor
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
-# from ithor_arm.ithor_arm_viz import MaskImageVisualizer
-# from ithor_arm.near_deadline_sensors import PointNavEmulatorSensor, RealPointNavSensor
-# from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
-# from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_simplegru import BringObjectMixInSimpleGRUConfig
-# from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_object_ithor_base import BringObjectiThorBaseConfig
-# from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
-# from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
-# from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
 from manipulathor_baselines.procthor_baselines.models.objnav_model_rgb_only import ObjNavOnlyRGBModel
 from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_nav_for_procthor import ProcTHORObjectNavBaseConfig
 from utils.procthor_utils.procthor_object_nav_task_samplers import ProcTHORObjectNavTaskSampler
@@ -48,7 +35,7 @@ class ProcTHORObjectNavRGBOnly(
             stdev=stdev,
             uuid="rgb_lowres",
         ),
-        SceneNumberSensor(), #TODO remove as soon as bug is resolved
+        # SceneNumberSensor(), #TODO remove as soon as bug is resolved
     ]
 
     MAX_STEPS = 200
@@ -75,14 +62,16 @@ class ProcTHORObjectNavRGBOnly(
 
     def __init__(self):
         super().__init__()
-        self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
-        self.REWARD_CONFIG['object_found'] = 1 # is this too big?
+        self.REWARD_CONFIG['exploration_reward'] = 0.1 
+        self.REWARD_CONFIG['goal_success_reward'] = 1 
+        self.REWARD_CONFIG['step_penalty'] = -0.1 
+        self.REWARD_CONFIG['failed_stop_reward'] = -1 
+        self.REWARD_CONFIG['reached_horizon_reward'] = 0.5 # TODO what
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         self.ENV_ARGS['scene'] = 'Procedural'
         self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
         self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
-        self.ENV_ARGS['target_object_types'] = 'robothor_habitat2022'
 
 
     @classmethod

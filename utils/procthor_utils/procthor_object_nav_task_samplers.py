@@ -1,4 +1,5 @@
 import glob
+import platform
 import pickle
 import random
 from collections import Counter
@@ -23,6 +24,7 @@ from utils.procthor_utils.procthor_types import AgentPose, Vector3
 from utils.procthor_utils.procthor_object_nav_tasks import ProcTHORObjectNavTask
 from utils.stretch_utils.stretch_constants import ADITIONAL_ARM_ARGS
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
+from scripts.stretch_jupyter_helper import make_all_objects_unbreakable
 
 
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -110,57 +112,12 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         )
         self.reachable_positions_map: Dict[int, Vector3] = dict()
         self.objects_in_scene_map: Dict[str, List[str]] = dict()
+        self.visible_objects_cache = dict()
         self.max_tasks = max_tasks if max_tasks is not None else len(self.args_house_inds)
         self.reset_tasks = self.max_tasks
+        self.max_vis_points=6
+        self.max_agent_positions=6
         self.reset()
-        # ForkedPdb().set_trace()
-        # if total_processes > len(self.house_dataset):
-        #     if not allow_oversample:
-        #         raise RuntimeError(
-        #             f"Cannot have `total_processes > len(self.house_dataset)`"
-        #             f" ({total_processes} > {len(self.house_dataset)}) when `allow_oversample` is `False`."
-        #         )
-
-        #     if total_processes % len(self.house_dataset) != 0:
-        #         get_logger().warning(oversample_warning)
-        #     house_inds = house_inds * ceil(total_processes / len(self.house_dataset))
-        #     house_inds = house_inds[
-        #         : total_processes * (len(house_inds) // total_processes)
-        #     ]
-        # elif len(self.house_dataset) % total_processes != 0:
-        #     get_logger().warning(oversample_warning)
-
-        # inds = self._partition_inds(len(house_inds), total_processes)
-        # house_inds = house_inds[inds[process_ind] : inds[process_ind + 1]]
-
-
-        # ROOMS_TO_USE = [int(scene.replace('ProcTHOR', '')) for scene in self.scenes]
-
-
-
-        # self.dataset_files ={}
-        # print('Load dataset')
-        # dataset_files = 'datasets/procthor_apnd_dataset/room_id_'
-        # # TODO we can open this on the fly
-        # for room_ind in ROOMS_TO_USE:
-        #     files = [f for f in glob.glob(dataset_files + str(room_ind) + '_*.json')] # TODO maybe it's better to do this only once
-        #     if len(files) == 0:
-        #         # print(room_ind, 'is missing')
-        #         continue
-        #     elif len(files) > 1:
-        #         print(room_ind, 'multiple instance')
-        #         f = random.choice(files)
-        #     else:
-        #         f = files[0]
-        #     with open(f) as file_des:
-        #         dict = json.load(file_des) # TODO maybe even convert everything into h5py?
-        #         self.dataset_files[room_ind] = dict
-
-        # print('Finished Loading data')
-
-        # self.args_house_inds = list(self.dataset_files.keys())
-        # random.shuffle(self.args_house_inds)
-        # ForkedPdb().set_trace()
 
 
     def set_seed(self, seed: int):
@@ -217,12 +174,12 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         return self.reachable_positions[
             : min(
                 len(self.reachable_positions),
-                max_agent_positions=6,
+                self.max_agent_positions,
             )
         ]
 
     def get_nearest_agent_height(self, y_coordinate: float) -> float:
-        return 1.5759992 # from default agent
+        return 1.5759992 # from default agent - is guess. TODO check stretch
 
     @property
     def house_index(self) -> int:
@@ -250,7 +207,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         # NOTE: Randomly sample visibility points
         for vis_point in random.sample(
             population=visibility_points,
-            k=min(len(visibility_points), max_vis_points=6),
+            k=min(len(visibility_points), self.max_vis_points),
         ):
             # NOTE: Get the nearest reachable agent positions to the target object.
             agent_positions = self.get_nearest_positions(world_position=vis_point)
@@ -268,7 +225,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 if (
                     event.metadata["lastActionSuccess"]
                     and hit["objectId"] == object_id
-                    and hit["hitDistance"] < self.env_args.visibility_distance
+                    and hit["hitDistance"] < self.env_args['visibilityDistance']
                 ):
                     self.visible_objects_cache[self.house_index][object_id] = True
                     return True
@@ -345,22 +302,39 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         """Increment the current scene.
         Returns True if the scene works with reachable positions, False otherwise.
         """
-        self.increment_scene_index()
+        
         self.reset_scene()
+        self.increment_scene_index()
 
         # self.env.controller.step(action="DestroyHouse", raise_for_failure=True)
         self.env.controller.reset()
         self.house_entry = self.house_dataset[self.house_index]
         self.house = pickle.loads(self.house_entry["house"])
 
+        if platform.system() == "Darwin": #TODO remove
+            print('The house is ', self.house_index)
+
         self.env.controller.step(
             action="CreateHouse", house=self.house, raise_for_failure=True
         )
+        self.env.controller.step("ResetObjectFilter")
+
+        #TODO dude this is ugly!
+        pose = self.house["metadata"]["agent"].copy()
+        event = self.env.controller.step(action="TeleportFull", **pose)
+        if not event:
+            get_logger().warning(f"Initial teleport failing in {self.house_index}.")
+            return False #TODO this can mess FPS
+        self.env.controller.step(action="MakeAllObjectsMoveable")
+        self.env.controller.step(action="MakeObjectsStaticKinematicMassThreshold")
+        make_all_objects_unbreakable(self.env.controller)
 
         # NOTE: Set reachable positions
         if self.house_index not in self.reachable_positions_map:
             # pose = self.house["metadata"]["agent"].copy()
+            # ForkedPdb().set_trace()
             # event = self.env.controller.step(action="TeleportFull", **pose)
+            
             # if not event:
             #     get_logger().warning(f"Initial teleport failing in {self.house_index}.")
             #     return False
@@ -441,15 +415,17 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.max_tasks -= 1
 
         self._last_sampled_task = self.TASK_TYPE(
-            controller=self.env.controller,
+            # controller=self.env.controller,
+            env=self.env,
             sensors=self.sensors,
             max_steps=self.max_steps,
             reward_config=self.rewards_config,
             distance_type=self.distance_type,
             distance_cache=self.distance_cache,
             task_info={
-                # "mode": self.args.mode,
+                "mode": self.env_args['agentMode'],
                 # "process_ind": self.process_ind,
+                "scene_name": self.env_args['scene'],
                 "house_name": str(self.house_index),
                 "rooms": self.house_entry["rooms"],
                 "target_object_ids": target_object_ids,
