@@ -94,15 +94,17 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         # if platform.system() == "Darwin":
         #     RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 1
 
-        RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 1
+        RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 50
         self.resample_same_scene_freq = RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE
-        assert self.resample_same_scene_freq == 1 # IMPORTANT IT WON"T WORK FOR 100
+        # assert self.resample_same_scene_freq == 1 # IMPORTANT IT WON"T WORK FOR 100
         self.episode_index = 0
         self.house_inds_index = 0
         self.reachable_positions_map = {}
         self.house_dataset = self.house_dataset['train'] #TODO separately for test and val
 
-        self.args_house_inds = list(range(len(self.house_dataset)))
+        ROOMS_TO_USE = [int(scene.replace('ProcTHOR', '')) for scene in self.scenes]
+
+        self.args_house_inds = ROOMS_TO_USE
         self.valid_rotations = [0,30,60,90,120,150,180,210,240,270,300,330]
         self.distance_type = "l2"
         self.distance_cache = DynamicDistanceCache(rounding=1)
@@ -113,7 +115,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.reachable_positions_map: Dict[int, Vector3] = dict()
         self.objects_in_scene_map: Dict[str, List[str]] = dict()
         self.visible_objects_cache = dict()
-        self.max_tasks = max_tasks if max_tasks is not None else len(self.args_house_inds)
+        self.max_tasks = max_tasks if max_tasks is not None else np.Inf # stop when I tell you to stop
         self.reset_tasks = self.max_tasks
         self.max_vis_points=6
         self.max_agent_positions=6
@@ -323,7 +325,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         pose = self.house["metadata"]["agent"].copy()
         event = self.env.controller.step(action="TeleportFull", **pose)
         if not event:
-            get_logger().warning(f"Initial teleport failing in {self.house_index}.")
+            # get_logger().warning(f"Initial teleport failing in {self.house_index}.") # clear logger noise
             return False #TODO this can mess FPS
         self.env.controller.step(action="MakeAllObjectsMoveable")
         self.env.controller.step(action="MakeObjectsStaticKinematicMassThreshold")
@@ -331,13 +333,6 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
 
         # NOTE: Set reachable positions
         if self.house_index not in self.reachable_positions_map:
-            # pose = self.house["metadata"]["agent"].copy()
-            # ForkedPdb().set_trace()
-            # event = self.env.controller.step(action="TeleportFull", **pose)
-            
-            # if not event:
-            #     get_logger().warning(f"Initial teleport failing in {self.house_index}.")
-            #     return False
             rp_event = self.env.controller.step(action="GetReachablePositions")
             if not rp_event:
                 # NOTE: Skip scenes where GetReachablePositions fails
@@ -360,16 +355,9 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         if self.max_tasks <= 0:
             return None
 
-        # # NOTE: Setup the Controller
-        # if self.env.controller is None:
-        #     self.env.controller = Controller(**self.args.controller_args)
-        #     get_logger().info(
-        #         f"Using Controller commit id: {self.env.controller._build.commit_id}"
-        #     )
-
         # NOTE: determine if the house should be changed.
         if force_advance_scene or (
-            self.resample_same_scene_freq > 0
+            self.resample_same_scene_freq > 0 
             and self.episode_index % self.resample_same_scene_freq == 0
         ):
             while not self.increment_scene():
@@ -414,7 +402,6 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.max_tasks -= 1
 
         self._last_sampled_task = self.TASK_TYPE(
-            # controller=self.env.controller,
             env=self.env,
             sensors=self.sensors,
             max_steps=self.max_steps,

@@ -35,16 +35,17 @@ class ProcTHORObjectNavRGBOnly(
             stdev=stdev,
             uuid="rgb_lowres",
         ),
-        # SceneNumberSensor(), #TODO remove as soon as bug is resolved
     ]
 
     MAX_STEPS = 200
+    if platform.system() == "Darwin":
+        MAX_STEPS = 10
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
     TASK_TYPE = ProcTHORObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
 
-    NUM_PROCESSES = 1#20
+    NUM_PROCESSES = 20
 
     TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(2)] # 6999
     # if platform.system() == "Darwin":
