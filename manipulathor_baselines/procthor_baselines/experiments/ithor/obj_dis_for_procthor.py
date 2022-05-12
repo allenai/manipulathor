@@ -27,6 +27,7 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
+from manipulathor_baselines.procthor_baselines.experiments.procthor_base_config import BringObjectProcThorBaseConfig
 from manipulathor_baselines.procthor_baselines.models.objdis_pointnav_model import ObjDisPointNavModel
 from scripts.dataset_generation.find_categories_to_use import KITCHEN_TRAIN, BEDROOM_TRAIN, BATHROOM_TRAIN, \
     BATHROOM_TEST, BEDROOM_TEST, LIVING_ROOM_TEST, KITCHEN_TEST, LIVING_ROOM_TRAIN, FULL_LIST_OF_OBJECTS
@@ -36,7 +37,7 @@ from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID
 
 
 class ObjDisArmPointNavProcTHOR(
-    BringObjectiThorBaseConfig,
+    BringObjectProcThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
 ):
@@ -75,16 +76,6 @@ class ObjDisArmPointNavProcTHOR(
 
     NUM_PROCESSES = 20
 
-    TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(6999)]
-    if platform.system() == "Darwin":
-        TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
-
-    TEST_SCENES = [f'ProcTHOR{i}' for i in range(1)]
-    OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list]))
-
-
-    random.shuffle(TRAIN_SCENES)
-
     if platform.system() == "Darwin":
         MAX_STEPS = 10
 
@@ -101,8 +92,8 @@ class ObjDisArmPointNavProcTHOR(
 
     def __init__(self):
         super().__init__()
-        self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
-        self.REWARD_CONFIG['object_found'] = 1 # is this too big?
+        self.REWARD_CONFIG['exploration_reward'] = 0 # is this too big?
+        self.REWARD_CONFIG['object_found'] = 0 # is this too big?
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE # TODO this is nto the best choice
         self.ENV_ARGS['scene'] = 'Procedural'

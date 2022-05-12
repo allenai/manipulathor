@@ -42,7 +42,9 @@ def main(args):
              --exclude *.ipynb_checkpoints/*  \
              --exclude *.ipynb  \
              --exclude trained_weights/do_not_sync_weights/  \
+             --exclude datasets/procthor_apnd_dataset/ \
              ../manipulathor {}:~/'.format(server)
+
         if args.sync_weights:
             command = command.replace('--exclude datasets/apnd-dataset/weights/ ', '')
         if args.sync_specific_weight is not None:

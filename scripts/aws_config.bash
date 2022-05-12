@@ -23,6 +23,8 @@ export PYTHONPATH="./"
 allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu
 kill -9 $(ps aux | grep 'ssh -NfL'); ssh -NfL 6006:localhost:6006 aws1; #ssh -NfL 6007:localhost:6006 aws5; ssh -NfL 6008:localhost:6006 aws9;
 
+pip3 uninstall clip; pip3 install git+https://github.com/openai/CLIP.git
+pip3 uninstall allenact allenact_plugins; pip3 install -e "git+https://github.com/allenai/allenact.git@timeout-restart-true#egg=allenact&subdirectory=allenact"
 # remove previous hugging dataset for procthor
 #rm -rf ~/.cache/huggingface
 

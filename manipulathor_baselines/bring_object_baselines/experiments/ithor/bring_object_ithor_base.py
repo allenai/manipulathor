@@ -50,4 +50,4 @@ class BringObjectiThorBaseConfig(BringObjectThorBaseConfig, ABC):
     # TEST_GPU_IDS = list(range(min(len(TEST_SCENES), torch.cuda.device_count())))
     # NUMBER_OF_TEST_PROCESS = len(TEST_SCENES)
     # print('TEST_GPU_IDS', TEST_GPU_IDS)
-    TEST_GPU_IDS = []
+    TEST_GPU_IDS = list(range(min(len(TEST_SCENES), torch.cuda.device_count())))

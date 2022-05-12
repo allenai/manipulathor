@@ -168,13 +168,43 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
 
 
         self.dataset_files ={}
+        self.agent_poses = {}
+
+        self.using_new_agent_poses = True
+
         print('Load dataset')
-        dataset_files = 'datasets/procthor_apnd_dataset/room_id_'
+        dataset_files = 'datasets/procthor_apnd_dataset/object_locations/room_id_'
+        agent_pose_dataset_files = 'datasets/procthor_apnd_dataset/agent_poses/room_id_'
         # TODO we can open this on the fly
+        all_missing_ones = []
+        all_missing_agent_ones = []
         for room_ind in ROOMS_TO_USE:
+            if self.using_new_agent_poses:
+                agent_poses_files = [f for f in glob.glob(agent_pose_dataset_files + str(room_ind) + '_*.json')]
+                if len(agent_poses_files) == 0:
+                    print('skipping room', room_ind)
+                    all_missing_agent_ones.append(room_ind)
+                    continue
+                elif len(agent_poses_files) > 1:
+                    print(room_ind, 'multiple instance')
+                    f = random.choice(agent_poses_files)
+                else:
+                    f = agent_poses_files[0]
+                with open(f) as file_des:
+                    agent_poses = json.load(file_des)
+                    agent_poses = agent_poses['house_id_to_room_to_agent_pose'][str(room_ind)]
+
+                    all_rooms = [len(k) for k in agent_poses.values()]
+                    if sum(all_rooms) == 0:
+                        print(room_ind, 'no reachable positions')
+                        continue
+                    self.agent_poses[room_ind] = agent_poses
+
+
             files = [f for f in glob.glob(dataset_files + str(room_ind) + '_*.json')] # TODO maybe it's better to do this only once
             if len(files) == 0:
-                # print(room_ind, 'is missing')
+                print(room_ind, 'is missing')
+                all_missing_ones.append(room_ind)
                 continue
             elif len(files) > 1:
                 print(room_ind, 'multiple instance')
@@ -184,16 +214,10 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
             with open(f) as file_des:
                 dict = json.load(file_des) # TODO maybe even convert everything into h5py?
                 self.dataset_files[room_ind] = dict
-        # for f in glob.glob(dataset_files):
-        #     room_ind = int(f.split('room_id_')[-1].split('_')[0])
-        #     if room_ind not in ([i for i in range(100)]):
-        #         continue
-        #
-        #     if room_ind in self.dataset_files:
-        #         print(room_ind, 'is there twice')
-        #         continue
-        #
+
         print('Finished Loading data')
+        # print('all missing', all_missing_ones, all_missing_agent_ones)
+
 
         self.args_house_inds = list(self.dataset_files.keys())
         random.shuffle(self.args_house_inds)
@@ -306,7 +330,11 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         scene_number = self.house_index
         data_for_this_scene = self.dataset_files[scene_number]
 
-        house_id_to_room_to_agent_pose = data_for_this_scene['house_id_to_room_to_agent_pose'][str(scene_number)]
+        #TODO why the teleport does not work?
+        if self.using_new_agent_poses:
+            house_id_to_room_to_agent_pose = self.agent_poses[scene_number]
+        else:
+            house_id_to_room_to_agent_pose = data_for_this_scene['house_id_to_room_to_agent_pose'][str(scene_number)]
         house_id_to_object_info = data_for_this_scene['house_id_to_object_info'][str(scene_number)]
         #TODO we can turn this into curriculum leraning later to cover outside scenes as well
         #TODO right now everyhing is within the same room
@@ -320,14 +348,22 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
             if len(valid_objects) < 2 or room not in house_id_to_room_to_agent_pose:
                 continue
             source_obj, target_obj = random.sample((valid_objects), 2)
-            agent_initial_pose = random.choice(house_id_to_room_to_agent_pose[room])
+
+            if room not in house_id_to_room_to_agent_pose or len(house_id_to_room_to_agent_pose[room]) == 0:
+                print('didnt find any agent pose in room', room, 'in', scene_number, '. Had to randomly initialize')
+                alternatives = []
+                for room in house_id_to_room_to_agent_pose:
+                    alternatives += house_id_to_room_to_agent_pose[room]
+                agent_initial_pose = random.choice(alternatives)
+            else:
+                agent_initial_pose = random.choice(house_id_to_room_to_agent_pose[room])
             return dict(
                 source_obj=source_obj,
                 target_obj=target_obj,
                 agent_initial_pose=agent_initial_pose,
                 scene_number=scene_number,
             )
-        print('Failed to find any valid task in', scene_number)
+        print('FAILED TO FIND ANY VALID TASKS IN', scene_number)
         return None
 
     def next_task(

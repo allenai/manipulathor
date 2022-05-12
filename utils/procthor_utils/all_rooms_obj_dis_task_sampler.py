@@ -201,7 +201,11 @@ class AllRoomsBringObjectTaskSampler(TaskSampler):
                 deterministic_locations = json.load(f)
             for scene in self.scenes:
                 objects_in_room = [o for (s,o) in self.all_possible_points.keys() if s == scene]
-                list_of_possible_locations = deterministic_locations[scene]
+                if scene in deterministic_locations:
+                    list_of_possible_locations = deterministic_locations[scene]
+                else:
+                    list_of_possible_locations = deterministic_locations[scene + '_physics']
+                # print('scene, ', len(list_of_possible_locations)) #
                 task_number = -1
                 for from_obj in objects_in_room:
                     for to_obj in objects_in_room:
