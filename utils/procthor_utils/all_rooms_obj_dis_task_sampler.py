@@ -17,7 +17,6 @@ from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.dataset_generation.find_categories_to_use import ROBOTHOR_TRAIN, KITCHEN_TRAIN, KITCHEN_TEST, KITCHEN_VAL
 from utils.manipulathor_data_loader_utils import get_random_query_image, get_random_query_feature_from_img_adr
 from scripts.stretch_jupyter_helper import get_reachable_positions, transport_wrapper
-from utils.procthor_utils.procthor_helper import AFTER_THE_HORIZON_BUG
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
@@ -304,11 +303,7 @@ class AllRoomsBringObjectTaskSampler(TaskSampler):
             init_object = get_full_object_info(self.env, source_obj_type)
             goal_object = get_full_object_info(self.env, goal_obj_type)
 
-        #TODO NOW remove?
-        #TODO NOW double check horizon on robothor
-        if AFTER_THE_HORIZON_BUG:
-            agent_state['cameraHorizon'] = 0
-
+        agent_state["cameraHorizon"] = 20 #TODO very important check this everywhere. On every branch except stretch?
         event = this_controller.step(
             dict(
                 action="TeleportFull",

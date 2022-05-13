@@ -238,20 +238,34 @@ import pdb
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 --extra_tag procthor_armpointnav_rgbonly'
 
+# command_aws1 = 'scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavRGBOnlyProcTHORDistrib/procthor_armpointnav_rgbonly/2022-05-11_20-52-20/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_procthor_armpointnav_rgbonly__stage_00__steps_000106644058.pt ~/;  \
+# ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_rgb_only_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag procthor_armpointnav_rgbonly -c ~/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_procthor_armpointnav_rgbonly__stage_00__steps_000106644058.pt'
+
 command_aws1 = 'scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavRGBOnlyProcTHORDistrib/procthor_armpointnav_rgbonly/2022-05-11_20-52-20/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_procthor_armpointnav_rgbonly__stage_00__steps_000106644058.pt ~/;  \
-./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_rgb_only_distrib \
+./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_rgb_only_multiple_rooms_distrib.py \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag procthor_armpointnav_rgbonly -c ~/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_procthor_armpointnav_rgbonly__stage_00__steps_000106644058.pt'
+ --seed 10 --machine_id 0 --extra_tag procthor_armpointnav_rgbonly_multiple_rooms'
 
+# command = command_aws1
 # scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavRGBOnlyProcTHORDistrib/procthor_armpointnav_rgbonly/2022-05-11_17-16-05/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_procthor_armpointnav_rgbonly__stage_00__steps_000058633471.pt ~/
+
+#
+# command_aws5 = 'scp 52.24.154.159:~/manipulathor/experiment_output/checkpoints/CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib/armpointnav_with_clip_ProcTHOR_RGBonly/2022-05-12_04-54-18/exp_CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib_armpointnav_with_clip_ProcTHOR_RGBonly__stage_00__steps_000005061351.pt ~/; \
+# ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/clip_obj_dis_for_procthor_rgb_only_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag armpointnav_with_clip_ProcTHOR_RGBonly -c ~/exp_CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib_armpointnav_with_clip_ProcTHOR_RGBonly__stage_00__steps_000005061351.pt'
 
 
 command_aws5 = 'scp 52.24.154.159:~/manipulathor/experiment_output/checkpoints/CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib/armpointnav_with_clip_ProcTHOR_RGBonly/2022-05-12_04-54-18/exp_CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib_armpointnav_with_clip_ProcTHOR_RGBonly__stage_00__steps_000005061351.pt ~/; \
-./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/clip_obj_dis_for_procthor_rgb_only_distrib \
+./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_rgb_only_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag armpointnav_with_clip_ProcTHOR_RGBonly -c ~/exp_CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib_armpointnav_with_clip_ProcTHOR_RGBonly__stage_00__steps_000005061351.pt'
+ --seed 10 --machine_id 0 --extra_tag armpointnav_with_ProcTHOR_RGBonly_after_fix '
 
 
 # command = command_aws5

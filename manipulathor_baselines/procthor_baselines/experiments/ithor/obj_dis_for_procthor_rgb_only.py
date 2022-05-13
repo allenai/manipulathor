@@ -93,10 +93,11 @@ class ObjDisArmPointNavRGBOnlyProcTHOR(
 
     def __init__(self):
         super().__init__()
-        self.REWARD_CONFIG['exploration_reward'] = 0 # is this too big?
-        self.REWARD_CONFIG['object_found'] = 0 # is this too big?
+        #TODO NOW is it?
+        self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
+        self.REWARD_CONFIG['object_found'] = 1 # is this too big?
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
-        self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
+        self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE
         self.ENV_ARGS['scene'] = 'Procedural'
         self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['renderDepthImage'] = False

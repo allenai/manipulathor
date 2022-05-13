@@ -15,7 +15,6 @@ from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 # MANIPULATHOR_COMMIT_ID = "58bf22c0b9aa0d3abe5fd8c3b43479ecc8d2a228"
 # MANIPULATHOR_COMMIT_ID = '214bc8036f323f4d8418e0a76c4251c401793bd5'
 # MANIPULATHOR_COMMIT_ID = '2f8dd9f95e4016db60155a0cc18b834a6339c8e1' #
-from utils.procthor_utils.procthor_helper import AFTER_THE_HORIZON_BUG
 
 MANIPULATHOR_COMMIT_ID = '546c50bfa7cfbcec7d5224527e48e6ccb7ed26c2' #
 
@@ -100,10 +99,9 @@ def reset_environment_and_additional_commands(controller, scene_name):
         make_all_objects_unbreakable(controller)
         # controller.step('ToggleMagnetVisibility')  do we want to have this here or do we want to have it during training and only change it for obejct detection part?
         # controller.step(action='SetHandSphereRadius', radius=0.2)
-        if AFTER_THE_HORIZON_BUG == True: #TODO remove
-            event_init_arm = controller.step(dict(action="MoveArm", position=dict(x=0,y=0.8,z=0), **ADITIONAL_ARM_ARGS))
-            if event_init_arm.metadata['lastActionSuccess'] is False:
-                print(f"Bring arm up in initialization failed in {scene_name}")
+        event_init_arm = controller.step(dict(action="MoveArm", position=dict(x=0,y=0.8,z=0), **ADITIONAL_ARM_ARGS))
+        if event_init_arm.metadata['lastActionSuccess'] is False:
+            print(f"Bring arm up in initialization failed in {scene_name}")
         return
 
 

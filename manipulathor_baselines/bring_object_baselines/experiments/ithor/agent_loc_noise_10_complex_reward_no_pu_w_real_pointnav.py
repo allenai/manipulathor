@@ -57,8 +57,8 @@ class ComplexRewardNoPUWRealPointNav(
 
     def __init__(self):
         super().__init__()
-        self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
-        self.REWARD_CONFIG['object_found'] = 1 # is this too big?
+        self.REWARD_CONFIG['exploration_reward'] = 0.1
+        self.REWARD_CONFIG['object_found'] = 1
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['renderInstanceSegmentation'] = False
 

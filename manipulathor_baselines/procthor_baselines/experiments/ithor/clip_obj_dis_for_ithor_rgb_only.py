@@ -72,7 +72,7 @@ class CLIPObjDisArmPointNavITHORAllRoomsRGBOnly(
 
     MAX_STEPS = 200
 
-    TASK_SAMPLER = AllRoomsBringObjectTaskSampler #TODO move the arm up doesn't happen? why does arm start from different places?
+    TASK_SAMPLER = AllRoomsBringObjectTaskSampler
     # TASK_TYPE = TestPointNavExploreWiseRewardTask
     TASK_TYPE = ExploreWiseRewardTask
     # TASK_TYPE = SimpleArmPointNavTask
@@ -104,8 +104,8 @@ class CLIPObjDisArmPointNavITHORAllRoomsRGBOnly(
 
     def __init__(self):
         super().__init__()
-        self.REWARD_CONFIG['exploration_reward'] = 0
-        self.REWARD_CONFIG['object_found'] = 0
+        self.REWARD_CONFIG['exploration_reward'] = 0.1
+        self.REWARD_CONFIG['object_found'] = 1
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE # TODO this is nto the best choice
         self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID #
@@ -124,7 +124,7 @@ class CLIPObjDisArmPointNavITHORAllRoomsRGBOnly(
             num_actions=len(self.TASK_TYPE.class_action_names()), **kwargs,
             visualize=self.VISUALIZE
         )
-    #TODO do I need this?
+    # do I need this?
     # def training_pipeline(self, **kwargs) -> TrainingPipeline:
     #     return ObjectNavPPOMixin.training_pipeline(
     #         auxiliary_uuids=[],

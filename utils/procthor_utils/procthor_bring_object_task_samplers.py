@@ -286,7 +286,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         if platform.system() == "Darwin": #TODO remove
             print('The house is ', self.house_index)
         self.env.controller.step(action="CreateHouse", house=self.house,raise_for_failure=True)
-        self.env.controller.step("ResetObjectFilter") #TODO should we do after each reset?
+        self.env.controller.step("ResetObjectFilter") # should we do after each reset?
         #TODO maybe use this after that for speed up
         # controller.step('SetObjectFilter', objectIds=['Mug|0.1|0.2|0.3|']) only for objects we care about
 
@@ -440,7 +440,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         starting_pose = AgentPose(
             position=start_pose,
             rotation=dict(x=0,y=random.choice([i for i in range(0,360,90)]),z=0),
-            horizon=0, #TODO set horizon to 20 here or use look down action
+            horizon=20, #TODO make this a variable that is called from one place
             standing=True,
         )
         event = self.env.controller.step(action="TeleportFull", **starting_pose)
@@ -518,3 +518,36 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
             cfg = OmegaConf.load(f.name)
         return cfg
 
+class ProcTHORDiverseBringObjectTaskSamplerMultipleRooms(ProcTHORDiverseBringObjectTaskSampler):
+    def get_target_locations(self, forced_house_index=False, custom_index=0):
+        #TODO Just for debugging
+        if forced_house_index:
+            scene_number = custom_index
+        else:
+            scene_number = self.house_index
+        data_for_this_scene = self.dataset_files[scene_number]
+
+        #TODO why the teleport does not work?
+        if self.using_new_agent_poses:
+            house_id_to_room_to_agent_pose = self.agent_poses[scene_number]
+        else:
+            house_id_to_room_to_agent_pose = data_for_this_scene['house_id_to_room_to_agent_pose'][str(scene_number)]
+        house_id_to_object_info = data_for_this_scene['house_id_to_object_info'][str(scene_number)]
+        # all_rooms = list(set([o['room_id'] for o in house_id_to_object_info.values()]))
+        # random.shuffle(all_rooms)
+        valid_rooms = [k for (k, v) in house_id_to_room_to_agent_pose.items() if len(v) > 0]
+
+        if len(house_id_to_object_info) < 2 or len(valid_rooms) == 0:
+            print('FAILED TO FIND ANY VALID TASKS IN', scene_number)
+            return None
+
+        source_obj, target_obj = random.sample((house_id_to_object_info.keys()), 2)
+        source_obj, target_obj = house_id_to_object_info[source_obj], house_id_to_object_info[target_obj]
+        initial_room = random.choice(valid_rooms)
+        agent_initial_pose = random.choice(house_id_to_room_to_agent_pose[initial_room])
+        return dict(
+            source_obj=source_obj,
+            target_obj=target_obj,
+            agent_initial_pose=agent_initial_pose,
+            scene_number=scene_number,
+        )
