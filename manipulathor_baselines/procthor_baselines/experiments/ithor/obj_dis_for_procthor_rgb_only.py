@@ -75,10 +75,10 @@ class ObjDisArmPointNavRGBOnlyProcTHOR(
     NUM_PROCESSES = 20
 
 
+    TEST_SCENES = BringObjectProcThorBaseConfig.TRAIN_SCENES
 
-
-    if platform.system() == "Darwin":
-        MAX_STEPS = 10
+    # if platform.system() == "Darwin":
+    #     MAX_STEPS = 10
 
     # remove
     #

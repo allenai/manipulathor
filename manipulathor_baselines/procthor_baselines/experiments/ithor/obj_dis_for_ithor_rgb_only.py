@@ -71,6 +71,7 @@ class ObjDisArmPointNavITHORAllRoomsRGBOnly(
     OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ != 'robothor']))
 
     random.shuffle(TRAIN_SCENES)
+    random.shuffle(TEST_SCENES)
 
     # if platform.system() == "Darwin":
     #     MAX_STEPS = 10
@@ -79,8 +80,8 @@ class ObjDisArmPointNavITHORAllRoomsRGBOnly(
 
     def __init__(self):
         super().__init__()
-        self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
-        self.REWARD_CONFIG['object_found'] = 1 # is this too big?
+        self.REWARD_CONFIG['exploration_reward'] = 0 # is this too big?
+        self.REWARD_CONFIG['object_found'] = 0 # is this too big?
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE # TODO this is nto the best choice
         self.ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID #

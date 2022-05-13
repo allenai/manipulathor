@@ -87,7 +87,7 @@ class ResnetArmPointNavActorCritic(ActorCriticModel[CategoricalDistr]):
             num_layers=num_rnn_layers,
             rnn_type=rnn_type,
         )
-
+        self.action_space_length = action_space.n
         self.actor_network = LinearActorHead(self._hidden_size, action_space.n)
         self.critic_network = LinearCriticHead(self._hidden_size)
 
@@ -151,6 +151,23 @@ class ResnetArmPointNavActorCritic(ActorCriticModel[CategoricalDistr]):
 
         visual_embedding = observations['rgb_clip_resnet']
         seq_len, bsize, c, w, h = visual_embedding.shape
+        # testing = True
+        # if seq_len == 0 or bsize == 0 or testing: remove true
+        #     print('OH NO SOMETHING IS WRONG', visual_embedding.shape)
+        #     def convert_types(new_tensor):
+        #         return new_tensor.type(visual_embedding.type()).to(visual_embedding.device).requires_grad_()
+        #     # rnn_hidden_states = convert_types(torch.zeros((1, bsize,512))) #torch.zeros((shape)).to(device).cast_type.make_surehasgrad
+        #     actor_out_final = CategoricalDistr(logits=convert_types(torch.zeros((seq_len, bsize, self.action_space_length))))
+        #     critic_out_final = convert_types(torch.zeros((seq_len, bsize, 1)))# somethic
+        #     actor_critic_output = ActorCriticOutput(
+        #         distributions=actor_out_final, values=critic_out_final, extras={}
+        #     )
+        #     # memory = memory.set_tensor("rnn", rnn_hidden_states)
+        #     return (
+        #         actor_critic_output,
+        #         memory,
+        #     )
+
         visual_embedding = visual_embedding.view(seq_len * bsize, c, w, h)
         visual_embedding = self.resnet_compressor(visual_embedding)
         visual_embedding = visual_embedding.view(seq_len * bsize, -1)

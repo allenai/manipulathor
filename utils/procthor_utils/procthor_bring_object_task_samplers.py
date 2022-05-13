@@ -170,7 +170,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         self.dataset_files ={}
         self.agent_poses = {}
 
-        self.using_new_agent_poses = True
+        self.using_new_agent_poses = False #TODO HOW ON EARTH IS THIS WORSE?
 
         print('Load dataset')
         dataset_files = 'datasets/procthor_apnd_dataset/object_locations/room_id_'
@@ -221,6 +221,12 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
 
         self.args_house_inds = list(self.dataset_files.keys())
         random.shuffle(self.args_house_inds)
+        if self.sampler_mode == 'test':
+            self.all_test_tasks = list(range(1000))
+            self.max_tasks = 1000
+
+        # self.check_dataset_validity()
+
 
 
         # len_all_data_points = [len(v['data_point_dict']) for v in self.all_possible_points.values()]
@@ -326,8 +332,26 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
     @property
     def house_index(self) -> int:
         return self.args_house_inds[self.house_inds_index]
-    def get_target_locations(self):
-        scene_number = self.house_index
+    def check_dataset_validity(self):
+        invalid_rooms = []
+        print('checking_all_rooms')
+        for room_number in self.dataset_files:
+            if random.randint(0,100) == 1:
+                print('Well', invalid_rooms)
+            # self.house_index = room_number
+            answer = self.get_target_locations(True, room_number)
+            if answer is None:
+                print('Failed to find any', room_number)
+                invalid_rooms.append(room_number)
+        print(invalid_rooms)
+        ForkedPdb().set_trace()
+
+    def get_target_locations(self, forced_house_index=False, custom_index=0):
+        #TODO Just for debugging
+        if forced_house_index:
+            scene_number = custom_index
+        else:
+            scene_number = self.house_index
         data_for_this_scene = self.dataset_files[scene_number]
 
         #TODO why the teleport does not work?
@@ -345,7 +369,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
             #TODO very inefficient
             valid_objects = [o for o in house_id_to_object_info.values() if o['room_id'] == room]
 
-            if len(valid_objects) < 2 or room not in house_id_to_room_to_agent_pose:
+            if len(valid_objects) < 2:
                 continue
             source_obj, target_obj = random.sample((valid_objects), 2)
 
@@ -388,11 +412,16 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         ):
 
             while not self.increment_scene():
+                print('scene', self.house_index, 'failed')
                 pass
 
         data_point = self.get_target_locations()
         while data_point is None:
-            self.increment_scene()
+            print('no task was found, incrementing the scene')
+            while not self.increment_scene():
+                print('scene', self.house_index, 'failed')
+                pass
+            # self.increment_scene()
             data_point = self.get_target_locations()
         source_obj = data_point['source_obj']
         target_obj = data_point['target_obj']
@@ -411,7 +440,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         starting_pose = AgentPose(
             position=start_pose,
             rotation=dict(x=0,y=random.choice([i for i in range(0,360,90)]),z=0),
-            horizon=0,
+            horizon=0, #TODO set horizon to 20 here or use look down action
             standing=True,
         )
         event = self.env.controller.step(action="TeleportFull", **starting_pose)

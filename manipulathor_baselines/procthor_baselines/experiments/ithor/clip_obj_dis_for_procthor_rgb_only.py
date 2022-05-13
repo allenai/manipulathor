@@ -96,6 +96,7 @@ class CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnly(
 
 
 
+
     CLIP_MODEL_TYPE = "RN50"
 
     def __init__(self):
