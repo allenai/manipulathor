@@ -28,6 +28,7 @@ from manipulathor_baselines.bring_object_baselines.experiments.ithor.bring_objec
 from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
 from manipulathor_baselines.bring_object_baselines.models.query_obj_w_gt_mask_rgb_model import SmallBringObjectWQueryObjGtMaskRGBDModel
 from manipulathor_baselines.bring_object_baselines.models.pointnav_emulator_model import RGBDModelWPointNavEmulator
+from manipulathor_baselines.procthor_baselines.experiments.procthor_base_config import BringObjectProcThorBaseConfig
 from manipulathor_baselines.procthor_baselines.models.clip_resnet_preprocess_mixin import \
     ClipResNetPreprocessGRUActorCriticMixin
 from manipulathor_baselines.procthor_baselines.models.objdis_pointnav_model import ObjDisPointNavModel
@@ -36,11 +37,13 @@ from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.dataset_generation.find_categories_to_use import KITCHEN_TRAIN, BEDROOM_TRAIN, BATHROOM_TRAIN, \
     BATHROOM_TEST, BEDROOM_TEST, LIVING_ROOM_TEST, KITCHEN_TEST, LIVING_ROOM_TRAIN, FULL_LIST_OF_OBJECTS
 from utils.procthor_utils.all_rooms_obj_dis_task_sampler import AllRoomsBringObjectTaskSampler
+from utils.procthor_utils.procthor_bring_object_task_samplers import ProcTHORDiverseBringObjectTaskSampler, \
+    ProcTHORDiverseBringObjectTaskSamplerMultipleRooms
 from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, STRETCH_MANIPULATHOR_COMMIT_ID
 from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
 
-class CLIPObjDisArmPointNavITHORAllRoomsRGBOnly(
-    BringObjectiThorBaseConfig,
+class CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyMultipleRooms(
+    BringObjectProcThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
 ):
@@ -72,20 +75,13 @@ class CLIPObjDisArmPointNavITHORAllRoomsRGBOnly(
 
     MAX_STEPS = 200
 
-    TASK_SAMPLER = AllRoomsBringObjectTaskSampler
+    TASK_SAMPLER = ProcTHORDiverseBringObjectTaskSamplerMultipleRooms
     # TASK_TYPE = TestPointNavExploreWiseRewardTask
     TASK_TYPE = ExploreWiseRewardTask
     # TASK_TYPE = SimpleArmPointNavTask
     ENVIRONMENT_TYPE = ManipulaTHOREnvironment
 
     NUM_PROCESSES = 30
-
-    TRAIN_SCENES = KITCHEN_TRAIN + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN
-    TEST_SCENES = KITCHEN_TEST + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST
-    OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ != 'robothor']))
-
-    random.shuffle(TRAIN_SCENES)
-    random.shuffle(TEST_SCENES)
 
     # if platform.system() == "Darwin":
     #     MAX_STEPS = 10
@@ -101,6 +97,7 @@ class CLIPObjDisArmPointNavITHORAllRoomsRGBOnly(
 
 
 
+
     CLIP_MODEL_TYPE = "RN50"
 
     def __init__(self):
@@ -108,8 +105,9 @@ class CLIPObjDisArmPointNavITHORAllRoomsRGBOnly(
         self.REWARD_CONFIG['exploration_reward'] = 0.1
         self.REWARD_CONFIG['object_found'] = 1
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
-        self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE # TODO this is nto the best choice
+        self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE
         self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID #
+        self.ENV_ARGS['scene'] = 'Procedural'
         self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['renderDepthImage'] = False
 

@@ -18,6 +18,7 @@ sudo apt-get install xinit
 sudo python3 scripts/startx.py &
 tensorboard --logdir experiment_output/tb --bind_all
 #sudo /home/ubuntu/.local/bin/ai2thor-xorg start
+#sudo /home/kianae/manipulathor_env/bin/ai2thor-xorg start
 export PYTHONPATH="./"
 ./scripts/kill-zombie.sh
 allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu
