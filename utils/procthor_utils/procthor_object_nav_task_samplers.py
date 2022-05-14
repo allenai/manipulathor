@@ -105,7 +105,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         ROOMS_TO_USE = [int(scene.replace('ProcTHOR', '')) for scene in self.scenes]
 
         self.args_house_inds = ROOMS_TO_USE
-        self.valid_rotations = [0,30,60,90,120,150,180,210,240,270,300,330]
+        self.valid_rotations = [0,90,180,270]
         self.distance_type = "l2"
         self.distance_cache = DynamicDistanceCache(rounding=1)
         self.target_object_types_set = set(self.objects)
@@ -189,6 +189,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
 
     def is_object_visible(self, object_id: str) -> bool:
         """Return True if object_id is visible without any interaction in the scene.
+
         This method makes an approximation based on checking if the object
         is hit with a raycast from nearby reachable positions.
         """
@@ -294,22 +295,23 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         """Return the reachable positions in the current house."""
         return self.reachable_positions_map[self.house_index]
     
-    def reset_scene(self):
-        self.env.reset(
-            scene_name='Procedural',
-            agentMode=self.env_args['agentMode'], agentControllerType=self.env_args['agentControllerType']
-        )    
+    # def reset_scene(self):
+    #     self.env.reset(
+    #         scene_name='Procedural',
+    #         agentMode=self.env_args['agentMode'], agentControllerType=self.env_args['agentControllerType']
+    #     )    
 
     def increment_scene(self) -> bool:
         """Increment the current scene.
         Returns True if the scene works with reachable positions, False otherwise.
         """
         
-        self.reset_scene()
+        # self.reset_scene()
         self.increment_scene_index()
 
         # self.env.controller.step(action="DestroyHouse", raise_for_failure=True)
         self.env.controller.reset()
+        self.env.list_of_actions_so_far = []
         self.house_entry = self.house_dataset[self.house_index]
         self.house = pickle.loads(self.house_entry["house"])
 
@@ -374,7 +376,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 while not self.increment_scene():
                     pass
 
-        if False and random.random() < 0.8: #TODO
+        if random.random() < 0.8: #TODO
             self.env.controller.step(action="RandomizeMaterials", raise_for_failure=True)
         else:
             self.env.controller.step(action="ResetMaterials", raise_for_failure=True)
@@ -394,9 +396,9 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         )
         event = self.env.controller.step(action="TeleportFull", **starting_pose)
         # if not event:
-            # get_logger().warning(
-            #     f"Teleport failing in {self.house_index} at {starting_pose}"
-            # )
+        #     get_logger().warning(
+        #         f"Teleport failing in {self.house_index} at {starting_pose}"
+        #     )
 
         self.episode_index += 1
         self.max_tasks -= 1
@@ -417,7 +419,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 "target_object_ids": target_object_ids,
                 "object_type": target_object_type,
                 "starting_pose": starting_pose,
-                # "mirrored": self.args.allow_flipping and random.random() > 0.5,
+                "mirrored": self.env_args['allow_flipping'] and random.random() > 0.5,
             },
         )
         return self._last_sampled_task

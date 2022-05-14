@@ -1,37 +1,33 @@
 import platform
 import random
 from typing import Sequence, Union
+from typing_extensions import final
 
 import gym
 import numpy as np
 from torch import nn
 import yaml
 
-# from ithor_arm.bring_object_sensors import RGBSensorThorNoNan
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
 
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 
-from manipulathor_baselines.procthor_baselines.models.objnav_model_rgb_only import ObjNavOnlyRGBModel
 from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_nav_for_procthor import ProcTHORObjectNavBaseConfig
 from utils.procthor_utils.procthor_object_nav_task_samplers import ProcTHORObjectNavTaskSampler
 from utils.procthor_utils.procthor_object_nav_tasks import ProcTHORObjectNavTask
 from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID
-# from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJECTS
 from manipulathor_utils.debugger_util import ForkedPdb
 
 from utils.procthor_utils.clip_preprocessors import ClipResNetPreprocessor
 from allenact.base_abstractions.preprocessor import Preprocessor
 from allenact.utils.experiment_utils import Builder
-from allenact_plugins.navigation_plugin.objectnav.models import (
-    ResnetTensorNavActorCritic,
-)
+from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavActorCritic
 
 
 
-class ProcTHORObjectNavRGBOnly(
+class ProcTHORObjectNavClipResnet50RGBOnly(
     ProcTHORObjectNavBaseConfig
 ):
     """An Object Navigation experiment configuration in iThor with RGB
@@ -73,10 +69,6 @@ class ProcTHORObjectNavRGBOnly(
         TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
 
     TEST_SCENES = [f'ProcTHOR{i}' for i in range(1)]
-
-
-    # OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list]))
-
     random.shuffle(TRAIN_SCENES)
 
     if platform.system() == "Darwin":
@@ -96,18 +88,54 @@ class ProcTHORObjectNavRGBOnly(
         self.ENV_ARGS['scene'] = 'Procedural'
         self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
         self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
+        self.ENV_ARGS['allow_flipping'] = True
+
 
     @classmethod
+    @final
+    def preprocessors(cls) -> Sequence[Union[Preprocessor, Builder[Preprocessor]]]:
+        preprocessors = []
+        rgb_sensor = next((s for s in cls.SENSORS if isinstance(s, RGBSensorThor)), None)
+
+        if rgb_sensor is not None:
+            preprocessors.append(
+                ClipResNetPreprocessor(
+                    rgb_input_uuid=rgb_sensor.uuid,
+                    clip_model_type="RN50",
+                    pool=False,
+                    output_uuid="rgb_clip_resnet",
+                    visualize=cls.VISUALIZE
+                )
+            )
+
+        return preprocessors
+
+
+    @classmethod
+    @final
     def create_model(cls, **kwargs) -> nn.Module:
-        return ObjNavOnlyRGBModel(
-            action_space=gym.spaces.Discrete(
-                len(cls.TASK_TYPE.class_action_names())
-            ),
+        has_rgb = any(isinstance(s, RGBSensorThor) for s in cls.SENSORS)
+        # has_depth = any(isinstance(s, DepthSensor) for s in cls.SENSORS)
+        has_depth=False
+
+        goal_sensor_uuid = next(
+            (s.uuid for s in cls.SENSORS if isinstance(s, GoalObjectTypeThorSensor)),
+            None,
+        )
+
+        return ResnetTensorNavActorCritic(
+            action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
             observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
+            goal_sensor_uuid=goal_sensor_uuid,
+            rgb_resnet_preprocessor_uuid="rgb_clip_resnet" if has_rgb else None,
+            depth_resnet_preprocessor_uuid="depth_clip_resnet" if has_depth else None,
             hidden_size=512,
-            visualize=cls.VISUALIZE
+            goal_dims=32,
+            add_prev_actions=True,
         )
 
     @classmethod
     def tag(cls):
         return cls.__name__
+
+    

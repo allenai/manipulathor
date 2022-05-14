@@ -67,15 +67,6 @@ class ObjNavOnlyRGBModel(ActorCriticModel[CategoricalDistr]):
         network_args = {'input_channels': 3, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder = make_cnn(**network_args)
 
-        # self.detection_model = ConditionalDetectionModel()
-        # self.pointnav_embedding = nn.Sequential(
-        #     nn.Linear(3, 32),
-        #     nn.LeakyReLU(),
-        #     nn.Linear(32, 128),
-        #     nn.LeakyReLU(),
-        #     nn.Linear(128, 512),
-        # )
-
         self.state_encoder = RNNStateEncoder(
             512,
             self._hidden_size,
@@ -196,15 +187,9 @@ class ObjNavOnlyRGBModel(ActorCriticModel[CategoricalDistr]):
             print('actor is nan', actor_is_nan.sum())
             print('scene number', observations['scene_number'])
 
-        # # TODO really bad design
-        # if self.visualize:
-        #     arm_distance_to_obj_source = observations['arm_point_nav_source']
-        #     arm_distance_to_obj_destination = observations['arm_point_nav_destination']
-        #     distance_vector_to_viz = arm_distance_to_obj_source.clone()
-        #     distance_vector_to_viz[after_pickup] = arm_distance_to_obj_destination.clone()[after_pickup]
-        #     distance_vector_to_viz = dict(arm_dist=distance_vector_to_viz, agent_dist=distance_vector_to_viz)
-
-        #     hacky_visualization(observations, base_directory_to_right_images=self.starting_time, distance_vector_to_viz=distance_vector_to_viz)
+        # TODO really bad design
+        if self.visualize:
+            hacky_visualization(observations, base_directory_to_right_images=self.starting_time)
 
 
         return (

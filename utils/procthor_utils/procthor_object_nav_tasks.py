@@ -55,10 +55,11 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
             max_steps=max_steps,
             **kwargs,
         )
+        self.env = env
         self.reward_config = reward_config
         self._took_end_action: bool = False
         self._success: Optional[bool] = False
-        self.mirror = False #task_info["mirrored"]
+        self.mirror = task_info["mirrored"]
 
         self._rewards: List[float] = []
         self._distance_to_goal: List[float] = []
@@ -88,11 +89,12 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         self.optimal_distance = self.last_distance
         self.closest_distance = self.last_distance
 
-        self.visualize = (
-            visualize
-            if visualize is not None
-            else (self.task_info["mode"] == "eval" or random.random() < 1 / 1000)
-        )
+        self.visualize = False
+        # (
+        #     visualize
+        #     if visualize is not None
+        #     else (self.task_info["mode"] == "eval" or random.random() < 1 / 1000)
+        # )
         self.observations = [self.env.last_event.frame]
         self._metrics = None
 
@@ -160,10 +162,15 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
     def _step(self, action: int) -> RLStepResult:
         action_str = self.class_action_names()[action]
 
+        if self.mirror:
+            if action_str == "RotateRight":
+                action_str = "RotateLeft"
+            elif action_str == "RotateLeft":
+                action_str = "RotateRight"
+
         self.task_info["taken_actions"].append(action_str)
 
         if action_str == "Done":
-            # ForkedPdb().set_trace()
             self._took_end_action = True
             self._success = self._is_goal_in_range()
             self.last_action_success = self._success

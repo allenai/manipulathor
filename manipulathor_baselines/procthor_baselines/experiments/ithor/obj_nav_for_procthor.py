@@ -1,7 +1,7 @@
 from abc import ABC
 from math import ceil
 from typing import Any, Dict, List, Optional, Sequence
-from typing_extensions import Literal
+from typing_extensions import Literal, final
 
 import datasets
 import numpy as np
@@ -12,11 +12,18 @@ from ai2thor.platform import CloudRendering
 from allenact.embodiedai.sensors.vision_sensors import DepthSensor
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_thor_base import BringObjectThorBaseConfig
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
-
+from allenact.utils.experiment_utils import (
+    Builder,
+    PipelineStage,
+    TrainingPipeline,
+    TrainingSettings,
+)
+from allenact.algorithms.onpolicy_sync.losses import PPO
+from allenact.algorithms.onpolicy_sync.losses.ppo import PPOConfig
 
 from allenact.base_abstractions.sensor import Sensor
 
-from allenact.utils.system import get_logger
+# from allenact.utils.system import get_logger
 # from training import cfg
 # from training.tasks.object_nav import ObjectNavTaskSampler
 # from training.utils.types import RewardConfig, TaskSamplerArgs
@@ -72,130 +79,64 @@ class ProcTHORObjectNavBaseConfig(BringObjectThorBaseConfig, BringObjectMixInPPO
         -1
     )  # Should be > 0 if `ADVANCE_SCENE_ROLLOUT_PERIOD` is `None`
     RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 1 # TODO apparently this won't work with 100 (why?)
+    
+    @final
+    def training_pipeline(self, **kwargs):
+        log_interval_small = (
+            self.NUM_PROCESSES * 32 * 10
+            if torch.cuda.is_available
+            else 1
+        )
+        log_interval_medium = (
+            self.NUM_PROCESSES * 64 * 5
+            if torch.cuda.is_available
+            else 1
+        )
+        log_interval_large = (
+            self.NUM_PROCESSES * 128 * 5
+            if torch.cuda.is_available
+            else 1
+        )
 
-    # def _get_sampler_args_for_scene_split(
-    #     self,
-    #     houses: datasets.Dataset,
-    #     mode: Literal["train", "eval"],
-    #     resample_same_scene_freq: int,
-    #     allow_oversample: bool,
-    #     allow_flipping: bool,
-    #     process_ind: int,
-    #     total_processes: int,
-    #     max_tasks: Optional[int],
-    #     devices: Optional[List[int]] = None,
-    #     seeds: Optional[List[int]] = None,
-    #     deterministic_cudnn: bool = False,
-    #     extra_controller_args: Optional[Dict[str, Any]] = None,
-    # ) -> Dict[str, Any]:
-    #     # NOTE: oversample some scenes -> bias
-    #     oversample_warning = (
-    #         f"Warning: oversampling some of the houses ({houses}) to feed all processes ({total_processes})."
-    #         " You can avoid this by setting a number of workers divisible by the number of scenes"
-    #     )
-    #     house_inds = list(range(len(houses)))
-    #     if total_processes > len(houses):
-    #         if not allow_oversample:
-    #             raise RuntimeError(
-    #                 f"Cannot have `total_processes > len(houses)`"
-    #                 f" ({total_processes} > {len(houses)}) when `allow_oversample` is `False`."
-    #             )
+        batch_steps_0 = int(10e6)
+        batch_steps_1 = int(10e6)
+        batch_steps_2 = int(1e9) - batch_steps_1 - batch_steps_0
 
-    #         if total_processes % len(houses) != 0:
-    #             get_logger().warning(oversample_warning)
-    #         house_inds = house_inds * ceil(total_processes / len(houses))
-    #         house_inds = house_inds[
-    #             : total_processes * (len(house_inds) // total_processes)
-    #         ]
-    #     elif len(houses) % total_processes != 0:
-    #         get_logger().warning(oversample_warning)
-
-    #     inds = self._partition_inds(len(house_inds), total_processes)
-    #     house_inds = house_inds[inds[process_ind] : inds[process_ind + 1]]
-
-    #     controller_args = {
-    #         "branch": "nanna",
-    #         "width": self.CAMERA_WIDTH,
-    #         "height": self.CAMERA_HEIGHT,
-    #         "rotateStepDegrees": 15, #self.ROTATE_STEP_DEGREES,
-    #         "visibilityDistance": self.VISIBILITY_DISTANCE,
-    #         "gridSize": self.STEP_SIZE,
-    #         # "agentMode": self.AGENT_MODE,
-    #         # "fieldOfView": self.FIELD_OF_VIEW,
-    #         "snapToGrid": False,
-    #         "renderDepthImage": any(isinstance(s, DepthSensor) for s in self.SENSORS),
-    #         "x_display": (("0.%d" % devices[process_ind % len(devices)]) if len(devices) > 0 else None),
-    #         # **self.get_platform(
-    #         #     gpu_index=devices[process_ind % len(devices)],
-    #         #     platform="Linux64",
-    #     }
-    #     if extra_controller_args:
-    #         controller_args.update(extra_controller_args)
-
-    #     return dict(
-    #         process_ind=process_ind,
-    #         mode=mode,
-    #         house_inds=house_inds,
-    #         houses=houses,
-    #         sensors=self.SENSORS,
-    #         controller_args=controller_args,
-    #         target_object_types=self.OBJECT_TYPES,
-    #         max_steps=self.MAX_STEPS,
-    #         seed=seeds[process_ind] if seeds is not None else None,
-    #         deterministic_cudnn=deterministic_cudnn,
-    #         reward_config=self.REWARD_CONFIG,
-    #         max_tasks=max_tasks if max_tasks is not None else len(house_inds),
-    #         allow_flipping=allow_flipping,
-    #         distance_type=self.DISTANCE_TYPE,
-    #         resample_same_scene_freq=resample_same_scene_freq,
-    #     )
-
-    # def train_task_sampler_args(self, **kwargs) -> Dict[str, Any]:
-    #     train_houses = self.HOUSE_DATASET["train"]
-    #     # if cfg.procthor.num_train_houses:
-    #     #     train_houses = train_houses.select(range(cfg.procthor.num_train_houses))
-
-    #     out = self._get_sampler_args_for_scene_split(
-    #         houses=train_houses,
-    #         mode="train",
-    #         allow_oversample=True,
-    #         max_tasks=float("inf"),
-    #         allow_flipping=True,
-    #         resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN,
-    #         extra_controller_args=dict(branch="nanna", scene="Procedural"),
-    #         **kwargs,
-    #     )
-    #     return {"task_sampler_args": out}
-
-    # def valid_task_sampler_args(self, **kwargs) -> Dict[str, Any]:
-    #     val_houses = self.HOUSE_DATASET["validation"]
-    #     out = self._get_sampler_args_for_scene_split(
-    #         houses=val_houses.select(range(100)),
-    #         mode="eval",
-    #         allow_oversample=False,
-    #         max_tasks=10,
-    #         allow_flipping=False,
-    #         resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,
-    #         extra_controller_args=dict(scene="Procedural"),
-    #         **kwargs,
-    #     )
-    #     return {"task_sampler_args": out}
-
-    # def test_task_sampler_args(self, **kwargs) -> Dict[str, Any]:
-    #     if self.TEST_ON_VALIDATION:
-    #         return self.valid_task_sampler_args(**kwargs)
-
-    #     test_houses = self.HOUSE_DATASET["test"]
-    #     out = self._get_sampler_args_for_scene_split(
-    #         houses=test_houses.select(range(100)),
-    #         mode="eval",
-    #         allow_oversample=False,
-    #         max_tasks=10,
-    #         allow_flipping=False,
-    #         resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,
-    #         extra_controller_args=dict(scene="Procedural"),
-    #         **kwargs,
-    #     )
-    #     return {"task_sampler_args": out}
-
+        return TrainingPipeline(
+            save_interval=5_000_000,
+            metric_accumulate_interval=10_000,
+            optimizer_builder=Builder(optim.Adam, dict(lr=0.0003)),
+            num_mini_batch=1,
+            update_repeats=4,
+            max_grad_norm=0.5,
+            num_steps=128,
+            named_losses={"ppo_loss": PPO(**PPOConfig)},
+            gamma=0.99,
+            use_gae=True,
+            gae_lambda=0.95,
+            advance_scene_rollout_period=self.ADVANCE_SCENE_ROLLOUT_PERIOD,
+            pipeline_stages=[
+                PipelineStage(
+                    loss_names=["ppo_loss"],
+                    max_stage_steps=batch_steps_0,
+                    training_settings=TrainingSettings(
+                        num_steps=32, metric_accumulate_interval=log_interval_small
+                    ),
+                ),
+                PipelineStage(
+                    loss_names=["ppo_loss"],
+                    max_stage_steps=batch_steps_1,
+                    training_settings=TrainingSettings(
+                        num_steps=64, metric_accumulate_interval=log_interval_medium
+                    ),
+                ),
+                PipelineStage(
+                    loss_names=["ppo_loss"],
+                    max_stage_steps=batch_steps_2,
+                    training_settings=TrainingSettings(
+                        num_steps=128, metric_accumulate_interval=log_interval_large
+                    ),
+                ),
+            ],
+        )
 
