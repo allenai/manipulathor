@@ -20,7 +20,7 @@ from utils.procthor_utils.procthor_object_nav_tasks import ProcTHORObjectNavTask
 from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID
 from manipulathor_utils.debugger_util import ForkedPdb
 
-from utils.procthor_utils.clip_preprocessors import ClipResNetPreprocessor
+from manipulathor_baselines.procthor_baselines.models.clip_preprocessors import ClipResNetPreprocessor
 from allenact.base_abstractions.preprocessor import Preprocessor
 from allenact.utils.experiment_utils import Builder
 from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavActorCritic

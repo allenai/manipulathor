@@ -1,5 +1,3 @@
-from abc import ABC
-from math import ceil
 from typing import Any, Dict, List, Optional, Sequence
 from typing_extensions import Literal, final
 
@@ -11,7 +9,6 @@ import torch.optim as optim
 from ai2thor.platform import CloudRendering
 from allenact.embodiedai.sensors.vision_sensors import DepthSensor
 from manipulathor_baselines.bring_object_baselines.experiments.bring_object_thor_base import BringObjectThorBaseConfig
-from manipulathor_baselines.bring_object_baselines.experiments.bring_object_mixin_ddppo import BringObjectMixInPPOConfig
 from allenact.utils.experiment_utils import (
     Builder,
     PipelineStage,
@@ -32,7 +29,7 @@ from utils.procthor_utils.procthor_object_nav_tasks import ProcTHORObjectNavTask
 from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID
 
 
-class ProcTHORObjectNavBaseConfig(BringObjectThorBaseConfig, BringObjectMixInPPOConfig):
+class ProcTHORObjectNavBaseConfig(BringObjectThorBaseConfig):
     """The base config for ProcTHOR ObjectNav experiments."""
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
