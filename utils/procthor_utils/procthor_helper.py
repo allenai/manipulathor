@@ -63,7 +63,7 @@ def distance_to_object_id(
     def path_from_point_to_object_id(
         point: Dict[str, float], object_id: str, allowed_error: float
     ) -> Optional[List[Dict[str, float]]]:
-        event = controller.step(
+        event = env.step(
             action="GetShortestPath",
             objectId=object_id,
             position=point,
@@ -119,7 +119,7 @@ def distance_to_object_id(
 
     return distance_cache.find_distance(
         scene_name=house_name,
-        position=controller.last_event.metadata["agent"]["position"],
+        position=env.last_event.metadata["agent"]["position"],
         target=object_id,
         native_distance_function=retry_dist,
     )
