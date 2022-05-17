@@ -285,6 +285,7 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         self.env.controller.reset()
         if platform.system() == "Darwin": #TODO remove
             print('The house is ', self.house_index)
+
         self.env.controller.step(action="CreateHouse", house=self.house,raise_for_failure=True)
         self.env.controller.step("ResetObjectFilter") # should we do after each reset?
         #TODO maybe use this after that for speed up

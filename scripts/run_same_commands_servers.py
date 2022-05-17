@@ -267,26 +267,32 @@ import pdb
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 --extra_tag armpointnav_with_clip_ProcTHOR_RGBonly -c ~/exp_CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib_armpointnav_with_clip_ProcTHOR_RGBonly__stage_00__steps_000005061351.pt'
 
+# command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavITHORAllRoomsRGBOnlyDistrib/armpointnav_with_iTHOR_RGBonly_after_fix/2022-05-16_21-15-02/exp_ObjDisArmPointNavITHORAllRoomsRGBOnlyDistrib_armpointnav_with_iTHOR_RGBonly_after_fix__stage_00__steps_000061755450.pt ~/&&\
+# ./manipulathor/scripts/kill-zombie.sh && cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_ithor_rgb_only_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag armpointnav_with_iTHOR_RGBonly_after_fix -c ~/exp_ObjDisArmPointNavITHORAllRoomsRGBOnlyDistrib_armpointnav_with_iTHOR_RGBonly_after_fix__stage_00__steps_000061755450.pt'
 
-command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavRGBOnlyProcTHORDistrib/armpointnav_with_ProcTHOR_RGBonly_after_fix/2022-05-14_00-37-27/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_armpointnav_with_ProcTHOR_RGBonly_after_fix__stage_00__steps_000018363080.pt ~/; \
-./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_rgb_only_distrib \
+# command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavRGBOnlyProcTHORDistrib/armpointnav_with_ProcTHOR_RGBonly_after_fix/2022-05-14_00-37-27/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_armpointnav_with_ProcTHOR_RGBonly_after_fix__stage_00__steps_000018363080.pt ~/; \
+# ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_rgb_only_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag armpointnav_with_ProcTHOR_RGBonly_after_fix -c ~/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_armpointnav_with_ProcTHOR_RGBonly_after_fix__stage_00__steps_000018363080.pt'
+
+command_aws5 = './manipulathor/scripts/kill-zombie.sh ; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/pnemul_obj_dis_for_procthor_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag armpointnav_with_ProcTHOR_RGBonly_after_fix -c ~/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_armpointnav_with_ProcTHOR_RGBonly_after_fix__stage_00__steps_000018363080.pt'
+ --seed 10 --machine_id 0 --extra_tag objdis_pointnav_emul_procthor'
 
-command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavITHORAllRoomsRGBOnlyDistrib/armpointnav_with_iTHOR_RGBonly_after_fix/2022-05-16_21-15-02/exp_ObjDisArmPointNavITHORAllRoomsRGBOnlyDistrib_armpointnav_with_iTHOR_RGBonly_after_fix__stage_00__steps_000061755450.pt ~/&&\
-./manipulathor/scripts/kill-zombie.sh && cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_ithor_rgb_only_distrib \
+command_aws1 = './manipulathor/scripts/kill-zombie.sh ; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/pnemul_obj_dis_for_ithor_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag armpointnav_with_iTHOR_RGBonly_after_fix -c ~/exp_ObjDisArmPointNavITHORAllRoomsRGBOnlyDistrib_armpointnav_with_iTHOR_RGBonly_after_fix__stage_00__steps_000061755450.pt'
+ --seed 10 --machine_id 0 --extra_tag objdis_pointnav_emul_ithor'
+
 command_aws15 = ''
-# ./manipulathor/scripts/kill-zombie.sh; sudo /home/kianae/manipulathor_env/bin/ai2thor-xorg start
-command_vs411 = 'scp MAIN_SERVER:~/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_armpointnav_with_ProcTHOR_RGBonly_after_fix__stage_00__steps_000098567812.pt ~/; \
-cd manipulathor && export PYTHONPATH="./" && source ~/manipulathor_env/bin/activate && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_rgb_only_multiple_rooms_distrib \
---distributed_ip_and_port IP_ADR:6060 \
- --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag continue_procthor_multiroom -c ~/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_armpointnav_with_ProcTHOR_RGBonly_after_fix__stage_00__steps_000098567812.pt'
+command_vs411 = ''
 command = None
+
 # command = command_aws5
 # command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/no_pointnav_stretch_all_rooms_distrib \
 # --distributed_ip_and_port IP_ADR:6060 \

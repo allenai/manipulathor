@@ -100,12 +100,13 @@ class FancyNoisyObjectMaskWLabels(Sensor):
 
 class PointNavEmulatorSensor(Sensor):
 
-    def __init__(self, type: str, mask_sensor:Sensor,  uuid: str = "point_nav_emul", noise = 0, **kwargs: Any):
+    def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor,  uuid: str = "point_nav_emul", noise = 0, **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
         self.type = type
         self.mask_sensor = mask_sensor
+        self.depth_sensor = depth_sensor
         uuid = '{}_{}'.format(uuid, type)
         self.noise = noise
         # self.pointnav_history_aggr = None
@@ -127,13 +128,7 @@ class PointNavEmulatorSensor(Sensor):
             ),
         )
 
-        # TODO remove
-        # def get_samples(num_samples):
-        #     samples = [self.noise_mode.linear_motion.linear.sample() for _ in range(num_samples)]
-        #     samples = np.array(samples)
-        #     return samples
-        # samples = get_samples(1000)
-        # np.absolute(samples * 2).mean(axis=0)
+
         super().__init__(**prepare_locals_for_super(locals()))
 
 
@@ -211,8 +206,10 @@ class PointNavEmulatorSensor(Sensor):
             self, env: ManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
         mask = squeeze_bool_mask(self.mask_sensor.get_observation(env, task, *args, **kwargs))
-        depth_frame = env.controller.last_event.depth_frame.copy()
+        depth_frame = self.depth_sensor.get_observation(env, task, *args, **kwargs).squeeze(-1)
+        assert np.isnan(depth_frame).sum() == 0, 'DEPTH IS NAN'
         depth_frame[~mask] = -1
+        depth_frame[depth_frame == 0] = -1 #TODO do all these for other pnemul sensors
 
         if task.num_steps_taken() == 0:
             self.pointnav_history_aggr = []
@@ -229,15 +226,25 @@ class PointNavEmulatorSensor(Sensor):
 
         fov = env.controller.last_event.metadata['fov']
 
-
-        if mask.sum() != 0:
+        #TODO do all these for other pnemul sensors
+        if np.any(depth_frame != -1):
             world_space_point_cloud = calc_world_coordinates(self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device, depth_frame)
             valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
             point_in_world = world_space_point_cloud[valid_points]
             middle_of_object = point_in_world.mean(dim=0)
-            self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world)))
 
-        return self.average_so_far(camera_xyz, camera_rotation, arm_state)
+            #TODO remove after bug is fixed
+            middle_of_object, is_changed = check_for_nan(middle_of_object, 'middle of object')
+
+            self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world)))
+        result = self.average_so_far(camera_xyz, camera_rotation, arm_state)
+
+        #TODO remove after bug is fixed
+        result, is_changed = check_for_nan(result, 'average_so_far')
+
+
+
+        return result
 
 
     def average_so_far(self, camera_xyz, camera_rotation, arm_state):
@@ -273,6 +280,12 @@ class PointNavEmulatorSensor(Sensor):
             # Removing this hurts the performance
             agent_centric_middle_of_object = agent_centric_middle_of_object.abs()
             return agent_centric_middle_of_object
+def check_for_nan(result, where_it_happened):
+    is_nan = torch.isnan(result) + torch.isinf(result)
+    if torch.any(is_nan):
+        print('Oh shoooot sensor is nan', where_it_happened, result)
+        result[is_nan] = 0
+    return result, is_nan.sum() > 0
 
 class PointNavEmulatorSensorComplexArm(PointNavEmulatorSensor):
 

@@ -32,7 +32,7 @@ class RGBSensorThorNoNan(RGBSensorThor):
         self, env: IThorEnvironment, task: Task[IThorEnvironment]
     ) -> np.ndarray:  # type:ignore
         frame = env.current_frame.copy()
-        frame = remove_nan(frame)
+        frame, is_changed = remove_nan(frame)
         return frame
 
 class DepthSensorThorNoNan(DepthSensorThor):
@@ -40,15 +40,16 @@ class DepthSensorThorNoNan(DepthSensorThor):
         self, env: IThorEnvironment, task: Task[IThorEnvironment]
     ) -> np.ndarray:  # type:ignore
         frame = (env.controller.last_event.depth_frame.copy())
-        frame = remove_nan(frame)
+        frame, is_changed = remove_nan(frame)
         return frame
 
 def remove_nan(frame): #TODO inefficient and hacky
     should_be_removed = np.isinf(frame) + np.isnan(frame)
+    is_changed = should_be_removed.sum()
     frame[should_be_removed] = 0
     should_be_removed = np.isinf(frame) + np.isnan(frame)
     assert should_be_removed.sum() == 0
-    return frame
+    return frame, is_changed
 
 class RelativeArmDistanceToGoal(Sensor):
     def __init__(self, uuid: str = "relative_arm_dist", **kwargs: Any):
