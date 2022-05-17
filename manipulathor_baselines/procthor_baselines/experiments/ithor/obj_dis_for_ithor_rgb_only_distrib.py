@@ -1,13 +1,13 @@
 import torch
 
-from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_dis_for_procthor_rgb_only_multiple_rooms import \
-    ObjDisArmPointNavRGBOnlyProcTHORMultipleRooms
+from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_dis_for_ithor_rgb_only import \
+    ObjDisArmPointNavITHORAllRoomsRGBOnly
 
 
-class ObjDisArmPointNavRGBOnlyProcTHORMultipleRoomsDistrib(
-    ObjDisArmPointNavRGBOnlyProcTHORMultipleRooms
+class ObjDisArmPointNavITHORAllRoomsRGBOnlyDistrib(
+    ObjDisArmPointNavITHORAllRoomsRGBOnly
 ):
-    NUM_PROCESSES = 40 # one them crashed for space?
+    NUM_PROCESSES = 30 # one them crashed for space?
     def __init__(
             self,
             distributed_nodes: int = 1,

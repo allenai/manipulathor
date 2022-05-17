@@ -223,6 +223,11 @@ class AllRoomsBringObjectTaskSampler(TaskSampler):
                         self.all_test_tasks.append(task)
             random.shuffle(self.all_test_tasks)
             self.max_tasks = self.reset_tasks = len(self.all_test_tasks)
+            if len(self.all_test_tasks) == 0:
+                print('Oh no task is found')
+                print(self.scenes)
+                # ForkedPdb().set_trace()
+            print('ALL TEST TASKS', len(self.all_test_tasks))
 
     def reset_scene(self, scene_name):
         self.env.reset(

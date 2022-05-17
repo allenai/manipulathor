@@ -73,7 +73,7 @@ class ObjDisArmPointNavRGBOnlyProcTHORMultipleRooms(
     TASK_TYPE = ExploreWiseRewardTask
     ENVIRONMENT_TYPE = ManipulaTHOREnvironment
 
-    NUM_PROCESSES = 20
+    NUM_PROCESSES = 60
 
 
     TEST_SCENES = BringObjectProcThorBaseConfig.TRAIN_SCENES

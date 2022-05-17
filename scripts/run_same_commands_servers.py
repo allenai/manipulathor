@@ -244,11 +244,18 @@ import pdb
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 --extra_tag procthor_armpointnav_rgbonly -c ~/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_procthor_armpointnav_rgbonly__stage_00__steps_000106644058.pt'
 
-command_aws1 = 'scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavRGBOnlyProcTHORDistrib/procthor_armpointnav_rgbonly/2022-05-11_20-52-20/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_procthor_armpointnav_rgbonly__stage_00__steps_000106644058.pt ~/;  \
-./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/clip_obj_dis_for_procthor_rgb_only_multiple_rooms_distrib.py \
---distributed_ip_and_port IP_ADR:6060 \
- --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag procthor_armpointnav_rgbonly_multiple_rooms_clip'
+# command_aws1 = 'scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavRGBOnlyProcTHORMultipleRoomsDistrib/procthor_armpointnav_rgbonly_multiple_rooms/2022-05-13_17-23-45/exp_ObjDisArmPointNavRGBOnlyProcTHORMultipleRoomsDistrib_procthor_armpointnav_rgbonly_multiple_rooms__stage_00__steps_000011242397.pt ~/;  \
+# ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_rgb_only_multiple_rooms_distrib.py \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag procthor_armpointnav_rgbonly_multiple_rooms -c ~/exp_ObjDisArmPointNavRGBOnlyProcTHORMultipleRoomsDistrib_procthor_armpointnav_rgbonly_multiple_rooms__stage_00__steps_000011242397.pt'
+
+
+# command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib/clip_obj_dis_for_procthor_rgb_only_distrib/2022-05-14_15-09-10/exp_CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib_clip_obj_dis_for_procthor_rgb_only_distrib__stage_00__steps_000076285861.pt ~/;  \
+# ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/clip_obj_dis_for_procthor_rgb_only_distrib.py \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag clip_obj_dis_for_procthor_rgb_only_distrib -c ~/exp_CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib_clip_obj_dis_for_procthor_rgb_only_distrib__stage_00__steps_000076285861.pt'
 
 # command = command_aws1
 # scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavRGBOnlyProcTHORDistrib/procthor_armpointnav_rgbonly/2022-05-11_17-16-05/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_procthor_armpointnav_rgbonly__stage_00__steps_000058633471.pt ~/
@@ -261,13 +268,25 @@ command_aws1 = 'scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/O
 #  --seed 10 --machine_id 0 --extra_tag armpointnav_with_clip_ProcTHOR_RGBonly -c ~/exp_CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib_armpointnav_with_clip_ProcTHOR_RGBonly__stage_00__steps_000005061351.pt'
 
 
-command_aws5 = 'scp 52.24.154.159:~/manipulathor/experiment_output/checkpoints/CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib/armpointnav_with_clip_ProcTHOR_RGBonly/2022-05-12_04-54-18/exp_CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib_armpointnav_with_clip_ProcTHOR_RGBonly__stage_00__steps_000005061351.pt ~/; \
-./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/clip_obj_dis_for_procthor_rgb_only_distrib \
+command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavRGBOnlyProcTHORDistrib/armpointnav_with_ProcTHOR_RGBonly_after_fix/2022-05-14_00-37-27/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_armpointnav_with_ProcTHOR_RGBonly_after_fix__stage_00__steps_000018363080.pt ~/; \
+./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_rgb_only_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag armpointnav_with_ProcTHOR_RGBonly_after_fix_clip '
+ --seed 10 --machine_id 0 --extra_tag armpointnav_with_ProcTHOR_RGBonly_after_fix -c ~/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_armpointnav_with_ProcTHOR_RGBonly_after_fix__stage_00__steps_000018363080.pt'
 
-
+command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavITHORAllRoomsRGBOnlyDistrib/armpointnav_with_iTHOR_RGBonly_after_fix/2022-05-16_21-15-02/exp_ObjDisArmPointNavITHORAllRoomsRGBOnlyDistrib_armpointnav_with_iTHOR_RGBonly_after_fix__stage_00__steps_000061755450.pt ~/&&\
+./manipulathor/scripts/kill-zombie.sh && cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_ithor_rgb_only_distrib \
+--distributed_ip_and_port IP_ADR:6060 \
+ --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+ --seed 10 --machine_id 0 --extra_tag armpointnav_with_iTHOR_RGBonly_after_fix -c ~/exp_ObjDisArmPointNavITHORAllRoomsRGBOnlyDistrib_armpointnav_with_iTHOR_RGBonly_after_fix__stage_00__steps_000061755450.pt'
+command_aws15 = ''
+# ./manipulathor/scripts/kill-zombie.sh; sudo /home/kianae/manipulathor_env/bin/ai2thor-xorg start
+command_vs411 = 'scp MAIN_SERVER:~/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_armpointnav_with_ProcTHOR_RGBonly_after_fix__stage_00__steps_000098567812.pt ~/; \
+cd manipulathor && export PYTHONPATH="./" && source ~/manipulathor_env/bin/activate && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_rgb_only_multiple_rooms_distrib \
+--distributed_ip_and_port IP_ADR:6060 \
+ --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+ --seed 10 --machine_id 0 --extra_tag continue_procthor_multiroom -c ~/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_armpointnav_with_ProcTHOR_RGBonly_after_fix__stage_00__steps_000098567812.pt'
+command = None
 # command = command_aws5
 # command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/no_pointnav_stretch_all_rooms_distrib \
 # --distributed_ip_and_port IP_ADR:6060 \
@@ -275,30 +294,47 @@ command_aws5 = 'scp 52.24.154.159:~/manipulathor/experiment_output/checkpoints/C
 #  --seed 10 --machine_id 0 --extra_tag ithor_train_no_armpointnav -c ~/exp_NoPointNavStretchAllRoomsDistrib_ithor_train_no_armpointnav__stage_00__steps_000114436451.pt'
 
 # scp 52.24.154.159:~/manipulathor/experiment_output/checkpoints/NoPointNavStretchAllRoomsDistrib/ithor_train_no_armpointnav/2022-05-09_22-13-53/exp_NoPointNavStretchAllRoomsDistrib_ithor_train_no_armpointnav__stage_00__steps_000114436451.pt ~/
-server_set1 = {
-    'servers':[f'aws{i}' for i in range(1,5)],
-    'ip_adr': '18.237.24.199',
-}
-server_set2 = {
-    'servers':[f'aws{i}' for i in range(5, 9)],
-    'ip_adr': '52.24.154.159',
-}
+server_mapping = dict(
+    aws1 = {
+        'servers':[f'aws{i}' for i in range(1,5)],
+        'ip_adr': '18.237.24.199',
+        'command': command_aws1,
+    },
+    aws5 = {
+        'servers':[f'aws{i}' for i in range(5, 9)],
+        'ip_adr': '52.24.154.159',
+        'command': command_aws5,
+    },
+    aws15 = {
+        'servers':[f'aws{i}' for i in range(1, 9)],
+        'ip_adr': '18.237.24.199',
+        'command': command_aws15,
+    },
+
+    vs411 = {
+        'servers':['vision-server11', 'vision-server4'],
+        'ip_adr': '172.16.122.186',
+        'command': command_vs411,
+    },
+)
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Sync')
-    parser.add_argument('--server_set', default=None, nargs='+')
+    parser.add_argument('--server_set', default=None)#, nargs='+')
     parser.add_argument('--command', default=command, type=str)
     parser.add_argument('--directly', action='store_true')
 
     args = parser.parse_args()
+
     args.servers = []
-    if 'aws1' in args.server_set:
-        args.servers += server_set1['servers']
-        ip_adr = server_set1['ip_adr']
-    elif 'aws5' in args.server_set:
-        args.servers += server_set2['servers']
-        ip_adr = server_set2['ip_adr']
+    info_for_server = server_mapping[args.server_set]
+    args.servers = info_for_server['servers']
+    ip_adr = info_for_server['ip_adr']
+    if args.command is None:
+        args.command = info_for_server['command']
+
+    args.command = args.command.replace('MAIN_SERVER', ip_adr)
     args.command = args.command.replace('IP_ADR', ip_adr)
     args.command = args.command.replace('NUM_MACHINES', str(len(args.servers)))
     return args
