@@ -69,7 +69,7 @@ class RoboTHORObjectNavClipResnet50RGBOnly(
 
     MAX_STEPS = 500
     if platform.system() == "Darwin":
-        MAX_STEPS = 10
+        MAX_STEPS = 50
 
     TASK_SAMPLER = AllRoomsObjectNavTaskSampler
     TASK_TYPE = ProcTHORObjectNavTask

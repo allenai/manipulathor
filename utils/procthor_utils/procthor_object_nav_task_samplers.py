@@ -413,6 +413,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
             reward_config=self.rewards_config,
             distance_type=self.distance_type,
             distance_cache=self.distance_cache,
+            visualizers=self.visualizers,
             # visualize=True,
             task_info={
                 "mode": self.env_args['agentMode'],

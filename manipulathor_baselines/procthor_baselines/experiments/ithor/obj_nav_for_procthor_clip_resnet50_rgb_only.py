@@ -7,6 +7,7 @@ import gym
 import numpy as np
 from torch import nn
 import yaml
+import copy
 
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
@@ -17,13 +18,15 @@ from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHO
 from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_nav_for_procthor import ProcTHORObjectNavBaseConfig
 from utils.procthor_utils.procthor_object_nav_task_samplers import ProcTHORObjectNavTaskSampler
 from utils.procthor_utils.procthor_object_nav_tasks import ProcTHORObjectNavTask
-from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID
+from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, STRETCH_ENV_ARGS
 from manipulathor_utils.debugger_util import ForkedPdb
 
 from manipulathor_baselines.procthor_baselines.models.clip_preprocessors import ClipResNetPreprocessor
 from allenact.base_abstractions.preprocessor import Preprocessor
 from allenact.utils.experiment_utils import Builder
 from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavActorCritic
+from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
+from ithor_arm.ithor_arm_viz import TestMetricLogger
 
 
 
@@ -56,11 +59,13 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
 
     MAX_STEPS = 500
     if platform.system() == "Darwin":
-        MAX_STEPS = 10
+        MAX_STEPS = 50
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
     TASK_TYPE = ProcTHORObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
+    POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
+
 
     NUM_PROCESSES = 56
 
@@ -71,9 +76,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
     TEST_SCENES = [f'ProcTHOR{i}' for i in range(1)]
     random.shuffle(TRAIN_SCENES)
 
-    if platform.system() == "Darwin":
-        MAX_STEPS = 10
-
 
     def __init__(self):
         super().__init__() 
@@ -83,6 +85,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         self.REWARD_CONFIG['reached_horizon_reward'] = 0.0
         self.REWARD_CONFIG['shaping_weight'] = 1.0
 
+        self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         self.ENV_ARGS['scene'] = 'Procedural'

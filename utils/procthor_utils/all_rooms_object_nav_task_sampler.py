@@ -314,26 +314,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
             x for x in self.visualizers if issubclass(type(x), StretchObjNavImageVisualizer)
         ]
 
-        # initial_object_info = self.env.get_object_by_id(init_object["object_id"])
         initial_agent_location = self.env.controller.last_event.metadata["agent"]
-        # initial_hand_state = self.env.get_absolute_hand_state()
-
-                # task = {
-                #     'source_obj_type': from_obj,
-                #     'goal_obj_type': to_obj,
-                #     'scene_name': scene,
-                #     'agent_initial_location':agent_pose,
-                # }
-                    # task = {
-                    #     "mode": self.env_args['agentMode'],
-                    #     # "scene_name": scene,
-                    #     "house_name": "scene",
-                    #     # "rooms": self.house_entry["rooms"],
-                    #     "target_object_ids": target_obj,
-                    #     "object_type": target_obj,
-                    #     "starting_pose": agent_pose,
-                    #     "mirrored": self.env_args['allow_flipping'] and random.random() > 0.5,
-                    # }
 
         task_info = {
             'target_object_ids': [init_object['object_id']],
@@ -348,7 +329,6 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
 
         if len(should_visualize_goal_start) > 0:
             task_info["visualization_source"] = init_object
-            # task_info["visualization_target"] = goal_object
 
         self._last_sampled_task = self.TASK_TYPE(
             env=self.env,
@@ -402,8 +382,6 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
             data_point = {}
             data_point['scene_name'] = chosen_scene
             data_point['init_object'] = init_object_location
-            # data_point['goal_object'] = goal_object_location
-            # data_point["initial_agent_pose"] = initial_agent_pose
 
             reachable_positions = self.stretch_reachable_positions[data_point['scene_name']] #TODO does it work for manipulathor agent as well?
             agent_pose = random.choice(reachable_positions)

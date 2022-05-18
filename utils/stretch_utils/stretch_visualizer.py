@@ -13,6 +13,13 @@ from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.stretch_jupyter_helper import transport_wrapper, reset_environment_and_additional_commands
 from utils.stretch_utils.stretch_sim2real_utils import kinect_reshape, intel_reshape
 
+def unnormalize_clip_image(img):
+    # img = img.squeeze(0).squeeze(0)
+    mean=np.array([0.48145466, 0.4578275, 0.40821073])
+    std=np.array([0.26862954, 0.26130258, 0.27577711])
+    img = (img * std + mean)
+    img = np.clip(img, 0, 1)
+    return img
 
 class StretchBringObjImageVisualizer(LoggerVisualizer):
     def finish_episode(self, environment, episode_info, task_info):
@@ -192,19 +199,19 @@ class StretchObjNavImageVisualizer(LoggerVisualizer):
         # goal_obj_type = goal_object_id.split("|")[0]
 
         if source_obj_type == 'small':
-            source_obj_type = task_info['source_object_type']
+            source_obj_type = task_info['object_type']
             # goal_obj_type = task_info['goal_object_type']
 
         room_name = task_info['scene_name']
         gif_name = (
                 f"{time_to_write}_room_{room_name}_to_{source_obj_type}_episode_{episode_success_offset}.gif"
         )
+        # ForkedPdb().set_trace()
         self.log_queue = put_action_on_image(self.log_queue, self.action_queue[1:])
         addition_texts = ['xxx'] + [str(x) for x in episode_info.agent_body_dist_to_obj]
-        self.log_queue = put_additional_text_on_image(self.log_queue, addition_texts)
-        # concat_all_images = np.expand_dims(np.stack(self.arm_frame_queue, axis=0), axis=1)
-        # arm_frames = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
-        # concat_all_images = np.concatenate([concat_all_images, arm_frames], axis=3)
+        if not addition_texts == ['xxx']:
+            self.log_queue = put_additional_text_on_image(self.log_queue, addition_texts)
+
         concat_all_images = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
         save_image_list_to_gif(concat_all_images, gif_name, self.log_dir)
         this_controller = environment.controller
@@ -220,30 +227,13 @@ class StretchObjNavImageVisualizer(LoggerVisualizer):
         if 'target_location_mask' in episode_info.get_observations():
             additional_observation_goal.append('target_location_mask')
 
-        # if 'visualization_source' in task_info and 'visualization_target' in task_info:
-
-        #     self.log_start_goal(
-        #         environment,
-        #         task_info["visualization_source"],
-        #         tag="start",
-        #         img_adr=os.path.join(self.log_dir, time_to_write),
-        #         additional_observations=additional_observation_start,
-        #         episode_info=episode_info
-        #     )
-        #     self.log_start_goal(
-        #         environment,
-        #         task_info["visualization_target"],
-        #         tag="goal",
-        #         img_adr=os.path.join(self.log_dir, time_to_write),
-        #         additional_observations=additional_observation_goal,
-        #         episode_info=episode_info
-        #     )
 
         self.log_queue = []
         self.action_queue = []
         self.arm_frame_queue = []
 
-    def log(self, environment, action_str):
+
+    def log(self, environment, action_str, obs):
         image_intel = environment.intel_frame
         depth_intel = environment.intel_depth
         image_kinect = environment.kinect_frame
@@ -251,9 +241,17 @@ class StretchObjNavImageVisualizer(LoggerVisualizer):
 
         # image_intel = intel_reshape(image_intel)
         # kinect_frame = kinect_reshape(kinect_frame)
-
+        
         self.action_queue.append(action_str)
         combined_frame = np.concatenate([image_intel, image_kinect, depth_to_rgb(depth_intel), depth_to_rgb(depth_kinect)],axis=1)
+        # ForkedPdb().set_trace()
+        for o in obs:
+            if ("rgb" in o) and isinstance(obs[o], np.ndarray):
+                # ForkedPdb().set_trace()
+                viz_obs = unnormalize_clip_image(obs[o])*255
+
+                combined_frame = np.concatenate( [combined_frame, viz_obs.astype(np.uint8)],axis=1)
+        # ForkedPdb().set_trace()
         self.log_queue.append(combined_frame)
 
 

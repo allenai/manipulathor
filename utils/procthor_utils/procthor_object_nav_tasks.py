@@ -10,6 +10,7 @@ from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import Task
 from allenact.utils.cache_utils import DynamicDistanceCache
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
+from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
 from allenact.utils.system import get_logger
 
 from utils.procthor_utils.procthor_helper import distance_to_object_id, position_dist, spl_metric
@@ -22,24 +23,22 @@ from utils.stretch_utils.stretch_constants import (
     ROTATE_RIGHT_SMALL, 
     ROTATE_LEFT_SMALL
 )
-from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
+from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
+# from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 
 from manipulathor_utils.debugger_util import ForkedPdb
 
-
-class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
+class ObjectNavTask(Task[ManipulaTHOREnvironment]):
     _actions = (
         MOVE_AHEAD,
-        MOVE_BACK,
         ROTATE_RIGHT,
         ROTATE_LEFT,
-        ROTATE_RIGHT_SMALL,
-        ROTATE_LEFT_SMALL,
         DONE,
     )
+
     def __init__(
         self,
-        env: StretchManipulaTHOREnvironment,
+        env: ManipulaTHOREnvironment,
         sensors: List[Sensor],
         task_info: Dict[str, Any],
         max_steps: int,
@@ -115,7 +114,7 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         for object_id in self.task_info["target_object_ids"]:
             min_dist = min(
                 min_dist,
-                StretchManipulaTHOREnvironment.position_dist(
+                self.env.position_dist(
                     obj_id_to_obj_pos[object_id],
                     self.env.last_event.metadata["agent"]["position"],
                 ),
@@ -149,19 +148,25 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
             return -1.0
         return min_dist
     
+    
     def start_visualize(self):
         for visualizer in self.visualizers:
             if not visualizer.is_empty():
                 print("OH NO VISUALIZER WAS NOT EMPTY")
-                ForkedPdb().set_trace()
                 visualizer.finish_episode(self.env, self, self.task_info)
                 visualizer.finish_episode_metrics(self, self.task_info, None)
-            visualizer.log(self.env, "")
+            if type(visualizer)==StretchObjNavImageVisualizer:
+                visualizer.log(self.env, "", obs=self.get_observations())
+            else:
+                visualizer.log(self.env, "")
+
 
     def visualize(self, action_str):
-
-        for vizualizer in self.visualizers:
-            vizualizer.log(self.env, action_str)
+        for visualizer in self.visualizers:
+            if type(visualizer)==StretchObjNavImageVisualizer:
+                visualizer.log(self.env, action_str, obs=self.get_observations())
+            else:
+                visualizer.log(self.env, action_str)
 
     def finish_visualizer(self, episode_success):
 
@@ -172,7 +177,6 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
 
         for visualizer in self.visualizers:
             visualizer.finish_episode_metrics(self, self.task_info, metric_results)
-
 
     @property
     def action_space(self):
@@ -187,57 +191,7 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
 
     def close(self) -> None:
         self.env.stop()
-
-    def _step(self, action: int) -> RLStepResult:
-        action_str = self.class_action_names()[action]
-
-        if self.mirror:
-            if action_str == "RotateRight":
-                action_str = "RotateLeft"
-            elif action_str == "RotateLeft":
-                action_str = "RotateRight"
-
-        self.task_info["taken_actions"].append(action_str)
-
-        if action_str == "Done":
-            self._took_end_action = True
-            self._success = self._is_goal_in_range()
-            self.last_action_success = self._success
-            self.task_info["action_successes"].append(True)
-        else:
-            action_dict = {"action": action_str}
-            self.env.step(action_dict)
-            self.last_action_success = bool(self.env.last_event)
-
-            position = self.env.last_event.metadata["agent"]["position"]
-            self.path.append(position)
-            self.task_info["followed_path"].append(position)
-            self.task_info["action_successes"].append(self.last_action_success)
-
-        if len(self.path) > 1:
-            self.travelled_distance += position_dist(
-                p0=self.path[-1], p1=self.path[-2], ignore_y=True
-            )
-        
-        obj_id_to_obj_pos = {o["objectId"]: o["axisAlignedBoundingBox"]["center"] 
-                                for o in self.env.last_event.metadata["objects"]}
-        self.agent_body_dist_to_obj.append(StretchManipulaTHOREnvironment.position_dist(
-                    obj_id_to_obj_pos[self.task_info["target_object_ids"][0]],
-                    self.env.last_event.metadata["agent"]["position"],
-                ))
-
-        if self.additional_visualize:
-            self.observations.append(self.env.last_event.frame)
-        self.visualize(action_str)
-
-        step_result = RLStepResult(
-            observation=self.get_observations(),
-            reward=self.judge(),
-            done=self.is_done(),
-            info={"last_action_success": self.last_action_success, "action": action},
-        )
-        return step_result
-
+    
     def render(
         self, mode: Literal["rgb", "depth"] = "rgb", *args, **kwargs
     ) -> np.ndarray:
@@ -298,24 +252,7 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
                 )
                 * self.reward_config.shaping_weight
             )
-
-    def judge(self) -> float:
-        """Judge the last event."""
-        reward = self.reward_config['step_penalty']
-
-        reward += self.shaping()
-
-        if self._took_end_action:
-            if self._success:
-                reward += self.reward_config['goal_success_reward']
-            else:
-                reward += self.reward_config['failed_stop_reward']
-        elif self.num_steps_taken() + 1 >= self.max_steps:
-            reward += self.reward_config['reached_horizon_reward']
-
-        self._rewards.append(float(reward))
-        return float(reward)
-
+    
     def get_observations(self, **kwargs) -> Any:
         obs = super().get_observations()
         if self.mirror:
@@ -325,7 +262,7 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         return obs
 
     def task_callback_data(self) -> Optional[Dict[str, Any]]:
-        if not self.visualize:
+        if not self.additional_visualize:
             return None
 
         # NOTE: Create top-down trajectory path visualization
@@ -370,3 +307,88 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
             return metrics
         else:
             return {}
+
+
+
+class ProcTHORObjectNavTask(ObjectNavTask):
+    _actions = (
+        MOVE_AHEAD,
+        MOVE_BACK,
+        ROTATE_RIGHT,
+        ROTATE_LEFT,
+        ROTATE_RIGHT_SMALL,
+        ROTATE_LEFT_SMALL,
+        DONE,
+    )
+
+    def _step(self, action: int) -> RLStepResult:
+        action_str = self.class_action_names()[action]
+
+        if self.mirror:
+            if action_str == "RotateRight":
+                action_str = "RotateLeft"
+            elif action_str == "RotateLeft":
+                action_str = "RotateRight"
+
+        self.task_info["taken_actions"].append(action_str)
+
+        if action_str == "Done":
+            self._took_end_action = True
+            self._success = self._is_goal_in_range()
+            self.last_action_success = self._success
+            self.task_info["action_successes"].append(True)
+        else:
+            action_dict = {"action": action_str}
+            self.env.step(action_dict)
+            self.last_action_success = bool(self.env.last_event)
+
+            position = self.env.last_event.metadata["agent"]["position"]
+            self.path.append(position)
+            self.task_info["followed_path"].append(position)
+            self.task_info["action_successes"].append(self.last_action_success)
+
+        if len(self.path) > 1:
+            self.travelled_distance += position_dist(
+                p0=self.path[-1], p1=self.path[-2], ignore_y=True
+            )
+        
+        obj_id_to_obj_pos = {o["objectId"]: o["axisAlignedBoundingBox"]["center"] 
+                                for o in self.env.last_event.metadata["objects"]}
+        self.agent_body_dist_to_obj.append(self.env.position_dist(
+                    obj_id_to_obj_pos[self.task_info["target_object_ids"][0]],
+                    self.env.last_event.metadata["agent"]["position"],
+                ))
+
+        if self.additional_visualize:
+            self.observations.append(self.env.last_event.frame)
+        self.visualize(action_str)
+
+        step_result = RLStepResult(
+            observation=self.get_observations(),
+            reward=self.judge(),
+            done=self.is_done(),
+            info={"last_action_success": self.last_action_success, "action": action},
+        )
+        return step_result
+
+    
+    def judge(self) -> float:
+        """Judge the last event."""
+        reward = self.reward_config['step_penalty']
+
+        reward += self.shaping()
+
+        if self._took_end_action:
+            if self._success:
+                reward += self.reward_config['goal_success_reward']
+            else:
+                reward += self.reward_config['failed_stop_reward']
+        elif self.num_steps_taken() + 1 >= self.max_steps:
+            reward += self.reward_config['reached_horizon_reward']
+
+        self._rewards.append(float(reward))
+        return float(reward)
+
+
+
+
