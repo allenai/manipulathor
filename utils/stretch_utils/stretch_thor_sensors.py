@@ -107,6 +107,20 @@ class RGBSensorStretchKinect(
         rgb = env.controller.last_event.third_party_camera_frames[0].copy()
         return kinect_reshape(rgb)
 
+class RGBSensorStretchKinectBigFov(
+    RGBSensorThor
+):
+    """Sensor for RGB images in THOR.
+
+    Returns from a running StretchManipulaTHOREnvironment instance, the current RGB
+    frame corresponding to the agent's egocentric view.
+    """
+
+    def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
+
+        rgb = env.controller.last_event.third_party_camera_frames[0].copy()
+        return rgb
+
 
 class RGBSensorStretchKinectZero(
     RGBSensorThor
