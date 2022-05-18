@@ -22,12 +22,12 @@ from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID
 # from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJECTS
 from manipulathor_utils.debugger_util import ForkedPdb
 
-from utils.procthor_utils.clip_preprocessors import ClipResNetPreprocessor
-from allenact.base_abstractions.preprocessor import Preprocessor
-from allenact.utils.experiment_utils import Builder
-from allenact_plugins.navigation_plugin.objectnav.models import (
-    ResnetTensorNavActorCritic,
-)
+# from manipulathor_baselines.procthor_baselines.models.clip_preprocessors import ClipResNetPreprocessor
+# from allenact.base_abstractions.preprocessor import Preprocessor
+# from allenact.utils.experiment_utils import Builder
+# from allenact_plugins.navigation_plugin.objectnav.models import (
+#     ResnetTensorNavActorCritic,
+# )
 
 
 

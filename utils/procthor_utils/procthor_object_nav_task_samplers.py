@@ -85,26 +85,29 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.sampler_mode = kwargs["sampler_mode"]
         self.cap_training = kwargs["cap_training"]
 
-        self.house_dataset = datasets.load_dataset("allenai/houses", use_auth_token=True)
+        if self.env_args['scene'] == 'Procedural':
+            self.house_dataset = datasets.load_dataset("allenai/houses", use_auth_token=True)
 
-        RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN = (
-            -1
-        )  # Should be > 0 if `ADVANCE_SCENE_ROLLOUT_PERIOD` is `None`
-        # RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 100
-        # if platform.system() == "Darwin":
-        #     RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 1
+            RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN = (
+                -1
+            )  # Should be > 0 if `ADVANCE_SCENE_ROLLOUT_PERIOD` is `None`
+            # RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 100
+            # if platform.system() == "Darwin":
+            #     RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 1
 
-        RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 50
-        self.resample_same_scene_freq = RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE
-        # assert self.resample_same_scene_freq == 1 # IMPORTANT IT WON"T WORK FOR 100
-        self.episode_index = 0
-        self.house_inds_index = 0
-        self.reachable_positions_map = {}
-        self.house_dataset = self.house_dataset['train'] #TODO separately for test and val
+            RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 50
+            self.resample_same_scene_freq = -1 #RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN
+            # assert self.resample_same_scene_freq == 1 # IMPORTANT IT WON"T WORK FOR 100
+            self.episode_index = 0
+            self.house_inds_index = 0
+            self.reachable_positions_map = {}
+            self.house_dataset = self.house_dataset['train'] #TODO separately for test and val
 
-        ROOMS_TO_USE = [int(scene.replace('ProcTHOR', '')) for scene in self.scenes]
+            ROOMS_TO_USE = [int(scene.replace('ProcTHOR', '')) for scene in self.scenes]
 
-        self.args_house_inds = ROOMS_TO_USE
+            self.args_house_inds = ROOMS_TO_USE
+            
+
         self.valid_rotations = [0,90,180,270]
         self.distance_type = "l2"
         self.distance_cache = DynamicDistanceCache(rounding=1)
@@ -410,6 +413,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
             reward_config=self.rewards_config,
             distance_type=self.distance_type,
             distance_cache=self.distance_cache,
+            # visualize=True,
             task_info={
                 "mode": self.env_args['agentMode'],
                 # "process_ind": self.process_ind,

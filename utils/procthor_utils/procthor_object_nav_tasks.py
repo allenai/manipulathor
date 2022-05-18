@@ -9,6 +9,7 @@ from allenact.base_abstractions.misc import RLStepResult
 from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import Task
 from allenact.utils.cache_utils import DynamicDistanceCache
+from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from allenact.utils.system import get_logger
 
 from utils.procthor_utils.procthor_helper import distance_to_object_id, position_dist, spl_metric
@@ -45,7 +46,8 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         reward_config: Dict[str, Any],
         distance_cache: DynamicDistanceCache,
         distance_type: str = "geo",
-        visualize: Optional[bool] = None,
+        additional_visualize: Optional[bool] = None,
+        visualizers: List[LoggerVisualizer] = [],
         **kwargs,
     ) -> None:
         super().__init__(
@@ -74,6 +76,8 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         ]
         self.task_info["taken_actions"] = []
         self.task_info["action_successes"] = []
+        self.agent_body_dist_to_obj = []
+
 
         self.distance_cache = distance_cache
 
@@ -89,12 +93,14 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         self.optimal_distance = self.last_distance
         self.closest_distance = self.last_distance
 
-        self.visualize = False
-        # (
-        #     visualize
-        #     if visualize is not None
-        #     else (self.task_info["mode"] == "eval" or random.random() < 1 / 1000)
-        # )
+        self.visualizers = visualizers
+        self.start_visualize()
+
+        self.additional_visualize = (
+            additional_visualize
+            if additional_visualize is not None
+            else (self.task_info["mode"] == "eval" or random.random() < 1 / 1000)
+        )
         self.observations = [self.env.last_event.frame]
         self._metrics = None
 
@@ -104,10 +110,8 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         """
         # NOTE: may return -1 if the object is unreachable.
         min_dist = float("inf")
-        obj_id_to_obj_pos = {
-            o["objectId"]: o["axisAlignedBoundingBox"]["center"]
-            for o in self.env.last_event.metadata["objects"]
-        }
+        obj_id_to_obj_pos = {o["objectId"]: o["axisAlignedBoundingBox"]["center"] 
+                                for o in self.env.last_event.metadata["objects"]}
         for object_id in self.task_info["target_object_ids"]:
             min_dist = min(
                 min_dist,
@@ -144,6 +148,31 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         if min_dist is None:
             return -1.0
         return min_dist
+    
+    def start_visualize(self):
+        for visualizer in self.visualizers:
+            if not visualizer.is_empty():
+                print("OH NO VISUALIZER WAS NOT EMPTY")
+                ForkedPdb().set_trace()
+                visualizer.finish_episode(self.env, self, self.task_info)
+                visualizer.finish_episode_metrics(self, self.task_info, None)
+            visualizer.log(self.env, "")
+
+    def visualize(self, action_str):
+
+        for vizualizer in self.visualizers:
+            vizualizer.log(self.env, action_str)
+
+    def finish_visualizer(self, episode_success):
+
+        for visualizer in self.visualizers:
+            visualizer.finish_episode(self.env, self, self.task_info)
+
+    def finish_visualizer_metrics(self, metric_results):
+
+        for visualizer in self.visualizers:
+            visualizer.finish_episode_metrics(self, self.task_info, metric_results)
+
 
     @property
     def action_space(self):
@@ -189,9 +218,17 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
             self.travelled_distance += position_dist(
                 p0=self.path[-1], p1=self.path[-2], ignore_y=True
             )
+        
+        obj_id_to_obj_pos = {o["objectId"]: o["axisAlignedBoundingBox"]["center"] 
+                                for o in self.env.last_event.metadata["objects"]}
+        self.agent_body_dist_to_obj.append(StretchManipulaTHOREnvironment.position_dist(
+                    obj_id_to_obj_pos[self.task_info["target_object_ids"][0]],
+                    self.env.last_event.metadata["agent"]["position"],
+                ))
 
-        if self.visualize:
+        if self.additional_visualize:
             self.observations.append(self.env.last_event.frame)
+        self.visualize(action_str)
 
         step_result = RLStepResult(
             observation=self.get_observations(),
@@ -298,14 +335,14 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         ]
         if not self.env.last_event.third_party_camera_frames:
             # assumes this is the only third party camera
-            event = self.env.step(action="GetMapViewCameraProperties")
+            event = self.env.step({"action": "GetMapViewCameraProperties"})
             cam = event.metadata["actionReturn"].copy()
             cam["orthographicSize"] += 1
             self.env.step(
-                action="AddThirdPartyCamera", skyboxColor="white", **cam
+                {"action": "AddThirdPartyCamera", "skyboxColor":"white", **cam}
             )
-        event = self.env.step(action="VisualizePath", positions=agent_path)
-        self.env.step(action="HideVisualizedPath")
+        event = self.env.step({"action": "VisualizePath", "positions":agent_path})
+        self.env.step({"action":"HideVisualizedPath"})
 
         return {
             "observations": self.observations,
@@ -314,18 +351,22 @@ class ProcTHORObjectNavTask(Task[StretchManipulaTHOREnvironment]):
         }
 
     def metrics(self) -> Dict[str, Any]:
-        if not self.is_done():
+        if self.is_done():
+            result={} # placeholder for future
+            metrics = super().metrics()
+            metrics["dist_to_target"] = self.dist_to_target_func()
+            metrics["total_reward"] = np.sum(self._rewards)
+            metrics["spl"] = spl_metric(
+                success=self._success,
+                optimal_distance=self.optimal_distance,
+                travelled_distance=self.travelled_distance,
+            )
+            metrics["success"] = self._success
+            result["success"] = self._success
+            self.finish_visualizer_metrics(result)
+            self.finish_visualizer(self._success)
+
+            self._metrics = metrics
+            return metrics
+        else:
             return {}
-
-        metrics = super().metrics()
-        metrics["dist_to_target"] = self.dist_to_target_func()
-        metrics["total_reward"] = np.sum(self._rewards)
-        metrics["spl"] = spl_metric(
-            success=self._success,
-            optimal_distance=self.optimal_distance,
-            travelled_distance=self.travelled_distance,
-        )
-        metrics["success"] = self._success
-
-        self._metrics = metrics
-        return metrics

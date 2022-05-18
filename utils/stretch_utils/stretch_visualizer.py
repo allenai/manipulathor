@@ -163,3 +163,100 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
                 )
                 cv2.imwrite(mask_dir, mask_frame.astype(float)*255.)
 
+
+
+class StretchObjNavImageVisualizer(LoggerVisualizer):
+    def finish_episode(self, environment, episode_info, task_info):
+        now = datetime.now()
+        time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f")
+        time_to_write += "log_ind_{}".format(self.logger_index)
+        self.logger_index += 1
+        print("Logging", time_to_write, "len", len(self.log_queue))
+        # ForkedPdb().set_trace()
+
+        source_object_id = task_info["target_object_ids"][0]
+        # goal_object_id = task_info["goal_object_id"]
+        # pickup_success = episode_info.object_picked_up
+        episode_success = episode_info._success
+
+        # Put back if you want the images
+        # for i, img in enumerate(self.log_queue):
+        #     image_dir = os.path.join(self.log_dir, time_to_write + '_seq{}.png'.format(str(i)))
+        #     cv2.imwrite(image_dir, img[:,:,[2,1,0]])
+
+        episode_success_offset = "succ" if episode_success else "fail"
+        # pickup_success_offset = "succ" if pickup_success else "fail"
+
+
+        source_obj_type = source_object_id.split("|")[0]
+        # goal_obj_type = goal_object_id.split("|")[0]
+
+        if source_obj_type == 'small':
+            source_obj_type = task_info['source_object_type']
+            # goal_obj_type = task_info['goal_object_type']
+
+        room_name = task_info['scene_name']
+        gif_name = (
+                f"{time_to_write}_room_{room_name}_to_{source_obj_type}_episode_{episode_success_offset}.gif"
+        )
+        self.log_queue = put_action_on_image(self.log_queue, self.action_queue[1:])
+        addition_texts = ['xxx'] + [str(x) for x in episode_info.agent_body_dist_to_obj]
+        self.log_queue = put_additional_text_on_image(self.log_queue, addition_texts)
+        # concat_all_images = np.expand_dims(np.stack(self.arm_frame_queue, axis=0), axis=1)
+        # arm_frames = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
+        # concat_all_images = np.concatenate([concat_all_images, arm_frames], axis=3)
+        concat_all_images = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
+        save_image_list_to_gif(concat_all_images, gif_name, self.log_dir)
+        this_controller = environment.controller
+        scene = this_controller.last_event.metadata[
+            "sceneName"
+        ]
+        reset_environment_and_additional_commands(this_controller, scene)
+
+        additional_observation_start = []
+        additional_observation_goal = []
+        if 'target_object_mask' in episode_info.get_observations():
+            additional_observation_start.append('target_object_mask')
+        if 'target_location_mask' in episode_info.get_observations():
+            additional_observation_goal.append('target_location_mask')
+
+        # if 'visualization_source' in task_info and 'visualization_target' in task_info:
+
+        #     self.log_start_goal(
+        #         environment,
+        #         task_info["visualization_source"],
+        #         tag="start",
+        #         img_adr=os.path.join(self.log_dir, time_to_write),
+        #         additional_observations=additional_observation_start,
+        #         episode_info=episode_info
+        #     )
+        #     self.log_start_goal(
+        #         environment,
+        #         task_info["visualization_target"],
+        #         tag="goal",
+        #         img_adr=os.path.join(self.log_dir, time_to_write),
+        #         additional_observations=additional_observation_goal,
+        #         episode_info=episode_info
+        #     )
+
+        self.log_queue = []
+        self.action_queue = []
+        self.arm_frame_queue = []
+
+    def log(self, environment, action_str):
+        image_intel = environment.intel_frame
+        depth_intel = environment.intel_depth
+        image_kinect = environment.kinect_frame
+        depth_kinect = environment.kinect_depth
+
+        # image_intel = intel_reshape(image_intel)
+        # kinect_frame = kinect_reshape(kinect_frame)
+
+        self.action_queue.append(action_str)
+        combined_frame = np.concatenate([image_intel, image_kinect, depth_to_rgb(depth_intel), depth_to_rgb(depth_kinect)],axis=1)
+        self.log_queue.append(combined_frame)
+
+
+    @lazy_property
+    def arm_frame_queue(self):
+        return []
