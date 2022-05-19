@@ -25,7 +25,7 @@ from allenact.base_abstractions.sensor import Sensor
 # from training.tasks.object_nav import ObjectNavTaskSampler
 # from training.utils.types import RewardConfig, TaskSamplerArgs
 from utils.procthor_utils.procthor_object_nav_task_samplers import ProcTHORObjectNavTaskSampler
-from utils.procthor_utils.procthor_object_nav_tasks import ProcTHORObjectNavTask
+from utils.procthor_utils.procthor_object_nav_tasks import ObjectNavTask
 from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID
 
 
@@ -33,7 +33,7 @@ class ProcTHORObjectNavBaseConfig(BringObjectThorBaseConfig):
     """The base config for ProcTHOR ObjectNav experiments."""
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
-    TASK_TYPE = ProcTHORObjectNavTask
+    TASK_TYPE = ObjectNavTask
 
     TRAIN_DEVICES = (
         tuple(range(torch.cuda.device_count()))

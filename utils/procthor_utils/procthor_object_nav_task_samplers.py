@@ -21,7 +21,7 @@ from ithor_arm.ithor_arm_viz import LoggerVisualizer
 # from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 
 from utils.procthor_utils.procthor_types import AgentPose, Vector3
-from utils.procthor_utils.procthor_object_nav_tasks import ProcTHORObjectNavTask
+from utils.procthor_utils.procthor_object_nav_tasks import StretchObjectNavTask
 from utils.stretch_utils.stretch_constants import ADITIONAL_ARM_ARGS
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 from scripts.stretch_jupyter_helper import make_all_objects_unbreakable
@@ -154,7 +154,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         return self.reset_tasks
 
     @property
-    def last_sampled_task(self) -> Optional[ProcTHORObjectNavTask]:
+    def last_sampled_task(self) -> Optional[StretchObjectNavTask]:
         # NOTE: This book-keeping should be done in TaskSampler...
         return self._last_sampled_task
 
@@ -352,7 +352,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
     def increment_scene_index(self):
         self.house_inds_index = (self.house_inds_index + 1) % len(self.args_house_inds)
 
-    def next_task(self, force_advance_scene: bool = False) -> Optional[ProcTHORObjectNavTask]:
+    def next_task(self, force_advance_scene: bool = False) -> Optional[StretchObjectNavTask]:
         if self.env is None:
             self.env = self._create_environment()
         
