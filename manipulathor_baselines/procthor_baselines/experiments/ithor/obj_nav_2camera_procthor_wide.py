@@ -19,7 +19,7 @@ from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHO
 
 from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_nav_for_procthor import ProcTHORObjectNavBaseConfig
 from utils.procthor_utils.procthor_object_nav_task_samplers import ProcTHORObjectNavTaskSampler
-from utils.procthor_utils.procthor_object_nav_tasks import ProcTHORObjectNavTask
+from utils.procthor_utils.procthor_object_nav_tasks import StretchObjectNavTask
 from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, STRETCH_ENV_ARGS
 from manipulathor_utils.debugger_util import ForkedPdb
 
@@ -27,7 +27,6 @@ from manipulathor_baselines.procthor_baselines.models.clip_preprocessors import 
 from manipulathor_baselines.procthor_baselines.models.clip_objnav_twocamera_model import TwoCameraResnetObjNavActorCritic
 from allenact.base_abstractions.preprocessor import Preprocessor
 from allenact.utils.experiment_utils import Builder
-from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavActorCritic
 from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
 from ithor_arm.ithor_arm_viz import TestMetricLogger
 
@@ -63,9 +62,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
             stdev=stdev,
             uuid="rgb_lowres_arm",
         ),
-        # GoalObjectTypeThorSensor(
-        #     object_types=OBJECT_TYPES,
-        # ),
     ]
 
     MAX_STEPS = 500
@@ -73,7 +69,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
         MAX_STEPS = 100
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
-    TASK_TYPE = ProcTHORObjectNavTask
+    TASK_TYPE = StretchObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
 
@@ -135,24 +131,12 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
     @classmethod
     @final
     def create_model(cls, **kwargs) -> nn.Module:
-        # has_rgb = any(isinstance(s, RGBSensorThor) for s in cls.SENSORS)
-        # # has_depth = any(isinstance(s, DepthSensor) for s in cls.SENSORS)
-        # has_depth=False
-
-        # goal_sensor_uuid = next(
-        #     (s.uuid for s in cls.SENSORS if isinstance(s, GoalObjectTypeThorSensor)),
-        #     None,
-        # )
 
         return TwoCameraResnetObjNavActorCritic(
             action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
             observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
-            # goal_sensor_uuid=goal_sensor_uuid,
-            # rgb_resnet_preprocessor_uuid="rgb_clip_resnet" if has_rgb else None,
-            # depth_resnet_preprocessor_uuid="depth_clip_resnet" if has_depth else None,
             hidden_size=512,
             goal_dims=32,
-            # add_prev_actions=True,
         )
 
     @classmethod

@@ -5,6 +5,7 @@ from typing_extensions import Literal
 
 import gym
 import numpy as np
+import torch
 from allenact.base_abstractions.misc import RLStepResult
 from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import Task
@@ -307,20 +308,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             return metrics
         else:
             return {}
-
-
-
-class ProcTHORObjectNavTask(ObjectNavTask):
-    _actions = (
-        MOVE_AHEAD,
-        MOVE_BACK,
-        ROTATE_RIGHT,
-        ROTATE_LEFT,
-        ROTATE_RIGHT_SMALL,
-        ROTATE_LEFT_SMALL,
-        DONE,
-    )
-
+    
     def _step(self, action: int) -> RLStepResult:
         action_str = self.class_action_names()[action]
 
@@ -388,6 +376,60 @@ class ProcTHORObjectNavTask(ObjectNavTask):
 
         self._rewards.append(float(reward))
         return float(reward)
+
+
+
+class StretchObjectNavTask(ObjectNavTask):
+    _actions = (
+        MOVE_AHEAD,
+        MOVE_BACK,
+        ROTATE_RIGHT,
+        ROTATE_LEFT,
+        ROTATE_RIGHT_SMALL,
+        ROTATE_LEFT_SMALL,
+        DONE,
+    )
+
+class ExploreWiseObjectNavTask(ObjectNavTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        all_locations = [[k['x'], k['y'], k['z']] for k in (self.env.get_reachable_positions())]
+        self.all_reachable_positions = torch.Tensor(all_locations)
+        self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
+        assert len(self.all_reachable_positions) > 0, 'no reachable positions to calculate reward'
+
+    def judge(self) -> float:
+        """Compute the reward after having taken a step."""
+        reward = self.reward_configs["step_penalty"]
+
+        current_agent_location = self.env.get_agent_location()
+        current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
+        all_distances = self.all_reachable_positions - current_agent_location
+        all_distances = (all_distances ** 2).sum(dim=-1)
+        location_index = torch.argmin(all_distances)
+        if self.has_visited[location_index] == 0:
+            visited_new_place = True
+        else:
+            visited_new_place = False
+        self.has_visited[location_index] = 1
+
+        if visited_new_place:
+            reward += self.reward_configs["exploration_reward"]
+        
+        reward += self.shaping()
+
+        if self._took_end_action:
+            if self._success:
+                reward += self.reward_config['goal_success_reward']
+            else:
+                reward += self.reward_config['failed_stop_reward']
+        elif self.num_steps_taken() + 1 >= self.max_steps:
+            reward += self.reward_config['reached_horizon_reward']
+
+        self._rewards.append(float(reward))
+        return float(reward)
+        
+
 
 
 
