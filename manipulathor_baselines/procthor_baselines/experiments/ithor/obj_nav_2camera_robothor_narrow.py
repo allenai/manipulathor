@@ -11,6 +11,8 @@ import copy
 
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchKinect, RGBSensorStretchIntel
+from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
+
 
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 
@@ -21,7 +23,7 @@ from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, STRETCH_EN
 from manipulathor_utils.debugger_util import ForkedPdb
 
 from manipulathor_baselines.procthor_baselines.models.clip_preprocessors import ClipResNetPreprocessor
-from manipulathor_baselines.procthor_baselines.models.clip_objnav_twocamera_model import TwoCameraResnetObjNavActorCritic
+from manipulathor_baselines.procthor_baselines.models.clip_objnav_ncamera_model import ResnetTensorNavNCameraActorCritic
 from allenact.base_abstractions.preprocessor import Preprocessor
 from allenact.utils.experiment_utils import Builder
 from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
@@ -36,6 +38,15 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
 ):
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
+
+    TRAIN_SCENES = ROBOTHOR_TRAIN
+    TEST_SCENES = ROBOTHOR_VAL
+    OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ == 'robothor']))
+    OBJECT_TYPES.sort()
+
+
+    random.shuffle(TRAIN_SCENES)
+    random.shuffle(TEST_SCENES)
 
     NOISE_LEVEL = 0
     distance_thr = 1.0 # match procthor config
@@ -58,6 +69,9 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
             stdev=stdev,
             uuid="rgb_lowres_arm",
         ),
+        GoalObjectTypeThorSensor(
+            object_types=OBJECT_TYPES,
+        ),
     ]
 
     MAX_STEPS = 500
@@ -72,13 +86,6 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
 
     NUM_PROCESSES = 56
 
-    TRAIN_SCENES = ROBOTHOR_TRAIN
-    TEST_SCENES = ROBOTHOR_VAL
-    OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ == 'robothor']))
-    OBJECT_TYPES.sort()
-
-    random.shuffle(TRAIN_SCENES)
-    random.shuffle(TEST_SCENES)
 
 
     def __init__(self):
@@ -124,16 +131,23 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
         )
         return preprocessors
 
-
     @classmethod
     @final
     def create_model(cls, **kwargs) -> nn.Module:
+        goal_sensor_uuid = next(
+            (s.uuid for s in cls.SENSORS if isinstance(s, GoalObjectTypeThorSensor)),
+            None,
+        )
+        resnet_preprocessor_uuids = ["rgb_clip_resnet","rgb_clip_resnet_arm"]
 
-        return TwoCameraResnetObjNavActorCritic(
+        return ResnetTensorNavNCameraActorCritic(
             action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
             observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
+            goal_sensor_uuid=goal_sensor_uuid,
+            resnet_preprocessor_uuids=resnet_preprocessor_uuids,
             hidden_size=512,
             goal_dims=32,
+            add_prev_actions=True,
         )
 
     @classmethod
