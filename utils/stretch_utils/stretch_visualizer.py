@@ -179,11 +179,8 @@ class StretchObjNavImageVisualizer(LoggerVisualizer):
         time_to_write += "log_ind_{}".format(self.logger_index)
         self.logger_index += 1
         print("Logging", time_to_write, "len", len(self.log_queue))
-        # ForkedPdb().set_trace()
 
         source_object_id = task_info["target_object_ids"][0]
-        # goal_object_id = task_info["goal_object_id"]
-        # pickup_success = episode_info.object_picked_up
         episode_success = episode_info._success
 
         # Put back if you want the images
@@ -192,11 +189,8 @@ class StretchObjNavImageVisualizer(LoggerVisualizer):
         #     cv2.imwrite(image_dir, img[:,:,[2,1,0]])
 
         episode_success_offset = "succ" if episode_success else "fail"
-        # pickup_success_offset = "succ" if pickup_success else "fail"
 
-
-        source_obj_type = source_object_id.split("|")[0]
-        # goal_obj_type = goal_object_id.split("|")[0]
+        source_obj_type =  task_info['object_type']
 
         if source_obj_type == 'small':
             source_obj_type = task_info['object_type']
@@ -244,16 +238,12 @@ class StretchObjNavImageVisualizer(LoggerVisualizer):
         
         self.action_queue.append(action_str)
         combined_frame = np.concatenate([image_intel, image_kinect, depth_to_rgb(depth_intel), depth_to_rgb(depth_kinect)],axis=1)
-        # ForkedPdb().set_trace()
         for o in obs:
             if ("rgb" in o) and isinstance(obs[o], np.ndarray):
-                # ForkedPdb().set_trace()
                 viz_obs = unnormalize_clip_image(obs[o])*255
 
                 combined_frame = np.concatenate( [combined_frame, viz_obs.astype(np.uint8)],axis=1)
-        # ForkedPdb().set_trace()
         self.log_queue.append(combined_frame)
-
 
     @lazy_property
     def arm_frame_queue(self):
