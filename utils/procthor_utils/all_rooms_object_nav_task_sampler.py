@@ -152,7 +152,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
 
                 if scene in KITCHEN_TRAIN + KITCHEN_TEST + KITCHEN_VAL:
                     scene = scene + '_physics'
-                valid_position_adr = "datasets/apnd-dataset/valid_object_positions/valid_{}_positions_in_{}.json".format(
+                valid_position_adr = "datasets/apnd-dataset/pruned_object_positions/pruned_v3_valid_{}_positions_in_{}.json".format(
                     object, scene
                 )
                 if os.path.exists(valid_position_adr):
@@ -269,9 +269,9 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
             event_transport_init_obj = put_object_in_location(init_object)
             # event_transport_goal_obj = put_object_in_location(goal_object)
 
-            if not event_transport_init_obj.metadata['lastActionSuccess']:
-                print('scene', scene_name, 'init', init_object['object_id'])
-                print('ERROR: one of transfers fail', 'init', event_transport_init_obj.metadata['errorMessage'])
+            # if not event_transport_init_obj.metadata['lastActionSuccess']:
+                # print('scene', scene_name, 'init', init_object['object_id'])
+                # print('ERROR: one of transfers fail', 'init', event_transport_init_obj.metadata['errorMessage'])
         else:
             #Object is already at the location it should be
             target_obj_type = data_point['target_obj_type']
@@ -306,8 +306,8 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
             )
         )
 
-        if not event.metadata['lastActionSuccess']:
-            print('ERROR: Teleport failed')
+        # if not event.metadata['lastActionSuccess']:
+        #     print('ERROR: Teleport failed')
 
 
         should_visualize_goal_start = [

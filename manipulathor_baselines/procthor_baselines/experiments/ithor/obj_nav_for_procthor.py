@@ -61,9 +61,9 @@ class ProcTHORObjectNavBaseConfig(BringObjectThorBaseConfig):
     # FIELD_OF_VIEW = cfg.agent.field_of_view
     # ROTATE_STEP_DEGREES = cfg.agent.rotate_step_degrees
 
-    HOUSE_DATASET = datasets.load_dataset(
-        "allenai/houses", use_auth_token=True, ignore_verifications=True
-    )
+    # HOUSE_DATASET = datasets.load_dataset(
+    #     "allenai/houses", use_auth_token=True, ignore_verifications=True
+    # )
 
     SENSORS: Sequence[Sensor] = []
 
