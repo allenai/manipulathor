@@ -7,7 +7,7 @@ from manipulathor_baselines.procthor_baselines.experiments.ithor.pnemul_obj_dis_
 class PNEmulObjDisArmPointNavProcTHORAllRoomsDistrib(
     PNEmulObjDisArmPointNavProcTHORAllRooms
 ):
-    NUM_PROCESSES = 20 # one them crashed for space?
+    NUM_PROCESSES = 18 # one them crashed for space?
     def __init__(
             self,
             distributed_nodes: int = 1,

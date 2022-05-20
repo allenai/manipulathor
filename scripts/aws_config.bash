@@ -12,7 +12,7 @@ pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+dc0f9
 #ai2thor==0+dc0f9ecd8672dc2d62651f567ff95c63f3542332
 #pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+08ec97f5d93486460f388b50d4ef5485468dc87f
 ssh-keygen; cat ~/.ssh/id_rsa.pub
-cat scripts/public_keys.txt >> ~/.ssh/authorized_keys
+cat ~/manipulathor/scripts/public_keys.txt >> ~/.ssh/authorized_keys
 #cat ~/manipulathor/scripts/public_keys.txt >> ~/.ssh/authorized_keys
 sudo apt-get install xinit
 sudo python3 scripts/startx.py &

@@ -3,8 +3,12 @@ import random
 
 import gym
 import torch
+from allenact.algorithms.onpolicy_sync.losses import PPO
+from allenact.algorithms.onpolicy_sync.losses.ppo import PPOConfig
+from allenact.utils.experiment_utils import TrainingPipeline, Builder, PipelineStage, LinearDecay
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
-from torch import nn
+from torch import nn, optim
+from torch.optim.lr_scheduler import LambdaLR
 
 from ithor_arm.bring_object_sensors import CategorySampleSensor, NoisyObjectMask, NoGripperRGBSensorThor, CategoryFeatureSampleSensor
 from ithor_arm.bring_object_task_samplers import DiverseBringObjectTaskSampler
@@ -75,8 +79,6 @@ class ObjDisArmPointNavITHORAllRoomsRGBOnly(
 
     # if platform.system() == "Darwin":
     #     MAX_STEPS = 10
-
-
 
     def __init__(self):
         super().__init__()
