@@ -152,7 +152,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
 
                 if scene in KITCHEN_TRAIN + KITCHEN_TEST + KITCHEN_VAL:
                     scene = scene + '_physics'
-                valid_position_adr = "datasets/apnd-dataset/pruned_object_positions/pruned_v3_valid_{}_positions_in_{}.json".format(
+                valid_position_adr = "datasets/apnd-dataset/valid_object_positions/valid_{}_positions_in_{}.json".format(
                     object, scene
                 )
                 if os.path.exists(valid_position_adr):
@@ -368,7 +368,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
     def get_source_target_indices(self):
         if self.sampler_mode == "train":
             all_scenes = [s for (s,o) in self.all_possible_points.keys()]
-
+            
 
             #randomly choose a scene
             chosen_scene = random.choice(all_scenes)

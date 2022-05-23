@@ -28,6 +28,7 @@ from allenact.base_abstractions.preprocessor import Preprocessor
 from allenact.utils.experiment_utils import Builder
 from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
 from ithor_arm.ithor_arm_viz import TestMetricLogger
+from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavActorCritic
 
 
 
@@ -138,6 +139,17 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
             None,
         )
         resnet_preprocessor_uuids = ["rgb_clip_resnet","rgb_clip_resnet_arm"]
+
+        # return ResnetTensorNavActorCritic(
+        #     action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
+        #     observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
+        #     goal_sensor_uuid=goal_sensor_uuid,
+        #     rgb_resnet_preprocessor_uuid="rgb_clip_resnet",
+        #     depth_resnet_preprocessor_uuid="rgb_clip_resnet_arm", # a convenient lie - can't use with a depth sensor too
+        #     hidden_size=512,
+        #     goal_dims=32,
+        #     add_prev_actions=True,
+        # )
 
         return ResnetTensorNavNCameraActorCritic(
             action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),

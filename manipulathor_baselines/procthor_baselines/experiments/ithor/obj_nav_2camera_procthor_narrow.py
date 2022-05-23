@@ -28,10 +28,11 @@ from allenact.base_abstractions.preprocessor import Preprocessor
 from allenact.utils.experiment_utils import Builder
 from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
 from ithor_arm.ithor_arm_viz import TestMetricLogger
+from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavActorCritic
 
 
 
-class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
+class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
     ProcTHORObjectNavBaseConfig
 ):
     """An Object Navigation experiment configuration in iThor with RGB
@@ -82,7 +83,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
     if platform.system() == "Darwin":
         TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
 
-    TEST_SCENES = [f'ProcTHOR{i}' for i in range(1)]
+    TEST_SCENES = [f'ProcTHOR{i}' for i in range(100)]
     random.shuffle(TRAIN_SCENES)
 
 
@@ -148,6 +149,17 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
             goal_dims=32,
             add_prev_actions=True,
         )
+        # return ResnetTensorNavActorCritic(
+        #     action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
+        #     observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
+        #     goal_sensor_uuid=goal_sensor_uuid,
+        #     rgb_resnet_preprocessor_uuid="rgb_clip_resnet",
+        #     depth_resnet_preprocessor_uuid="rgb_clip_resnet_arm", # a convenient lie - can't use with a depth sensor too
+        #     hidden_size=512,
+        #     goal_dims=32,
+        #     add_prev_actions=True,
+        # )
+        
 
     @classmethod
     def tag(cls):

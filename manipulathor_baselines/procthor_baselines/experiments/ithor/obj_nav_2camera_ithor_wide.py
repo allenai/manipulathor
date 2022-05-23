@@ -31,7 +31,7 @@ from ithor_arm.ithor_arm_viz import TestMetricLogger
 
 from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJECTS, ROBOTHOR_TRAIN, ROBOTHOR_VAL
 from ithor_arm.ithor_arm_constants import TRAIN_OBJECTS, TEST_OBJECTS
-
+from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavActorCritic
 
 
 
@@ -57,9 +57,11 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
 
     ALL_SCENES = TRAIN_SCENES + TEST_SCENES + VALID_SCENES
 
-    OBJECT_TYPES = tuple(sorted(TRAIN_OBJECTS))
+    # OBJECT_TYPES = tuple(sorted(TRAIN_OBJECTS))
+    with open('datasets/objects/robothor_habitat2022.yaml', 'r') as f:
+        OBJECT_TYPES=yaml.safe_load(f)
 
-    UNSEEN_OBJECT_TYPES = tuple(sorted(TEST_OBJECTS))
+    # UNSEEN_OBJECT_TYPES = tuple(sorted(TEST_OBJECTS))
 
 
     NOISE_LEVEL = 0
@@ -161,6 +163,16 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
             goal_dims=32,
             add_prev_actions=True,
         )
+        # return ResnetTensorNavActorCritic(
+        #     action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
+        #     observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
+        #     goal_sensor_uuid=goal_sensor_uuid,
+        #     rgb_resnet_preprocessor_uuid="rgb_clip_resnet",
+        #     depth_resnet_preprocessor_uuid="rgb_clip_resnet_arm", # a convenient lie - can't use with a depth sensor too
+        #     hidden_size=512,
+        #     goal_dims=32,
+        #     add_prev_actions=True,
+        # )
 
     @classmethod
     def tag(cls):

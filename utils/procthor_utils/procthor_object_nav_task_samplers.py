@@ -102,7 +102,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.house_inds_index = 0
         self.reachable_positions_map = {}
         self.house_dataset = self.house_dataset['train'] #TODO separately for test and val
-        self.house_dataset = self.house_dataset.select(range(10))
+        # self.house_dataset = self.house_dataset.select(range(10))
         # ForkedPdb().set_trace()
 
         # ROOMS_TO_USE = [int(scene.replace('ProcTHOR', '')) for scene in self.scenes]

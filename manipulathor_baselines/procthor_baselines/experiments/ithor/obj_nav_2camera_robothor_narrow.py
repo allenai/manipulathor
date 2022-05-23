@@ -28,6 +28,7 @@ from allenact.base_abstractions.preprocessor import Preprocessor
 from allenact.utils.experiment_utils import Builder
 from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
 from ithor_arm.ithor_arm_viz import TestMetricLogger
+from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavActorCritic
 
 from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJECTS, ROBOTHOR_TRAIN, ROBOTHOR_VAL
 
@@ -41,8 +42,11 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
 
     TRAIN_SCENES = ROBOTHOR_TRAIN
     TEST_SCENES = ROBOTHOR_VAL
-    OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ == 'robothor']))
-    OBJECT_TYPES.sort()
+    # OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ == 'robothor']))
+    # OBJECT_TYPES.sort()
+
+    with open('datasets/objects/robothor_habitat2022.yaml', 'r') as f:
+        OBJECT_TYPES=yaml.safe_load(f)
 
 
     random.shuffle(TRAIN_SCENES)
@@ -76,12 +80,13 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
 
     MAX_STEPS = 500
     if platform.system() == "Darwin":
-        MAX_STEPS = 100
+        MAX_STEPS = 500
 
     TASK_SAMPLER = AllRoomsObjectNavTaskSampler
     TASK_TYPE = StretchObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
+    VISUALIZE = False
 
 
     NUM_PROCESSES = 56
@@ -148,7 +153,17 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
             hidden_size=512,
             goal_dims=32,
             add_prev_actions=True,
-        )
+        )        
+        # return ResnetTensorNavActorCritic(
+        #     action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
+        #     observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
+        #     goal_sensor_uuid=goal_sensor_uuid,
+        #     rgb_resnet_preprocessor_uuid="rgb_clip_resnet",
+        #     depth_resnet_preprocessor_uuid="rgb_clip_resnet_arm", # a convenient lie - can't use with a depth sensor too
+        #     hidden_size=512,
+        #     goal_dims=32,
+        #     add_prev_actions=True,
+        # )
 
     @classmethod
     def tag(cls):
