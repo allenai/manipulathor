@@ -385,8 +385,8 @@ class StretchObjectNavTask(ObjectNavTask):
         MOVE_BACK,
         ROTATE_RIGHT,
         ROTATE_LEFT,
-        ROTATE_RIGHT_SMALL,
-        ROTATE_LEFT_SMALL,
+        # ROTATE_RIGHT_SMALL,
+        # ROTATE_LEFT_SMALL,
         DONE,
     )
 
@@ -425,7 +425,6 @@ class ExploreWiseObjectNavTask(ObjectNavTask):
                 reward += self.reward_config['failed_stop_reward']
         elif self.num_steps_taken() + 1 >= self.max_steps:
             reward += self.reward_config['reached_horizon_reward']
-
         self._rewards.append(float(reward))
         return float(reward)
         

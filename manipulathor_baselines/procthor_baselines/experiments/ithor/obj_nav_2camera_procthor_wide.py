@@ -10,6 +10,8 @@ import yaml
 import copy
 
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
+
+from utils.procthor_utils.procthor_helper import PROCTHOR_INVALID_SCENES
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchKinect, RGBSensorStretchKinectBigFov
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
@@ -45,6 +47,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
     distance_thr = 1.0 # match procthor config
     mean = np.array([0.48145466, 0.4578275, 0.40821073])
     stdev = np.array([0.26862954, 0.26130258, 0.27577711])
+    #TODO use resnet clip normalizations?
     SENSORS = [
         RGBSensorThor(
             height=224,
@@ -54,6 +57,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
             stdev=stdev,
             uuid="rgb_lowres",
         ),
+
         RGBSensorStretchKinectBigFov(
             height=224,
             width=224,
@@ -62,6 +66,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
             stdev=stdev,
             uuid="rgb_lowres_arm",
         ),
+
         GoalObjectTypeThorSensor(
             object_types=OBJECT_TYPES,
         ),
@@ -69,17 +74,35 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
 
     MAX_STEPS = 500
     if platform.system() == "Darwin":
-        MAX_STEPS = 100
+        MAX_STEPS = 10
+        SENSORS += [
+            RGBSensorStretchKinectBigFov(
+                height=224,
+                width=224,
+                use_resnet_normalization=True,
+                mean=mean,
+                stdev=stdev,
+                uuid="rgb_lowres_arm_only_viz",
+            ),
+            RGBSensorThor(
+                height=224,
+                width=224,
+                use_resnet_normalization=True,
+                mean=mean,
+                stdev=stdev,
+                uuid="rgb_lowres_only_viz",
+            ),
+        ]
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
     TASK_TYPE = StretchObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
 
+    NUM_PROCESSES = 50
 
-    NUM_PROCESSES = 56
 
-    TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(9999)] # 9999 is all of train
+    TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(9999) if i not in PROCTHOR_INVALID_SCENES] # 9999 is all of train
     if platform.system() == "Darwin":
         TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
 
@@ -100,8 +123,11 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         self.ENV_ARGS['scene'] = 'Procedural'
         self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
+        #TODO depth is not False. Kiana added this:
+        self.ENV_ARGS['renderInstanceSegmentation'] = False
+        self.ENV_ARGS['renderDepthImage'] = False
         self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
-        self.ENV_ARGS['allow_flipping'] = True
+        self.ENV_ARGS['allow_flipping'] = False #TODO important change everywhere
 
 
     @classmethod

@@ -97,6 +97,8 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
 
         RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 50
         self.resample_same_scene_freq = -1 #RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN
+        if platform.system() == "Darwin":
+            self.resample_same_scene_freq = 1#TODO NOW WHAT SHOULD WE DO? kiana for now
         # assert self.resample_same_scene_freq == 1 # IMPORTANT IT WON"T WORK FOR 100
         self.episode_index = 0
         self.house_inds_index = 0
@@ -106,9 +108,11 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         # ForkedPdb().set_trace()
 
         # ROOMS_TO_USE = [int(scene.replace('ProcTHOR', '')) for scene in self.scenes]
-        ROOMS_TO_USE = [x for x in range(self.house_dataset.num_rows)]
+        # ROOMS_TO_USE = [x for x in range(self.house_dataset.num_rows)]
+        ROOMS_TO_USE = [int(scene.replace('ProcTHOR', '')) for scene in self.scenes]
 
-        self.args_house_inds = [x for x in range(self.house_dataset.num_rows)]
+        # self.args_house_inds = [x for x in range(self.house_dataset.num_rows)]
+        self.args_house_inds = ROOMS_TO_USE
             
         self.valid_rotations = [0,90,180,270]
         self.distance_type = "l2"
@@ -310,7 +314,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         """Increment the current scene.
         Returns True if the scene works with reachable positions, False otherwise.
         """
-        
+
         # self.reset_scene()
         self.increment_scene_index()
 

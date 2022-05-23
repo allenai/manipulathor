@@ -235,7 +235,10 @@ class StretchObjNavImageVisualizer(LoggerVisualizer):
             depth_kinect = environment.kinect_depth
             combined_frame = np.concatenate([image_intel, image_kinect, depth_to_rgb(depth_intel), depth_to_rgb(depth_kinect)],axis=1)
         except:
-            combined_frame = np.concatenate([image_intel, depth_to_rgb(depth_intel)],axis=1)
+            if depth_intel is None or depth_kinect is None:
+                combined_frame = np.concatenate([image_intel, image_kinect],axis=1)
+            else:
+                combined_frame = np.concatenate([image_intel, depth_to_rgb(depth_intel)],axis=1)
 
         # image_intel = intel_reshape(image_intel)
         # kinect_frame = kinect_reshape(kinect_frame)

@@ -23,6 +23,8 @@ def hacky_visualization(observations, object_mask=None, base_directory_to_right_
 
     if 'only_detection_rgb_lowres' in observations:
         viz_image = observations['only_detection_rgb_lowres']
+    elif 'rgb_lowres_only_viz' in observations:
+        viz_image = observations['rgb_lowres_only_viz']
     elif 'rgb_lowres' in observations:
         viz_image = observations['rgb_lowres']
     else:
@@ -59,6 +61,10 @@ def hacky_visualization(observations, object_mask=None, base_directory_to_right_
 
         if 'rgb_lowres_arm' in observations:
             kinect_image = observations['rgb_lowres_arm'].squeeze(0).squeeze(0)
+            kinect_image = unnormalize_image(kinect_image)
+            list_of_visualizations.append(kinect_image)
+        if 'rgb_lowres_arm_only_viz' in observations:
+            kinect_image = observations['rgb_lowres_arm_only_viz'].squeeze(0).squeeze(0)
             kinect_image = unnormalize_image(kinect_image)
             list_of_visualizations.append(kinect_image)
         if 'depth_lowres_arm' in observations:
