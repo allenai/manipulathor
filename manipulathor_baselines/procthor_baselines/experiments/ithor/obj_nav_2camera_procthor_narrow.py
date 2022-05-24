@@ -77,31 +77,20 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
     POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
 
 
-    NUM_PROCESSES = 56
-
-    TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(9999)] # 9999 is all of train
-    if platform.system() == "Darwin":
-        TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
-
-    TEST_SCENES = [f'ProcTHOR{i}' for i in range(100)]
-    random.shuffle(TRAIN_SCENES)
+    NUM_PROCESSES = 40
+    # NUM_TRAIN_HOUSES = 50
 
 
     def __init__(self):
         super().__init__() 
-        self.REWARD_CONFIG['goal_success_reward'] = 10.0 
-        self.REWARD_CONFIG['step_penalty'] = -0.01 
-        self.REWARD_CONFIG['failed_stop_reward'] = 0.0 
-        self.REWARD_CONFIG['reached_horizon_reward'] = 0.0
-        self.REWARD_CONFIG['shaping_weight'] = 1.0
 
         self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
+        self.ENV_ARGS['p_randomize_material'] = 0.8
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
-        self.ENV_ARGS['scene'] = 'Procedural'
-        self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
-        self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
-        self.ENV_ARGS['allow_flipping'] = True
+        self.ENV_ARGS['renderInstanceSegmentation'] = False
+        self.ENV_ARGS['renderDepthImage'] = False        
+        self.ENV_ARGS['allow_flipping'] = False
 
 
     @classmethod
@@ -149,17 +138,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
             goal_dims=32,
             add_prev_actions=True,
         )
-        # return ResnetTensorNavActorCritic(
-        #     action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
-        #     observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
-        #     goal_sensor_uuid=goal_sensor_uuid,
-        #     rgb_resnet_preprocessor_uuid="rgb_clip_resnet",
-        #     depth_resnet_preprocessor_uuid="rgb_clip_resnet_arm", # a convenient lie - can't use with a depth sensor too
-        #     hidden_size=512,
-        #     goal_dims=32,
-        #     add_prev_actions=True,
-        # )
-        
 
     @classmethod
     def tag(cls):

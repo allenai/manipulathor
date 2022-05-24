@@ -58,7 +58,9 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         ),
     ]
 
-
+    MAX_STEPS = 500
+    if platform.system() == "Darwin":
+        MAX_STEPS = 100
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
     TASK_TYPE = StretchObjectNavTask
@@ -67,12 +69,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
 
 
     NUM_PROCESSES = 40
-    NUM_TRAIN_HOUSES = 500 # set None or comment out for all
-    MAX_STEPS = 500
-    if platform.system() == "Darwin":
-        MAX_STEPS = 10
-        NUM_TRAIN_HOUSES = 40
-    # VISUALIZE = False
+    # NUM_TRAIN_HOUSES = 50
 
     def __init__(self):
         super().__init__() 
@@ -81,10 +78,8 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         self.ENV_ARGS['p_randomize_material'] = 0.8
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
-        self.ENV_ARGS['scene'] = 'Procedural'
         self.ENV_ARGS['renderInstanceSegmentation'] = False
-        self.ENV_ARGS['renderDepthImage'] = False
-        self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
+        self.ENV_ARGS['renderDepthImage'] = False        
         self.ENV_ARGS['allow_flipping'] = False
 
 
@@ -92,60 +87,39 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
     @final
     def preprocessors(cls) -> Sequence[Union[Preprocessor, Builder[Preprocessor]]]:
         preprocessors = []
-        rgb_sensor = next((s for s in cls.SENSORS if isinstance(s, RGBSensorThor)), None)
+        # rgb_sensor = next((s for s in cls.SENSORS if isinstance(s, RGBSensorThor)), None)
 
-        if rgb_sensor is not None:
-            preprocessors.append(
-                ClipResNetPreprocessor(
-                    rgb_input_uuid=rgb_sensor.uuid,
-                    clip_model_type="RN50",
-                    pool=False,
-                    output_uuid="rgb_clip_resnet",
-                    visualize=cls.VISUALIZE
-                )
+        preprocessors.append(
+            ClipResNetPreprocessor(
+                rgb_input_uuid="rgb_lowres",
+                clip_model_type="RN50",
+                pool=False,
+                output_uuid="rgb_clip_resnet",
+                visualize=cls.VISUALIZE
             )
-
+        )
         return preprocessors
 
-    # @classmethod
-    # @final
-    # def create_model(cls, **kwargs) -> nn.Module:
-    #     goal_sensor_uuid = next(
-    #         (s.uuid for s in cls.SENSORS if isinstance(s, GoalObjectTypeThorSensor)),
-    #         None,
-    #     )
-    #     resnet_preprocessor_uuids = ["rgb_clip_resnet"]
 
-    #     return ResnetTensorNavNCameraActorCritic(
-    #         action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
-    #         observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
-    #         goal_sensor_uuid=goal_sensor_uuid,
-    #         resnet_preprocessor_uuids=resnet_preprocessor_uuids,
-    #         hidden_size=512,
-    #         goal_dims=32,
-    #         add_prev_actions=True,
-    #     )
     @classmethod
+    @final
     def create_model(cls, **kwargs) -> nn.Module:
-        has_rgb = any(isinstance(s, RGBSensorThor) for s in cls.SENSORS)
-        has_depth = False #any(isinstance(s, DepthSensor) for s in cls.SENSORS)
-
         goal_sensor_uuid = next(
             (s.uuid for s in cls.SENSORS if isinstance(s, GoalObjectTypeThorSensor)),
             None,
         )
+        resnet_preprocessor_uuids = ["rgb_clip_resnet"]
 
-        return ResnetTensorNavActorCritic(
-            action_space=gym.spaces.Discrete(len(ObjectNavTask.class_action_names())),
+        return ResnetTensorNavNCameraActorCritic(
+            action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
             observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
             goal_sensor_uuid=goal_sensor_uuid,
-            rgb_resnet_preprocessor_uuid="rgb_clip_resnet" if has_rgb else None,
-            depth_resnet_preprocessor_uuid="depth_clip_resnet" if has_depth else None,
+            resnet_preprocessor_uuids=resnet_preprocessor_uuids,
             hidden_size=512,
             goal_dims=32,
-            add_prev_actions=True #cfg.model.add_prev_actions_embedding,
+            add_prev_actions=True,
         )
 
     @classmethod
     def tag(cls):
-        return cls.__name__    
+        return cls.__name__

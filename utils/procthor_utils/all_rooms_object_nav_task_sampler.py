@@ -340,6 +340,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
             reward_config=self.rewards_config,
             distance_type=self.distance_type,
             distance_cache=self.distance_cache,
+            additional_visualize=False # not implemented for non-procthor
         )
 
         return self._last_sampled_task

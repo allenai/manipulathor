@@ -102,7 +102,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
     NUM_PROCESSES = 50
 
     NUM_PROCESSES = 40
-    NUM_TRAIN_HOUSES = 50
+    # NUM_TRAIN_HOUSES = 50 #TODO: house > num_proc oversampling not implemented yet
 
 
     def __init__(self):

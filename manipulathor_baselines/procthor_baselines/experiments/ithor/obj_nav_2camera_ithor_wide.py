@@ -16,10 +16,10 @@ from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 
-from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_nav_for_procthor import ProcTHORObjectNavBaseConfig
+from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_nav_base_config import ObjectNavBaseConfig
 from utils.procthor_utils.all_rooms_object_nav_task_sampler import AllRoomsObjectNavTaskSampler
 from utils.procthor_utils.procthor_object_nav_tasks import StretchObjectNavTask
-from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, STRETCH_ENV_ARGS
+from utils.stretch_utils.stretch_constants import STRETCH_MANIPULATHOR_COMMIT_ID, STRETCH_ENV_ARGS
 from manipulathor_utils.debugger_util import ForkedPdb
 
 from manipulathor_baselines.procthor_baselines.models.clip_preprocessors import ClipResNetPreprocessor
@@ -29,14 +29,10 @@ from allenact.utils.experiment_utils import Builder
 from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
 from ithor_arm.ithor_arm_viz import TestMetricLogger
 
-from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJECTS, ROBOTHOR_TRAIN, ROBOTHOR_VAL
-from ithor_arm.ithor_arm_constants import TRAIN_OBJECTS, TEST_OBJECTS
-from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavActorCritic
-
 
 
 class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
-    ProcTHORObjectNavBaseConfig
+    ObjectNavBaseConfig
 ):
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
@@ -54,15 +50,11 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
         for i in range(26, 31)
     ]
 
-
     ALL_SCENES = TRAIN_SCENES + TEST_SCENES + VALID_SCENES
 
     # OBJECT_TYPES = tuple(sorted(TRAIN_OBJECTS))
     with open('datasets/objects/robothor_habitat2022.yaml', 'r') as f:
         OBJECT_TYPES=yaml.safe_load(f)
-
-    # UNSEEN_OBJECT_TYPES = tuple(sorted(TEST_OBJECTS))
-
 
     NOISE_LEVEL = 0
     distance_thr = 1.0 # match procthor config
@@ -104,19 +96,12 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
 
     def __init__(self):
         super().__init__() 
-        self.REWARD_CONFIG['goal_success_reward'] = 10.0 
-        self.REWARD_CONFIG['step_penalty'] = -0.01 
-        self.REWARD_CONFIG['failed_stop_reward'] = 0.0 
-        self.REWARD_CONFIG['reached_horizon_reward'] = 0.0
-        self.REWARD_CONFIG['shaping_weight'] = 1.0
 
         self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
-        # self.ENV_ARGS['scene'] = 'Procedural'
-        self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
-        self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
-        self.ENV_ARGS['allow_flipping'] = True
+        self.ENV_ARGS['renderInstanceSegmentation'] = False
+        self.ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
 
 
     @classmethod
@@ -163,16 +148,6 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
             goal_dims=32,
             add_prev_actions=True,
         )
-        # return ResnetTensorNavActorCritic(
-        #     action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
-        #     observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
-        #     goal_sensor_uuid=goal_sensor_uuid,
-        #     rgb_resnet_preprocessor_uuid="rgb_clip_resnet",
-        #     depth_resnet_preprocessor_uuid="rgb_clip_resnet_arm", # a convenient lie - can't use with a depth sensor too
-        #     hidden_size=512,
-        #     goal_dims=32,
-        #     add_prev_actions=True,
-        # )
 
     @classmethod
     def tag(cls):
