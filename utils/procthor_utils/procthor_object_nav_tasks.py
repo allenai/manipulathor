@@ -26,7 +26,6 @@ from utils.stretch_utils.stretch_constants import (
     ROTATE_LEFT_SMALL
 )
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
-# from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 
 from manipulathor_utils.debugger_util import ForkedPdb
 
@@ -312,7 +311,6 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
     
     def _step(self, action: int) -> RLStepResult:
         action_str = self.class_action_names()[action]
-        ForkedPdb().set_trace()
 
         if self.mirror:
             if action_str == "RotateRight":

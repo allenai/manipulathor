@@ -181,7 +181,6 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
             mode="train",
             allow_oversample=True,
             max_tasks=float("inf"),
-            allow_flipping=self.ENV_ARGS['allow_flipping'],
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN,
             # extra_controller_args=dict(branch="nanna", scene="Procedural"),
             **kwargs,
@@ -190,7 +189,6 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         out["env_args"] = {}
         out["env_args"].update(self.ENV_ARGS)
         out["env_args"]["x_display"] = x_display
-        ForkedPdb().set_trace()
         return out
 
     def valid_task_sampler_args(self, **kwargs) -> Dict[str, Any]:
@@ -206,7 +204,8 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         )
         out["cap_training"] = self.CAP_TRAINING
         out["env_args"] = {}
-        out["env_args"].update(self.ENV_ARGS)        
+        out["env_args"].update(self.ENV_ARGS)
+        out["env_args"]['allow_flipping'] = False        
         out["env_args"]["x_display"] = x_display
 
         return out
@@ -228,6 +227,7 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         out["cap_training"] = self.CAP_TRAINING
         out["env_args"] = {}
         out["env_args"].update(self.ENV_ARGS)
+        out["env_args"]['allow_flipping'] = False  
         out["env_args"]["x_display"] = x_display
         return out
 
