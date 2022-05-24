@@ -12,10 +12,10 @@ pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+dc0f9
 #ai2thor==0+dc0f9ecd8672dc2d62651f567ff95c63f3542332
 #pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+08ec97f5d93486460f388b50d4ef5485468dc87f
 ssh-keygen; cat ~/.ssh/id_rsa.pub
-cat scripts/public_keys.txt >> ~/.ssh/authorized_keys
+cat ~/manipulathor/scripts/public_keys.txt >> ~/.ssh/authorized_keys
 #cat ~/manipulathor/scripts/public_keys.txt >> ~/.ssh/authorized_keys
 sudo apt-get install xinit
-sudo python3 scripts/startx.py &
+sudo python3 ~/manipulathor/scripts/startx.py &
 tensorboard --logdir experiment_output/tb --bind_all
 #sudo /home/ubuntu/.local/bin/ai2thor-xorg start
 #sudo /home/kianae/manipulathor_env/bin/ai2thor-xorg start
@@ -24,14 +24,17 @@ export PYTHONPATH="./"
 allenact manipulathor_baselines/bring_object_baselines/experiments/ithor/complex_reward_no_pu
 kill -9 $(ps aux | grep 'ssh -NfL'); ssh -NfL 6006:localhost:6006 aws1; #ssh -NfL 6007:localhost:6006 aws5; ssh -NfL 6008:localhost:6006 aws9;
 
-pip3 uninstall clip; pip3 install git+https://github.com/openai/CLIP.git
+pip3 uninstall clip; pip3 install git+https://github.com/openai/CLIP.git@04f4dc2ca1ed0acc9893bd1a3b526a7e02c4bb10
 pip3 uninstall allenact allenact_plugins; pip3 install -e "git+https://github.com/allenai/allenact.git@timeout-restart-true#egg=allenact&subdirectory=allenact"
 # remove previous hugging dataset for procthor
 #rm -rf ~/.cache/huggingface
 
 #For installing dataset
-#pip3 install datasets
-#huggingface-cli login
+pip3 install datasets
+huggingface-cli login
+
+#pip3 uninstall allenact allenact_plugins; pip3 install -e "git+https://github.com/allenai/allenact.git@timeout-restart-true#egg=allenact&subdirectory=allenact"; clip @ git+https://github.com/openai/CLIP.git@04f4dc2ca1ed0acc9893bd1a3b526a7e02c4bb10
+
 
 #For solving the segmentation lazy backward uncompatibiliity
 pip3 install --extra-index-url https://ai2thor-pypi.allenai.org  ai2thor==0+dc0f9ecd8672dc2d62651f567ff95c63f3542332

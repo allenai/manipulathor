@@ -248,6 +248,8 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
     @property
     def kinect_depth(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
+        if self.controller.last_event.third_party_depth_frames[0]:
+            return None
         depth_frame = self.controller.last_event.third_party_depth_frames[0].copy()
         depth_frame = remove_nan_inf_for_frames(depth_frame, 'depth_kinect')
 
@@ -266,6 +268,8 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
     @property
     def intel_depth(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
+        if self.controller.last_event.depth_frame is None:
+            return None
         depth_frame = self.controller.last_event.depth_frame.copy()
         depth_frame = remove_nan_inf_for_frames(depth_frame, 'depth_intel')
         return intel_reshape(depth_frame)

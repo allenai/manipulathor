@@ -42,7 +42,6 @@ class ClipResNetEmbedder(nn.Module):
                 x = torch.flatten(x, 1)
             return x
 
-
 class ClipResNetPreprocessor(Preprocessor):
     """Preprocess RGB or depth image using a ResNet model with CLIP model
     weights."""
@@ -113,9 +112,9 @@ class ClipResNetPreprocessor(Preprocessor):
 
     def process(self, obs: Dict[str, Any], *args: Any, **kwargs: Any) -> Any:
         x = obs[self.input_uuids[0]].to(self.device).permute(0, 3, 1, 2)  # bhwc -> bchw
-        if self.visualize:
-            obs['rgb_lowres'] = x.permute(0,2,3,1).unsqueeze(0)
-            hacky_visualization(obs, base_directory_to_right_images=self.starting_time)
+        # if self.visualize:
+        #     obs['rgb_lowres'] = x.permute(0,2,3,1).unsqueeze(0)
+        #     hacky_visualization(obs, base_directory_to_right_images=self.starting_time)
         # If the input is depth, repeat it across all 3 channels
         if x.shape[1] == 1:
             x = x.repeat(1, 3, 1, 1)

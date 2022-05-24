@@ -261,11 +261,16 @@ command_aws1 = 'scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/O
 #  --seed 10 --machine_id 0 --extra_tag armpointnav_with_clip_ProcTHOR_RGBonly -c ~/exp_CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib_armpointnav_with_clip_ProcTHOR_RGBonly__stage_00__steps_000005061351.pt'
 
 
-command_aws5 = 'scp 52.24.154.159:~/manipulathor/experiment_output/checkpoints/CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib/armpointnav_with_clip_ProcTHOR_RGBonly/2022-05-12_04-54-18/exp_CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib_armpointnav_with_clip_ProcTHOR_RGBonly__stage_00__steps_000005061351.pt ~/; \
-./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/clip_obj_dis_for_procthor_rgb_only_distrib \
+# command_aws5 = 'scp 52.24.154.159:~/manipulathor/experiment_output/checkpoints/CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib/armpointnav_with_clip_ProcTHOR_RGBonly/2022-05-12_04-54-18/exp_CLIPObjDisArmPointNavProcTHORAllRoomsRGBOnlyDistrib_armpointnav_with_clip_ProcTHOR_RGBonly__stage_00__steps_000005061351.pt ~/; \
+# ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/clip_obj_dis_for_procthor_rgb_only_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag armpointnav_with_ProcTHOR_RGBonly_after_fix_clip '
+
+command_aws5 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_nav_2camera_procthor_wide_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag armpointnav_with_ProcTHOR_RGBonly_after_fix_clip '
+ --seed 10 --machine_id 0 --extra_tag prcthor_obj_nav '
 
 
 # command = command_aws5
@@ -275,30 +280,33 @@ command_aws5 = 'scp 52.24.154.159:~/manipulathor/experiment_output/checkpoints/C
 #  --seed 10 --machine_id 0 --extra_tag ithor_train_no_armpointnav -c ~/exp_NoPointNavStretchAllRoomsDistrib_ithor_train_no_armpointnav__stage_00__steps_000114436451.pt'
 
 # scp 52.24.154.159:~/manipulathor/experiment_output/checkpoints/NoPointNavStretchAllRoomsDistrib/ithor_train_no_armpointnav/2022-05-09_22-13-53/exp_NoPointNavStretchAllRoomsDistrib_ithor_train_no_armpointnav__stage_00__steps_000114436451.pt ~/
-server_set1 = {
-    'servers':[f'aws{i}' for i in range(1,5)],
-    'ip_adr': '18.237.24.199',
-}
-server_set2 = {
-    'servers':[f'aws{i}' for i in range(5, 9)],
-    'ip_adr': '52.24.154.159',
+
+server_sets = {
+    'aws1':{
+        'servers':[f'aws{i}' for i in range(1,5)],
+        'ip_adr': '18.237.24.199',
+        'command': command_aws1,
+    },
+    'aws5':  {
+        'servers':[f'aws{i}' for i in range(5, 8)],
+        'ip_adr': '35.161.18.204',
+        'command': command_aws5,
+    }
 }
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Sync')
     parser.add_argument('--server_set', default=None, nargs='+')
-    parser.add_argument('--command', default=command, type=str)
+    parser.add_argument('--command', default=None, type=str)
     parser.add_argument('--directly', action='store_true')
 
     args = parser.parse_args()
     args.servers = []
-    if 'aws1' in args.server_set:
-        args.servers += server_set1['servers']
-        ip_adr = server_set1['ip_adr']
-    elif 'aws5' in args.server_set:
-        args.servers += server_set2['servers']
-        ip_adr = server_set2['ip_adr']
+    server = server_sets[args.server_set[0]]
+    args.servers += server['servers']
+    ip_adr = server['ip_adr']
+    args.command  = server['command']
     args.command = args.command.replace('IP_ADR', ip_adr)
     args.command = args.command.replace('NUM_MACHINES', str(len(args.servers)))
     return args
