@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Sequence
 from typing_extensions import Literal, final
+import platform
 
 import datasets
 import numpy as np
@@ -67,6 +68,10 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
     RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN = (
         -1
     )  # Should be > 0 if `ADVANCE_SCENE_ROLLOUT_PERIOD` is `None`
+
+    if platform.system() == "Darwin":
+        RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN = 1
+
     RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 1 # TODO apparently this won't work with 100 (why?)
 
     HOUSE_DATASET = datasets.load_dataset(
@@ -96,7 +101,6 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
             ]
             kwargs["visualizers"] = visualizers
         kwargs["task_type"] = cls.TASK_TYPE
-        # kwargs["cap_training"] = cls.CAP_TRAINING
         kwargs["exp_name"] = exp_name_w_time
 
         return cls.TASK_SAMPLER(**kwargs)
@@ -119,7 +123,6 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         devices: Optional[List[int]] = None,
         seeds: Optional[List[int]] = None,
         deterministic_cudnn: bool = False,
-        extra_controller_args: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         # NOTE: oversample some scenes -> bias
         oversample_warning = (
@@ -182,13 +185,14 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
             allow_oversample=True,
             max_tasks=float("inf"),
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN,
-            # extra_controller_args=dict(branch="nanna", scene="Procedural"),
             **kwargs,
         )
         out["cap_training"] = self.CAP_TRAINING
         out["env_args"] = {}
         out["env_args"].update(self.ENV_ARGS)
         out["env_args"]["x_display"] = x_display
+        out["env_args"]['commit_id'] = PROCTHOR_COMMIT_ID
+        out["env_args"]['scene'] = 'Procedural'
         return out
 
     def valid_task_sampler_args(self, **kwargs) -> Dict[str, Any]:
@@ -199,7 +203,6 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
             allow_oversample=False,
             max_tasks=10,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,
-            # extra_controller_args=dict(scene="Procedural"),
             **kwargs,
         )
         out["cap_training"] = self.CAP_TRAINING
@@ -207,7 +210,8 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         out["env_args"].update(self.ENV_ARGS)
         out["env_args"]['allow_flipping'] = False        
         out["env_args"]["x_display"] = x_display
-
+        out["env_args"]['commit_id'] = PROCTHOR_COMMIT_ID
+        out["env_args"]['scene'] = 'Procedural'
         return out
 
     def test_task_sampler_args(self, **kwargs) -> Dict[str, Any]:
@@ -221,7 +225,6 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
             allow_oversample=False,
             max_tasks=10,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,
-            # extra_controller_args=dict(scene="Procedural"),
             **kwargs,
         )
         out["cap_training"] = self.CAP_TRAINING
@@ -229,6 +232,8 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         out["env_args"].update(self.ENV_ARGS)
         out["env_args"]['allow_flipping'] = False  
         out["env_args"]["x_display"] = x_display
+        out["env_args"]['commit_id'] = PROCTHOR_COMMIT_ID
+        out["env_args"]['scene'] = 'Procedural'
         return out
 
 

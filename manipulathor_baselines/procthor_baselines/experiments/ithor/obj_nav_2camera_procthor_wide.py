@@ -102,7 +102,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
     NUM_PROCESSES = 50
 
     NUM_PROCESSES = 40
-    # NUM_TRAIN_HOUSES = 40
+    NUM_TRAIN_HOUSES = 50
 
 
     def __init__(self):
@@ -112,10 +112,8 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
         self.ENV_ARGS['p_randomize_material'] = 0.8
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
-        self.ENV_ARGS['scene'] = 'Procedural'
         self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['renderDepthImage'] = False        
-        self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
         self.ENV_ARGS['allow_flipping'] = False
 
 

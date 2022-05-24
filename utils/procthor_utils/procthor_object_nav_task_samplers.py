@@ -14,7 +14,6 @@ import gym
 import datasets
 import numpy as np
 from ai2thor.controller import Controller
-# from allenact.base_abstractions.misc import RLStepResult
 from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import Task, TaskSampler
 from allenact.utils.cache_utils import DynamicDistanceCache
@@ -22,7 +21,6 @@ from allenact.utils.experiment_utils import set_deterministic_cudnn, set_seed
 from allenact.utils.system import get_logger
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
 
-# from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 
 from utils.procthor_utils.procthor_types import AgentPose, Vector3
 from utils.procthor_utils.procthor_object_nav_tasks import StretchObjectNavTask
@@ -390,7 +388,6 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.episode_index += 1
         self.max_tasks -= 1
         
-        # ForkedPdb().set_trace()
         self._last_sampled_task = self.TASK_TYPE(
             env=self.env,
             sensors=self.sensors,
@@ -412,7 +409,6 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 "mirrored": self.env_args['allow_flipping'] and random.random() > 0.5,
             },
         )
-        # ForkedPdb().set_trace()
         return self._last_sampled_task
 
     def reset(self):
