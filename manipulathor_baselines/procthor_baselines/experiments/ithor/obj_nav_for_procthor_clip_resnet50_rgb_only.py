@@ -67,12 +67,12 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
 
 
     NUM_PROCESSES = 40
-    # NUM_TRAIN_HOUSES = 40 # set None or comment out for all
+    NUM_TRAIN_HOUSES = 500 # set None or comment out for all
     MAX_STEPS = 500
     if platform.system() == "Darwin":
         MAX_STEPS = 10
         NUM_TRAIN_HOUSES = 40
-    VISUALIZE = False
+    # VISUALIZE = False
 
     def __init__(self):
         super().__init__() 

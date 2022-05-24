@@ -104,7 +104,6 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         )
         self.observations = [self.env.last_event.frame]
         self._metrics = None
-        ForkedPdb().set_trace()
 
     def min_l2_distance_to_target(self) -> float:
         """Return the minimum distance to a target object.

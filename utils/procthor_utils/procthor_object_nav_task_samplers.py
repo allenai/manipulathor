@@ -51,7 +51,6 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         max_tasks: Optional[int] = None,
         seed: Optional[int] = None,
         deterministic_cudnn: bool = False,
-        allow_flipping: bool = False,
         visualizers: List[LoggerVisualizer] = [],
         *args,
         **kwargs
@@ -80,7 +79,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
 
         
         self.visualizers = visualizers
-        self.mode = kwargs["mode"]
+        self.sampler_mode = kwargs["sampler_mode"]
         self.cap_training = kwargs["cap_training"]
 
         self.episode_index = 0
@@ -413,6 +412,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 "mirrored": self.env_args['allow_flipping'] and random.random() > 0.5,
             },
         )
+        # ForkedPdb().set_trace()
         return self._last_sampled_task
 
     def reset(self):

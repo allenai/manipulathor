@@ -96,7 +96,7 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
             ]
             kwargs["visualizers"] = visualizers
         kwargs["task_type"] = cls.TASK_TYPE
-        kwargs["cap_training"] = cls.CAP_TRAINING
+        # kwargs["cap_training"] = cls.CAP_TRAINING
         kwargs["exp_name"] = exp_name_w_time
 
         return cls.TASK_SAMPLER(**kwargs)
@@ -113,7 +113,6 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         mode: Literal["train", "eval"],
         resample_same_scene_freq: int,
         allow_oversample: bool,
-        allow_flipping: bool,
         process_ind: int,
         total_processes: int,
         max_tasks: Optional[int],
@@ -128,7 +127,8 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
             " You can avoid this by setting a number of workers divisible by the number of scenes"
         )
         house_inds = list(range(len(houses)))
-        if total_processes > len(houses):
+        valid_house_inds = [h for h in house_inds if h not in PROCTHOR_INVALID_SCENES]
+        if total_processes > len(valid_house_inds):
             if not allow_oversample:
                 raise RuntimeError(
                     f"Cannot have `total_processes > len(houses)`"
@@ -137,21 +137,22 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
 
             if total_processes % len(houses) != 0:
                 get_logger().warning(oversample_warning)
-            house_inds = house_inds * ceil(total_processes / len(houses))
-            house_inds = house_inds[
-                : total_processes * (len(house_inds) // total_processes)
+            valid_house_inds = valid_house_inds * ceil(total_processes / len(houses))
+            valid_house_inds = valid_house_inds[
+                : total_processes * (len(valid_house_inds) // total_processes)
             ]
         elif len(houses) % total_processes != 0:
             get_logger().warning(oversample_warning)
 
-        inds = self._partition_inds(len(house_inds), total_processes)
-        house_inds = house_inds[inds[process_ind] : inds[process_ind + 1]]
-        house_inds = [h for h in house_inds if h not in PROCTHOR_INVALID_SCENES]
+        inds = self._partition_inds(len(valid_house_inds), total_processes)
+        selected_house_inds = valid_house_inds[inds[process_ind] : inds[process_ind + 1]]
+        
+        x_display = (("0.%d" % devices[process_ind % len(devices)]) if len(devices) > 0 else None)
 
         return {
-            "mode": mode,
+            "sampler_mode": mode,
             "houses": houses,
-            "house_inds": house_inds,
+            "house_inds": selected_house_inds,
             "process_ind": process_ind,
             "env_args": self.ENV_ARGS,
             "max_steps": self.MAX_STEPS,
@@ -161,19 +162,21 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
             "rewards_config": self.REWARD_CONFIG,
             "target_object_types": self.OBJECT_TYPES,
             "max_tasks": max_tasks if max_tasks is not None else len(house_inds),
-            "allow_flipping": allow_flipping,
             "distance_type": self.DISTANCE_TYPE,
             "resample_same_scene_freq": resample_same_scene_freq,
             "scene_name": "Procedural"
 
-        }
+        }, x_display
 
-    def train_task_sampler_args(self, **kwargs) -> Dict[str, Any]:
+    def train_task_sampler_args(
+        self,
+        **kwargs
+    ) -> Dict[str, Any]:
         train_houses = self.HOUSE_DATASET["train"]
         if self.NUM_TRAIN_HOUSES:
             train_houses = train_houses.select(range(self.NUM_TRAIN_HOUSES))
 
-        out = self._get_sampler_args_for_scene_split(
+        out,x_display = self._get_sampler_args_for_scene_split(
             houses=train_houses,
             mode="train",
             allow_oversample=True,
@@ -183,20 +186,29 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
             # extra_controller_args=dict(branch="nanna", scene="Procedural"),
             **kwargs,
         )
+        out["cap_training"] = self.CAP_TRAINING
+        out["env_args"] = {}
+        out["env_args"].update(self.ENV_ARGS)
+        out["env_args"]["x_display"] = x_display
+        ForkedPdb().set_trace()
         return out
 
     def valid_task_sampler_args(self, **kwargs) -> Dict[str, Any]:
         val_houses = self.HOUSE_DATASET["validation"]
-        out = self._get_sampler_args_for_scene_split(
+        out,x_display = self._get_sampler_args_for_scene_split(
             houses=val_houses.select(range(100)),
             mode="eval",
             allow_oversample=False,
             max_tasks=10,
-            allow_flipping=False,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,
             # extra_controller_args=dict(scene="Procedural"),
             **kwargs,
         )
+        out["cap_training"] = self.CAP_TRAINING
+        out["env_args"] = {}
+        out["env_args"].update(self.ENV_ARGS)        
+        out["env_args"]["x_display"] = x_display
+
         return out
 
     def test_task_sampler_args(self, **kwargs) -> Dict[str, Any]:
@@ -204,16 +216,19 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
             return self.valid_task_sampler_args(**kwargs)
 
         test_houses = self.HOUSE_DATASET["test"]
-        out = self._get_sampler_args_for_scene_split(
+        out,x_display = self._get_sampler_args_for_scene_split(
             houses=test_houses.select(range(100)),
             mode="eval",
             allow_oversample=False,
             max_tasks=10,
-            allow_flipping=False,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,
             # extra_controller_args=dict(scene="Procedural"),
             **kwargs,
         )
+        out["cap_training"] = self.CAP_TRAINING
+        out["env_args"] = {}
+        out["env_args"].update(self.ENV_ARGS)
+        out["env_args"]["x_display"] = x_display
         return out
 
 
