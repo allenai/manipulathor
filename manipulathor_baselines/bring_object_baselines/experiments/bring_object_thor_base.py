@@ -129,6 +129,8 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
                 viz(exp_name=exp_name_w_time) for viz in cls.POTENTIAL_VISUALIZERS
             ]
             kwargs["visualizers"] = visualizers
+        
+        ForkedPdb().set_trace()
         kwargs["objects"] = cls.OBJECT_TYPES
         kwargs["task_type"] = cls.TASK_TYPE
         kwargs["exp_name"] = exp_name_w_time

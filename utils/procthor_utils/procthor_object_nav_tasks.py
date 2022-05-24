@@ -1,3 +1,4 @@
+from ast import For
 import random
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -103,6 +104,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         )
         self.observations = [self.env.last_event.frame]
         self._metrics = None
+        ForkedPdb().set_trace()
 
     def min_l2_distance_to_target(self) -> float:
         """Return the minimum distance to a target object.
@@ -235,7 +237,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                 max_reward_mag = position_dist(p0, p1, ignore_y=True)
 
             if (
-                self.reward_config.positive_only_reward
+                self.reward_config['positive_only_reward']
                 and cur_distance is not None
                 and cur_distance > 0.5
             ):
@@ -251,7 +253,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                     min(reward, max_reward_mag),
                     -max_reward_mag,
                 )
-                * self.reward_config.shaping_weight
+                * self.reward_config['shaping_weight']
             )
     
     def get_observations(self, **kwargs) -> Any:
@@ -311,6 +313,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
     
     def _step(self, action: int) -> RLStepResult:
         action_str = self.class_action_names()[action]
+        ForkedPdb().set_trace()
 
         if self.mirror:
             if action_str == "RotateRight":

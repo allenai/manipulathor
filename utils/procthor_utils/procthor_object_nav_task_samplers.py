@@ -1,4 +1,8 @@
 import glob
+from optparse import Option
+from attrs import define
+from typing import Any, Dict, List, Optional, Sequence
+from typing_extensions import Literal
 import platform
 import pickle
 import random
@@ -34,19 +38,20 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
 
     def __init__(
         self,
-        scenes: List[str],
         sensors: List[Sensor],
         max_steps: int,
         env_args: Dict[str, Any],
-        action_space: gym.Space,
         rewards_config: Dict,
-        objects: List[str],
         task_type: type,
-        scene_period: Optional[Union[int, str]] = None,
+        houses: datasets.Dataset,
+        house_inds: List[int],
+        target_object_types: List[str],
+        resample_same_scene_freq: int,
+        distance_type: str,
         max_tasks: Optional[int] = None,
         seed: Optional[int] = None,
         deterministic_cudnn: bool = False,
-        fixed_tasks: Optional[List[Dict[str, Any]]] = None,
+        allow_flipping: bool = False,
         visualizers: List[LoggerVisualizer] = [],
         *args,
         **kwargs
@@ -56,85 +61,55 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.environment_type = env_args['environment_type']
         del env_args['environment_type']
         self.env_args = env_args
-        self.scenes = scenes
+        
         self.grid_size = 0.25
         self.env: Optional[StretchManipulaTHOREnvironment] = None
         self.sensors = sensors
         self.max_steps = max_steps
-        self._action_space = action_space
-        self.objects = objects
-
-        self.scene_counter: Optional[int] = None
-        self.scene_order: Optional[List[str]] = None
-        self.scene_id: Optional[int] = None
-        self.scene_period: Optional[
-            Union[str, int]
-        ] = scene_period  # default makes a random choice
-
+        self._action_space = gym.spaces.Discrete(len(self.TASK_TYPE.class_action_names()))
+        self.resample_same_scene_freq = resample_same_scene_freq
 
         self._last_sampled_task: Optional[Task] = None
-
+        
         self.seed: Optional[int] = None
-        self.set_seed(seed)
+        if seed is not None:
+            self.set_seed(seed)
 
         if deterministic_cudnn:
             set_deterministic_cudnn()
 
         
         self.visualizers = visualizers
-        self.sampler_mode = kwargs["sampler_mode"]
+        self.mode = kwargs["mode"]
         self.cap_training = kwargs["cap_training"]
 
-        # if self.env_args['scene'] == 'Procedural':
-        self.house_dataset = datasets.load_dataset("allenai/houses", use_auth_token=True)
-
-        RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN = (
-            -1
-        )  # Should be > 0 if `ADVANCE_SCENE_ROLLOUT_PERIOD` is `None`
-        # RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 100
-        # if platform.system() == "Darwin":
-        #     RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 1
-
-        RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 50
-        self.resample_same_scene_freq = -1 #RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN
-        if platform.system() == "Darwin":
-            self.resample_same_scene_freq = 1#TODO NOW WHAT SHOULD WE DO? kiana for now
-        # assert self.resample_same_scene_freq == 1 # IMPORTANT IT WON"T WORK FOR 100
         self.episode_index = 0
+        self.houses = houses
+        self.house_inds = house_inds
         self.house_inds_index = 0
-        self.reachable_positions_map = {}
-        self.house_dataset = self.house_dataset['train'] #TODO separately for test and val
-        # self.house_dataset = self.house_dataset.select(range(10))
-        # ForkedPdb().set_trace()
-
-        # ROOMS_TO_USE = [int(scene.replace('ProcTHOR', '')) for scene in self.scenes]
-        # ROOMS_TO_USE = [x for x in range(self.house_dataset.num_rows)]
-        ROOMS_TO_USE = [int(scene.replace('ProcTHOR', '')) for scene in self.scenes]
-
-        # self.args_house_inds = [x for x in range(self.house_dataset.num_rows)]
-        self.args_house_inds = ROOMS_TO_USE
             
         self.valid_rotations = [0,90,180,270]
-        self.distance_type = "l2"
+        self.distance_type = distance_type
         self.distance_cache = DynamicDistanceCache(rounding=1)
-        self.target_object_types_set = set(self.objects)
+        self.target_object_types_set = set(target_object_types)
         self.obj_type_counter = Counter(
-            {obj_type: 0 for obj_type in self.objects}
+            {obj_type: 0 for obj_type in target_object_types}
         )
         self.reachable_positions_map: Dict[int, Vector3] = dict()
         self.objects_in_scene_map: Dict[str, List[str]] = dict()
         self.visible_objects_cache = dict()
-        self.max_tasks = max_tasks if max_tasks is not None else np.Inf # stop when I tell you to stop
+        self.max_tasks = max_tasks #if max_tasks is not None else np.Inf # stop when I tell you to stop
         self.reset_tasks = self.max_tasks
-        self.max_vis_points=6
-        self.max_agent_positions=6
+        
+        self.max_vis_points = 6
+        self.max_agent_positions = 6         
+        self.p_greedy_target_object = 0.8
+
         self.reset()
 
 
     def set_seed(self, seed: int):
-        self.seed = seed
-        if seed is not None:
-            set_seed(seed)
+        set_seed(seed)
         
     def _create_environment(self, **kwargs) -> StretchManipulaTHOREnvironment:
         env = self.environment_type(
@@ -165,8 +140,8 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         return self._last_sampled_task
 
     def close(self) -> None:
-        if self.env.controller is not None:
-            self.env.controller.stop()
+        if self.env is not None:
+            self.env.stop()
 
     @property
     def all_observation_spaces_equal(self) -> bool:
@@ -194,7 +169,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
 
     @property
     def house_index(self) -> int:
-        return self.args_house_inds[self.house_inds_index]
+        return self.house_inds[self.house_inds_index]
 
     def is_object_visible(self, object_id: str) -> bool:
         """Return True if object_id is visible without any interaction in the scene.
@@ -267,7 +242,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         Objects returned will all be of the same objectType. Only considers visible
         objects in the house.
         """
-        if random.random() < 0.8: # p_greedy_target_object
+        if random.random() < self.p_greedy_target_object:
             for obj_type, count in reversed(self.obj_type_counter.most_common()):
                 instances_of_type = self.target_objects_in_scene.get(obj_type, [])
 
@@ -321,7 +296,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         # self.env.controller.step(action="DestroyHouse", raise_for_failure=True)
         self.env.controller.reset()
         self.env.list_of_actions_so_far = []
-        self.house_entry = self.house_dataset[self.house_index]
+        self.house_entry = self.houses[self.house_index]
         self.house = pickle.loads(self.house_entry["house"])
 
         if platform.system() == "Darwin": #TODO remove
@@ -336,7 +311,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         pose = self.house["metadata"]["agent"].copy()
         event = self.env.controller.step(action="TeleportFull", **pose)
         if not event:
-            # get_logger().warning(f"Initial teleport failing in {self.house_index}.") # clear logger noise
+            get_logger().warning(f"Initial teleport failing in {self.house_index}.") # clear logger noise
             return False #TODO this can mess FPS
         self.env.controller.step(action="MakeAllObjectsMoveable")
         self.env.controller.step(action="MakeObjectsStaticKinematicMassThreshold")
@@ -353,10 +328,11 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 return False
             reachable_positions = rp_event.metadata["actionReturn"]
             self.reachable_positions_map[self.house_index] = reachable_positions
+        
         return True
 
     def increment_scene_index(self):
-        self.house_inds_index = (self.house_inds_index + 1) % len(self.args_house_inds)
+        self.house_inds_index = (self.house_inds_index + 1) % len(self.house_inds)
 
     def next_task(self, force_advance_scene: bool = False) -> Optional[StretchObjectNavTask]:
         if self.env is None:
@@ -385,7 +361,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 while not self.increment_scene():
                     pass
 
-        if random.random() < 0.8: #TODO
+        if random.random() < self.env_args['p_randomize_material']:
             self.env.controller.step(action="RandomizeMaterials", raise_for_failure=True)
         else:
             self.env.controller.step(action="ResetMaterials", raise_for_failure=True)
@@ -397,21 +373,25 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         )
 
         # NOTE: Set agent pose
-        starting_pose = AgentPose(
-            position=random.choice(self.reachable_positions),
-            rotation=Vector3(x=0, y=random.choice(self.valid_rotations), z=0),
-            horizon=0,
-            standing=True,
-        )
-        event = self.env.controller.step(action="TeleportFull", **starting_pose)
-        # if not event:
-        #     get_logger().warning(
-        #         f"Teleport failing in {self.house_index} at {starting_pose}"
-        #     )
+        event = None
+        attempts = 0
+        while not event:
+            attempts+=1
+            starting_pose = AgentPose(
+                position=random.choice(self.reachable_positions),
+                rotation=Vector3(x=0, y=random.choice(self.valid_rotations), z=0),
+                horizon=0,
+                standing=True,
+            )
+            event = self.env.controller.step(action="TeleportFull", **starting_pose)
+            if attempts > 10:
+                get_logger().error(f"Teleport failed {attempts-1} times in house {self.house_index} - something may be wrong")
+            
 
         self.episode_index += 1
         self.max_tasks -= 1
-
+        
+        # ForkedPdb().set_trace()
         self._last_sampled_task = self.TASK_TYPE(
             env=self.env,
             sensors=self.sensors,

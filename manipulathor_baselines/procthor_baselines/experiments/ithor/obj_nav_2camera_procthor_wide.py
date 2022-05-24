@@ -101,33 +101,22 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
 
     NUM_PROCESSES = 50
 
-
-    TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(9999) if i not in PROCTHOR_INVALID_SCENES] # 9999 is all of train
-    if platform.system() == "Darwin":
-        TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
-
-    TEST_SCENES = [f'ProcTHOR{i}' for i in range(1)]
-    random.shuffle(TRAIN_SCENES)
+    NUM_PROCESSES = 40
+    # NUM_TRAIN_HOUSES = 40
 
 
     def __init__(self):
         super().__init__() 
-        self.REWARD_CONFIG['goal_success_reward'] = 10.0 
-        self.REWARD_CONFIG['step_penalty'] = -0.01 
-        self.REWARD_CONFIG['failed_stop_reward'] = 0.0 
-        self.REWARD_CONFIG['reached_horizon_reward'] = 0.0
-        self.REWARD_CONFIG['shaping_weight'] = 1.0
 
         self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
+        self.ENV_ARGS['p_randomize_material'] = 0.8
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         self.ENV_ARGS['scene'] = 'Procedural'
-        self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
-        #TODO depth is not False. Kiana added this:
         self.ENV_ARGS['renderInstanceSegmentation'] = False
-        self.ENV_ARGS['renderDepthImage'] = False
+        self.ENV_ARGS['renderDepthImage'] = False        
         self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
-        self.ENV_ARGS['allow_flipping'] = False #TODO important change everywhere
+        self.ENV_ARGS['allow_flipping'] = False
 
 
     @classmethod
