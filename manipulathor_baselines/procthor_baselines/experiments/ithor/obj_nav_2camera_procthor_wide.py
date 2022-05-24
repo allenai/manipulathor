@@ -73,8 +73,12 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
     ]
 
     MAX_STEPS = 500
+    NUM_PROCESSES = 40
+    # NUM_TRAIN_HOUSES = 50 #TODO: house > num_proc oversampling not implemented yet
+
     if platform.system() == "Darwin":
-        MAX_STEPS = 10
+        MAX_STEPS = 100
+        NUM_TRAIN_HOUSES = 100
         SENSORS += [
             RGBSensorStretchKinectBigFov(
                 height=224,
@@ -101,8 +105,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
 
     NUM_PROCESSES = 50
 
-    NUM_PROCESSES = 40
-    # NUM_TRAIN_HOUSES = 50 #TODO: house > num_proc oversampling not implemented yet
 
 
     def __init__(self):

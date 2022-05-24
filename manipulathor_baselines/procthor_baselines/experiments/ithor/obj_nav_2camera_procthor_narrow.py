@@ -70,6 +70,25 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
     MAX_STEPS = 500
     if platform.system() == "Darwin":
         MAX_STEPS = 100
+        SENSORS += [
+            RGBSensorStretchKinect(
+                height=224,
+                width=224,
+                use_resnet_normalization=True,
+                mean=mean,
+                stdev=stdev,
+                uuid="rgb_lowres_arm_only_viz",
+            ),
+            RGBSensorStretchIntel(
+                height=224,
+                width=224,
+                use_resnet_normalization=True,
+                mean=mean,
+                stdev=stdev,
+                uuid="rgb_lowres_only_viz",
+            ),
+        ]
+
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
     TASK_TYPE = StretchObjectNavTask

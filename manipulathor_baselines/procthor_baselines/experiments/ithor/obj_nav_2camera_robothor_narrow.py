@@ -79,6 +79,24 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
     MAX_STEPS = 500
     if platform.system() == "Darwin":
         MAX_STEPS = 500
+        SENSORS += [
+            RGBSensorStretchKinect(
+                height=224,
+                width=224,
+                use_resnet_normalization=True,
+                mean=mean,
+                stdev=stdev,
+                uuid="rgb_lowres_arm_only_viz",
+            ),
+            RGBSensorStretchIntel(
+                height=224,
+                width=224,
+                use_resnet_normalization=True,
+                mean=mean,
+                stdev=stdev,
+                uuid="rgb_lowres_only_viz",
+            ),
+        ]
 
     TASK_SAMPLER = AllRoomsObjectNavTaskSampler
     TASK_TYPE = StretchObjectNavTask

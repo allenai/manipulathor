@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from allenact.base_abstractions.preprocessor import Preprocessor
 from allenact.utils.misc_utils import prepare_locals_for_super
 from manipulathor_utils.debugger_util import ForkedPdb
-from utils.hacky_viz_utils import hacky_visualization
+# from utils.hacky_viz_utils import hacky_visualization
 from datetime import datetime
 
 

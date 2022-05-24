@@ -6,6 +6,8 @@ Facebook's Habitat.
 import platform
 from datetime import datetime
 from typing import Tuple, Optional, List, Dict, cast
+import platform
+from datetime import datetime
 
 import gym
 import torch
@@ -20,7 +22,6 @@ from allenact.embodiedai.models.visual_nav_models import (
 
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.hacky_viz_utils import hacky_visualization
-
 
 class ResnetTensorNavNCameraActorCritic(VisualNavActorCritic):
     def __init__(
@@ -90,6 +91,11 @@ class ResnetTensorNavNCameraActorCritic(VisualNavActorCritic):
 
     def forward_encoder(self, observations: ObservationType) -> torch.FloatTensor:
         return self.goal_visual_encoder(observations)
+    def forward(self, **kwargs): #TODO NOW remove
+        if platform.system() == "Darwin":
+            hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
+        return super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
+
     def forward(self, **kwargs): #TODO NOW remove
         if platform.system() == "Darwin":
             hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
