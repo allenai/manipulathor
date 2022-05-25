@@ -44,6 +44,7 @@ class ResnetTensorNavNCameraActorCritic(VisualNavActorCritic):
         goal_dims: int = 32,
         resnet_compressor_hidden_out_dims: Tuple[int, int] = (128, 32),
         combiner_hidden_out_dims: Tuple[int, int] = (128, 32),
+        visualize=False,
     ):
         super().__init__(
             action_space=action_space,
@@ -53,6 +54,7 @@ class ResnetTensorNavNCameraActorCritic(VisualNavActorCritic):
             beliefs_fusion=beliefs_fusion,
             auxiliary_uuids=auxiliary_uuids,
         )
+        self.visualize = visualize
 
         self.goal_visual_encoder = ResnetNCameraTensorGoalEncoder(  # type:ignore
             self.observation_space,
@@ -97,7 +99,7 @@ class ResnetTensorNavNCameraActorCritic(VisualNavActorCritic):
         return super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
 
     def forward(self, **kwargs): #TODO NOW remove
-        if platform.system() == "Darwin":
+        if self.visualize:
             hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
         return super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
 

@@ -22,8 +22,10 @@ from utils.procthor_utils.procthor_object_nav_tasks import StretchObjectNavTask
 from utils.stretch_utils.stretch_constants import STRETCH_MANIPULATHOR_COMMIT_ID, STRETCH_ENV_ARGS
 from manipulathor_utils.debugger_util import ForkedPdb
 
-from manipulathor_baselines.procthor_baselines.models.clip_preprocessors import ClipResNetPreprocessor
-from manipulathor_baselines.procthor_baselines.models.clip_objnav_ncamera_model import ResnetTensorNavNCameraActorCritic
+# from manipulathor_baselines.procthor_baselines.models.clip_preprocessors import ClipResNetPreprocessor
+from manipulathor_baselines.procthor_baselines.models.clip_resnet_ncamera_preprocess_mixin import \
+    ClipResNetPreprocessNCameraGRUActorCriticMixin
+from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
 from allenact.base_abstractions.preprocessor import Preprocessor
 from allenact.utils.experiment_utils import Builder
 from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
@@ -62,19 +64,19 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
     stdev = np.array([0.26862954, 0.26130258, 0.27577711])
     SENSORS = [
         RGBSensorThor(
-            height=224,
-            width=224,
+            height=ObjectNavBaseConfig.SCREEN_SIZE,
+            width=ObjectNavBaseConfig.SCREEN_SIZE,
             use_resnet_normalization=True,
-            mean=mean,
-            stdev=stdev,
+            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
             uuid="rgb_lowres",
         ),
         RGBSensorStretchKinectBigFov(
-            height=224,
-            width=224,
+            height=ObjectNavBaseConfig.SCREEN_SIZE,
+            width=ObjectNavBaseConfig.SCREEN_SIZE,
             use_resnet_normalization=True,
-            mean=mean,
-            stdev=stdev,
+            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
             uuid="rgb_lowres_arm",
         ),
         GoalObjectTypeThorSensor(
@@ -87,19 +89,19 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
         MAX_STEPS = 100
         SENSORS += [
             RGBSensorStretchKinectBigFov(
-                height=224,
-                width=224,
-                use_resnet_normalization=True,
-                mean=mean,
-                stdev=stdev,
+            height=ObjectNavBaseConfig.SCREEN_SIZE,
+            width=ObjectNavBaseConfig.SCREEN_SIZE,
+            use_resnet_normalization=True,
+            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
                 uuid="rgb_lowres_arm_only_viz",
             ),
             RGBSensorThor(
-                height=224,
-                width=224,
-                use_resnet_normalization=True,
-                mean=mean,
-                stdev=stdev,
+            height=ObjectNavBaseConfig.SCREEN_SIZE,
+            width=ObjectNavBaseConfig.SCREEN_SIZE,
+            use_resnet_normalization=True,
+            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
                 uuid="rgb_lowres_only_viz",
             ),
         ]
@@ -109,8 +111,9 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
 
-
     NUM_PROCESSES = 40
+    CLIP_MODEL_TYPE = "RN50"
+
 
     def __init__(self):
         super().__init__() 
@@ -120,52 +123,23 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
-
-
-    @classmethod
-    @final
-    def preprocessors(cls) -> Sequence[Union[Preprocessor, Builder[Preprocessor]]]:
-        preprocessors = []
-        # rgb_sensor = next((s for s in cls.SENSORS if isinstance(s, RGBSensorThor)), None)
-
-        preprocessors.append(
-            ClipResNetPreprocessor(
-                rgb_input_uuid="rgb_lowres",
-                clip_model_type="RN50",
-                pool=False,
-                output_uuid="rgb_clip_resnet",
-                visualize=cls.VISUALIZE
-            )
+        
+        self.preprocessing_and_model = ClipResNetPreprocessNCameraGRUActorCriticMixin(
+            sensors=self.SENSORS,
+            clip_model_type=self.CLIP_MODEL_TYPE,
+            screen_size=self.SCREEN_SIZE,
         )
-        preprocessors.append(
-            ClipResNetPreprocessor(
-                rgb_input_uuid="rgb_lowres_arm",
-                clip_model_type="RN50",
-                pool=False,
-                output_uuid="rgb_clip_resnet_arm",
-                visualize=cls.VISUALIZE
-            )
-        )
-        return preprocessors
 
-    @classmethod
-    @final
-    def create_model(cls, **kwargs) -> nn.Module:
-        goal_sensor_uuid = next(
-            (s.uuid for s in cls.SENSORS if isinstance(s, GoalObjectTypeThorSensor)),
-            None,
-        )
-        resnet_preprocessor_uuids = ["rgb_clip_resnet","rgb_clip_resnet_arm"]
+    def preprocessors(self) -> Sequence[Union[Preprocessor, Builder[Preprocessor]]]:
+        return self.preprocessing_and_model.preprocessors()
 
-        return ResnetTensorNavNCameraActorCritic(
-            action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
-            observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
-            goal_sensor_uuid=goal_sensor_uuid,
-            resnet_preprocessor_uuids=resnet_preprocessor_uuids,
-            hidden_size=512,
-            goal_dims=32,
-            add_prev_actions=True,
+    
+    def create_model(self, **kwargs) -> nn.Module:
+        return self.preprocessing_and_model.create_model(
+            num_actions=len(self.TASK_TYPE.class_action_names()), **kwargs,
+            visualize=self.VISUALIZE
         )
+
 
     @classmethod
     def tag(cls):

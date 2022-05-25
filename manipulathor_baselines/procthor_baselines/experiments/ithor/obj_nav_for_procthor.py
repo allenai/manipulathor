@@ -1,3 +1,4 @@
+from ast import For
 from typing import Any, Dict, List, Optional, Sequence
 from typing_extensions import Literal, final
 import platform
@@ -74,13 +75,14 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
 
     RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 1 # TODO apparently this won't work with 100 (why?)
 
+    TEST_ON_VALIDATION = False
+
     HOUSE_DATASET = datasets.load_dataset(
         "allenai/houses", use_auth_token=True, ignore_verifications=True
     )
 
     MAX_STEPS = 500
     NUM_TRAIN_HOUSES = None # none means all
-
 
     @classmethod
     def preprocessors(cls) -> Sequence[Union[Preprocessor, Builder[Preprocessor]]]:
@@ -100,7 +102,6 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
                 viz(exp_name=exp_name_w_time) for viz in cls.POTENTIAL_VISUALIZERS
             ]
             kwargs["visualizers"] = visualizers
-        kwargs["task_type"] = cls.TASK_TYPE
         kwargs["exp_name"] = exp_name_w_time
 
         return cls.TASK_SAMPLER(**kwargs)
@@ -116,60 +117,46 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         houses: datasets.Dataset,
         mode: Literal["train", "eval"],
         resample_same_scene_freq: int,
-        allow_oversample: bool,
         process_ind: int,
-        total_processes: int,
         max_tasks: Optional[int],
+        allow_flipping: Optional[bool] = None,
         devices: Optional[List[int]] = None,
-        seeds: Optional[List[int]] = None,
-        deterministic_cudnn: bool = False,
+        **kwargs,
     ) -> Dict[str, Any]:
-        # NOTE: oversample some scenes -> bias
-        oversample_warning = (
-            f"Warning: oversampling some of the houses ({houses}) to feed all processes ({total_processes})."
-            " You can avoid this by setting a number of workers divisible by the number of scenes"
-        )
+
         house_inds = list(range(len(houses)))
-        valid_house_inds = [h for h in house_inds if h not in PROCTHOR_INVALID_SCENES]
-        if total_processes > len(valid_house_inds):
-            if not allow_oversample:
-                raise RuntimeError(
-                    f"Cannot have `total_processes > len(houses)`"
-                    f" ({total_processes} > {len(houses)}) when `allow_oversample` is `False`."
-                )
-
-            if total_processes % len(houses) != 0:
-                get_logger().warning(oversample_warning)
-            valid_house_inds = valid_house_inds * ceil(total_processes / len(houses))
-            valid_house_inds = valid_house_inds[
-                : total_processes * (len(valid_house_inds) // total_processes)
-            ]
-        elif len(houses) % total_processes != 0:
-            get_logger().warning(oversample_warning)
-
-        inds = self._partition_inds(len(valid_house_inds), total_processes)
-        selected_house_inds = valid_house_inds[inds[process_ind] : inds[process_ind + 1]]
+        scenes = [str(h) for h in house_inds if h not in PROCTHOR_INVALID_SCENES]
+        general_args = super()._get_sampler_args_for_scene_split(scenes=scenes,                                                               # scenes=scenes,
+                                                                process_ind=process_ind,
+                                                                **kwargs)
         
         x_display = (("0.%d" % devices[process_ind % len(devices)]) if len(devices) > 0 else None)
 
-        return {
+        procthor_specific = {
             "sampler_mode": mode,
             "houses": houses,
-            "house_inds": selected_house_inds,
+            "house_inds": list(map(int,general_args['scenes'])),
             "process_ind": process_ind,
-            "env_args": self.ENV_ARGS,
-            "max_steps": self.MAX_STEPS,
-            "sensors": self.SENSORS,
-            "seed": seeds[process_ind] if seeds is not None else None,
-            "deterministic_cudnn": deterministic_cudnn,
-            "rewards_config": self.REWARD_CONFIG,
             "target_object_types": self.OBJECT_TYPES,
             "max_tasks": max_tasks if max_tasks is not None else len(house_inds),
             "distance_type": self.DISTANCE_TYPE,
             "resample_same_scene_freq": resample_same_scene_freq,
             "scene_name": "Procedural"
+        }
+        del general_args['scenes']
+        out = {**general_args,**procthor_specific}
 
-        }, x_display
+        out["task_type"] = self.TASK_TYPE
+        out["cap_training"] = self.CAP_TRAINING
+
+        out["env_args"]["x_display"] = x_display
+        out["env_args"]['commit_id'] = PROCTHOR_COMMIT_ID
+        out["env_args"]['scene'] = 'Procedural'
+        if allow_flipping is not None:
+            out["env_args"]['allow_flipping'] = allow_flipping
+        
+        return out
+
 
     def train_task_sampler_args(
         self,
@@ -179,61 +166,36 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         if self.NUM_TRAIN_HOUSES:
             train_houses = train_houses.select(range(self.NUM_TRAIN_HOUSES))
 
-        out,x_display = self._get_sampler_args_for_scene_split(
+        return self._get_sampler_args_for_scene_split(
             houses=train_houses,
             mode="train",
-            allow_oversample=True,
             max_tasks=float("inf"),
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN,
             **kwargs,
         )
-        out["cap_training"] = self.CAP_TRAINING
-        out["env_args"] = {}
-        out["env_args"].update(self.ENV_ARGS)
-        out["env_args"]["x_display"] = x_display
-        out["env_args"]['commit_id'] = PROCTHOR_COMMIT_ID
-        out["env_args"]['scene'] = 'Procedural'
-        return out
 
     def valid_task_sampler_args(self, **kwargs) -> Dict[str, Any]:
         val_houses = self.HOUSE_DATASET["validation"]
-        out,x_display = self._get_sampler_args_for_scene_split(
+        return self._get_sampler_args_for_scene_split(
             houses=val_houses.select(range(100)),
             mode="eval",
-            allow_oversample=False,
             max_tasks=10,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,
+            allow_flipping=False,
             **kwargs,
         )
-        out["cap_training"] = self.CAP_TRAINING
-        out["env_args"] = {}
-        out["env_args"].update(self.ENV_ARGS)
-        out["env_args"]['allow_flipping'] = False        
-        out["env_args"]["x_display"] = x_display
-        out["env_args"]['commit_id'] = PROCTHOR_COMMIT_ID
-        out["env_args"]['scene'] = 'Procedural'
-        return out
 
     def test_task_sampler_args(self, **kwargs) -> Dict[str, Any]:
         if self.TEST_ON_VALIDATION:
             return self.valid_task_sampler_args(**kwargs)
 
         test_houses = self.HOUSE_DATASET["test"]
-        out,x_display = self._get_sampler_args_for_scene_split(
+        return self._get_sampler_args_for_scene_split(
             houses=test_houses.select(range(100)),
             mode="eval",
-            allow_oversample=False,
             max_tasks=10,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,
+            allow_flipping=False,
             **kwargs,
         )
-        out["cap_training"] = self.CAP_TRAINING
-        out["env_args"] = {}
-        out["env_args"].update(self.ENV_ARGS)
-        out["env_args"]['allow_flipping'] = False  
-        out["env_args"]["x_display"] = x_display
-        out["env_args"]['commit_id'] = PROCTHOR_COMMIT_ID
-        out["env_args"]['scene'] = 'Procedural'
-        return out
-
 
