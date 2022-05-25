@@ -227,7 +227,17 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
 
         # self.check_dataset_validity()
 
-
+        # all_types = []
+        # for room in self.dataset_files:
+        #     info = self.dataset_files[room]
+        #     objects = info['house_id_to_object_info']
+        #     objects = objects[str(room)]
+        #     for obj in objects.values():
+        #         all_types.append(obj['objectType'])
+        # all_types = set(all_types)
+        # print(all_types)
+        # print(len(all_types))
+        # ForkedPdb().set_trace()
 
         # len_all_data_points = [len(v['data_point_dict']) for v in self.all_possible_points.values()]
         # print(
