@@ -267,10 +267,10 @@ command_aws1 = 'scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/O
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 --extra_tag armpointnav_with_ProcTHOR_RGBonly_after_fix_clip '
 
-command_aws5 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_nav_2camera_procthor_wide_distrib \
+command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVDistrib/prcthor_obj_nav/2022-05-24_22-13-27/exp_ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVDistrib_prcthor_obj_nav__stage_02__steps_000100123710.pt ~/; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_nav_2camera_procthor_narrow_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag prcthor_obj_nav '
+ --seed 10 --machine_id 0 --extra_tag prcthor_obj_nav_narrow_fov -c ~/exp_ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVDistrib_prcthor_obj_nav__stage_02__steps_000100123710.pt '
 
 
 # command = command_aws5
@@ -308,6 +308,7 @@ def parse_args():
     ip_adr = server['ip_adr']
     args.command  = server['command']
     args.command = args.command.replace('IP_ADR', ip_adr)
+    args.command = args.command.replace('MAIN_SERVER', ip_adr)
     args.command = args.command.replace('NUM_MACHINES', str(len(args.servers)))
     return args
 
