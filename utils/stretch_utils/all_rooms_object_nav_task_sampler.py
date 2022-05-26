@@ -18,7 +18,13 @@ from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.dataset_generation.find_categories_to_use import ROBOTHOR_TRAIN, KITCHEN_TRAIN, KITCHEN_TEST, KITCHEN_VAL
 from utils.manipulathor_data_loader_utils import get_random_query_image, get_random_query_feature_from_img_adr
 from scripts.stretch_jupyter_helper import get_reachable_positions, transport_wrapper
+from utils.stretch_utils.stretch_object_nav_tasks import ObjectNavTask
 from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
+
+from utils.stretch_utils.real_stretch_environment import StretchRealEnvironment
+from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
+
+
 
 
 class AllRoomsObjectNavTaskSampler(TaskSampler):
@@ -419,3 +425,64 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
 
         return data_point
 
+
+class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
+
+    def _create_environment(self, **kwargs) -> ManipulaTHOREnvironment:
+        env = StretchRealEnvironment(
+            make_agents_visible=False,
+            object_open_speed=0.05,
+            env_args=self.env_args,
+        )
+        return env
+    
+    def __init__(self, **kwargs) -> None:
+
+        super().__init__(**kwargs)
+
+        self.all_possible_points = {}
+
+        if self.sampler_mode == "test":
+            self.max_tasks = self.reset_tasks = 200
+
+    def next_task(
+            self, force_advance_scene: bool = False
+    ) -> Optional[ObjectNavTask]:
+
+        if self.max_tasks is not None and self.max_tasks <= 0:
+            return None
+
+        if self.sampler_mode != "train" and self.length <= 0:
+            return None
+
+        if self.env is None:
+            self.env = self._create_environment()
+        self.env.reset(scene_name='RealRobothor')
+        
+        #TODO apples forever. consider branching out someday
+        target_object = {'object_id': 'Apple|1|1|1', 'object_type':"Apple"}
+
+        task_info = {
+            'target_object_ids': [target_object['object_id']],
+            'object_type': target_object['object_type'],
+            'starting_pose': {},
+            'mode': self.env_args['agentMode'],
+            'house_name': 'RealRobothor',
+            'scene_name': 'RealRobothor',
+            'mirrored': False # yeah no
+        }
+
+        self._last_sampled_task = self.TASK_TYPE(
+            env=self.env,
+            sensors=self.sensors,
+            task_info=task_info,
+            max_steps=self.max_steps,
+            action_space=self._action_space,
+            visualizers=self.visualizers,
+            reward_config=self.rewards_config,
+            distance_type=self.distance_type,
+            distance_cache=self.distance_cache,
+            additional_visualize=False # not implemented for non-procthor
+        )
+
+        return self._last_sampled_task

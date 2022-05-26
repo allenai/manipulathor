@@ -13,7 +13,8 @@ import numpy as np
 import torch
 from PIL import Image
 import matplotlib.pyplot as plt
-from allenact.base_abstractions.sensor import DepthSensor, Sensor, RGBSensor
+from allenact.base_abstractions.sensor import Sensor #, DepthSensor, RGBSensor
+
 from allenact.base_abstractions.task import Task
 from allenact.utils.misc_utils import prepare_locals_for_super
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
