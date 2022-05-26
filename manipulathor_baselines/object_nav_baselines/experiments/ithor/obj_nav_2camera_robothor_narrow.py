@@ -5,7 +5,7 @@ import yaml
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchKinect, RGBSensorStretchIntel
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
-from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_nav_2camera_ithor_wide import \
+from manipulathor_baselines.object_nav_baselines.experiments.ithor.obj_nav_2camera_ithor_wide import \
      ithorObjectNavClipResnet50RGBOnly2CameraWideFOV
 from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
 

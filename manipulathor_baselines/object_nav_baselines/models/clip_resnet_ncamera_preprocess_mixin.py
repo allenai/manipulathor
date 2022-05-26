@@ -12,7 +12,7 @@ from allenact.utils.experiment_utils import Builder
 from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
-from manipulathor_baselines.procthor_baselines.models.clip_objnav_ncamera_model import \
+from manipulathor_baselines.object_nav_baselines.models.clip_objnav_ncamera_model import \
     ResnetTensorNavNCameraActorCritic
 from manipulathor_utils.debugger_util import ForkedPdb
 

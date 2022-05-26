@@ -15,14 +15,14 @@ from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 
-from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_nav_for_procthor import ProcTHORObjectNavBaseConfig
+from manipulathor_baselines.object_nav_baselines.experiments.procthor.obj_nav_for_procthor import ProcTHORObjectNavBaseConfig
 from utils.procthor_utils.procthor_object_nav_task_samplers import ProcTHORObjectNavTaskSampler
 from utils.procthor_utils.procthor_object_nav_tasks import StretchObjectNavTask, ObjectNavTask
 from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
 from manipulathor_utils.debugger_util import ForkedPdb
 
 from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
-from manipulathor_baselines.procthor_baselines.models.clip_resnet_ncamera_preprocess_mixin import \
+from manipulathor_baselines.object_nav_baselines.models.clip_resnet_ncamera_preprocess_mixin import \
     ClipResNetPreprocessNCameraGRUActorCriticMixin
 from allenact.base_abstractions.preprocessor import Preprocessor
 from allenact.utils.experiment_utils import Builder
