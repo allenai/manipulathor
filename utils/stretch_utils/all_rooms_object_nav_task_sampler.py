@@ -480,7 +480,7 @@ class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
             action_space=self._action_space,
             visualizers=self.visualizers,
             reward_config=self.rewards_config,
-            distance_type=self.distance_type,
+            distance_type="real_world",
             distance_cache=self.distance_cache,
             additional_visualize=False # not implemented for non-procthor
         )

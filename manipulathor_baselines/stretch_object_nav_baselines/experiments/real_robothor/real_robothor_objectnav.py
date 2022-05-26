@@ -48,7 +48,7 @@ class RealStretchObjectNav(
     ENVIRONMENT_TYPE = StretchRealEnvironment # account for the super init
 
     NUM_PROCESSES = 20
-
+    VISUALIZE = False
 
     TRAIN_SCENES = ['RealRobothor']
     TEST_SCENES = ['RealRobothor']

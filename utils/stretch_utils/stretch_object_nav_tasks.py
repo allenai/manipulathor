@@ -1,3 +1,4 @@
+from dis import dis
 import random
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Literal
@@ -84,6 +85,8 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             self.dist_to_target_func = self.min_geo_distance_to_target
         elif distance_type == "l2":
             self.dist_to_target_func = self.min_l2_distance_to_target
+        elif distance_type == "real_world":
+            self.dist_to_target_func = self.dummy_distance_to_target # maybe placeholder here for estimation later
         else:
             raise NotImplementedError
 
@@ -147,6 +150,8 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             return -1.0
         return min_dist
     
+    def dummy_distance_to_target(self) -> float:
+        return float("inf")
     
     def start_visualize(self):
         for visualizer in self.visualizers:
@@ -428,6 +433,9 @@ class ExploreWiseObjectNavTask(ObjectNavTask):
         
 
 class RealStretchObjectNavTask(StretchObjectNavTask):
+
+    # def __init__(self, **kwargs) -> None:
+    #     super().__init__(self,distance_type = "real_world", **kwargs)
     
     
     def _step(self, action: int) -> RLStepResult:
