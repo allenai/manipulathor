@@ -70,7 +70,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
     NUM_PROCESSES = 40
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
-    TASK_TYPE = ObjectNavTask
+    TASK_TYPE = StretchObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
 
     CLIP_MODEL_TYPE = "RN50"

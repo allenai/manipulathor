@@ -41,22 +41,6 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
 
     OBJECT_TYPES: Optional[Sequence[str]]
 
-    TRAIN_DEVICES = (
-        tuple(range(torch.cuda.device_count()))
-        if torch.cuda.is_available()
-        else (torch.device("cpu"),)
-    )
-    VAL_DEVICES = (
-        (torch.cuda.device_count() - 1,)
-        if torch.cuda.is_available()
-        else (torch.device("cpu"),)
-    )
-    TEST_DEVICES = (
-        tuple(range(torch.cuda.device_count()))
-        if torch.cuda.is_available()
-        else (torch.device("cpu"),)
-    )
-
     SENSORS: Sequence[Sensor] = []
 
     DISTANCE_TYPE = "l2"  # "geo"  # Can be "geo" or "l2"

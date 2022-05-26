@@ -46,8 +46,8 @@ class ObjectNavBaseConfig(BringObjectThorBaseConfig):
         if torch.cuda.is_available()
         else (torch.device("cpu"),)
     )
+    distributed_nodes = 1
 
-    SENSORS: Sequence[Sensor] = []
 
     POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
 
@@ -63,20 +63,21 @@ class ObjectNavBaseConfig(BringObjectThorBaseConfig):
             "shaping_weight": 1.0, 
             "positive_only_reward": False,
         }
+        
 
     def training_pipeline(self, **kwargs):
         log_interval_small = (
-            self.NUM_PROCESSES * 32 * 10
+            self.distributed_nodes*self.NUM_PROCESSES * 32 * 10
             if torch.cuda.is_available
             else 1
         )
         log_interval_medium = (
-            self.NUM_PROCESSES * 64 * 5
+            self.distributed_nodes*self.NUM_PROCESSES * 64 * 5
             if torch.cuda.is_available
             else 1
         )
         log_interval_large = (
-            self.NUM_PROCESSES * 128 * 5
+            self.distributed_nodes*self.NUM_PROCESSES * 128 * 5
             if torch.cuda.is_available
             else 1
         )
@@ -86,7 +87,7 @@ class ObjectNavBaseConfig(BringObjectThorBaseConfig):
         batch_steps_2 = int(1e9) - batch_steps_1 - batch_steps_0
 
         return TrainingPipeline(
-            save_interval=5_000_000,
+            save_interval=2_000_000,
             metric_accumulate_interval=10_000,
             optimizer_builder=Builder(optim.Adam, dict(lr=0.0003)),
             num_mini_batch=1,
