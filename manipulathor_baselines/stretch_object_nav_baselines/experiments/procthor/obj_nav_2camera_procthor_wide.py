@@ -7,9 +7,9 @@ from utils.procthor_utils.procthor_helper import PROCTHOR_INVALID_SCENES
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchKinect, RGBSensorStretchKinectBigFov
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
-from manipulathor_baselines.object_nav_baselines.experiments.procthor.obj_nav_for_procthor_clip_resnet50_rgb_only \
+from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_for_procthor_clip_resnet50_rgb_only \
     import ProcTHORObjectNavClipResnet50RGBOnly
-from utils.procthor_utils.procthor_object_nav_tasks import StretchObjectNavTask
+from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask
 from manipulathor_utils.debugger_util import ForkedPdb
 
 from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor

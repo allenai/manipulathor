@@ -4,11 +4,14 @@ from manipulathor_utils.debugger_util import ForkedPdb
 from utils.stretch_utils.real_stretch_sensors import RealRGBSensorStretchIntel, RealRGBSensorStretchKinect
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
-from utils.procthor_utils.all_rooms_object_nav_task_sampler import AllRoomsObjectNavTaskSampler
-from utils.procthor_utils.procthor_object_nav_tasks import StretchObjectNavTask
+from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
+
+from utils.stretch_utils.real_stretch_environment import StretchRealEnvironment
+from utils.stretch_utils.all_rooms_object_nav_task_sampler import RealStretchAllRoomsObjectNavTaskSampler
+from utils.stretch_utils.stretch_object_nav_tasks import RealStretchObjectNavTask
 
 
-from manipulathor_baselines.object_nav_baselines.experiments.ithor.obj_nav_2camera_ithor_wide import \
+from manipulathor_baselines.stretch_object_nav_baselines.experiments.ithor.obj_nav_2camera_ithor_wide import \
      ithorObjectNavClipResnet50RGBOnly2CameraWideFOV
 
 
@@ -21,12 +24,16 @@ class RealStretchObjectNav(
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=True,
+            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
             uuid="rgb_lowres",
         ),
         RealRGBSensorStretchKinect(
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=True,
+            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
             uuid="rgb_lowres_arm",
         ),
         GoalObjectTypeThorSensor(
@@ -36,8 +43,9 @@ class RealStretchObjectNav(
 
     MAX_STEPS = 200
 
-    TASK_SAMPLER = AllRoomsObjectNavTaskSampler#RealStretchDiverseBringObjectTaskSampler
-    TASK_TYPE = StretchObjectNavTask#RealStretchExploreWiseRewardTask
+    TASK_SAMPLER = RealStretchAllRoomsObjectNavTaskSampler #RealStretchDiverseBringObjectTaskSampler
+    TASK_TYPE = RealStretchObjectNavTask #RealStretchExploreWiseRewardTask
+    ENVIRONMENT_TYPE = StretchRealEnvironment # account for the super init
 
     NUM_PROCESSES = 20
 

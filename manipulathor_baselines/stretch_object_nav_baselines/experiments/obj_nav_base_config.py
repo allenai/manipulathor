@@ -20,8 +20,8 @@ from allenact.base_abstractions.sensor import Sensor
 from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
 from ithor_arm.ithor_arm_viz import TestMetricLogger
 
-from utils.procthor_utils.all_rooms_object_nav_task_sampler import AllRoomsObjectNavTaskSampler
-from utils.procthor_utils.procthor_object_nav_tasks import ObjectNavTask
+from utils.stretch_utils.all_rooms_object_nav_task_sampler import AllRoomsObjectNavTaskSampler
+from utils.stretch_utils.stretch_object_nav_tasks import ObjectNavTask
 from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID
 
 

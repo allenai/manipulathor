@@ -23,9 +23,9 @@ from allenact.utils.experiment_utils import (
     Builder,
 )
 
-from manipulathor_baselines.object_nav_baselines.experiments.obj_nav_base_config import ObjectNavBaseConfig
+from manipulathor_baselines.stretch_object_nav_baselines.experiments.obj_nav_base_config import ObjectNavBaseConfig
 from utils.procthor_utils.procthor_object_nav_task_samplers import ProcTHORObjectNavTaskSampler
-from utils.procthor_utils.procthor_object_nav_tasks import ObjectNavTask
+from utils.stretch_utils.stretch_object_nav_tasks import ObjectNavTask
 from utils.procthor_utils.procthor_helper import PROCTHOR_INVALID_SCENES
 from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID
 
