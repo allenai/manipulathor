@@ -250,7 +250,7 @@ class StretchObjectMask(Sensor):
 
         # TODO remove
         # mask = np.zeros((224, 224, 1))
-        return mask
+        # return mask
 
 
         img = env.controller.last_event.frame
