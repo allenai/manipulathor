@@ -229,22 +229,21 @@ class StretchObjNavImageVisualizer(LoggerVisualizer):
 
     def log(self, environment, action_str, obs):
         image_intel = environment.intel_frame
-        depth_intel = environment.intel_depth
         try:
-            image_kinect = environment.kinect_frame
-            depth_kinect = environment.kinect_depth
-            combined_frame = np.concatenate([image_intel, image_kinect, depth_to_rgb(depth_intel), depth_to_rgb(depth_kinect)],axis=1)
-        except:
-            if depth_intel is None or depth_kinect is None:
-                combined_frame = np.concatenate([image_intel, image_kinect],axis=1)
-            else:
+            depth_intel = environment.intel_depth
+            try:
+                image_kinect = environment.kinect_frame
+                depth_kinect = environment.kinect_depth
+                combined_frame = np.concatenate([image_intel, image_kinect, depth_to_rgb(depth_intel), depth_to_rgb(depth_kinect)],axis=1)
+            except:
                 combined_frame = np.concatenate([image_intel, depth_to_rgb(depth_intel)],axis=1)
+        except:
+            combined_frame = np.concatenate([image_intel],axis=1)
 
         # image_intel = intel_reshape(image_intel)
         # kinect_frame = kinect_reshape(kinect_frame)
         
         self.action_queue.append(action_str)
-        # combined_frame = np.concatenate([image_intel, image_kinect, depth_to_rgb(depth_intel), depth_to_rgb(depth_kinect)],axis=1)
         for o in obs:
             if ("rgb" in o) and isinstance(obs[o], np.ndarray):
                 viz_obs = unnormalize_clip_image(obs[o])*255

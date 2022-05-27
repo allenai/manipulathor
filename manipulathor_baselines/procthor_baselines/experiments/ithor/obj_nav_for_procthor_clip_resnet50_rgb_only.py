@@ -18,39 +18,33 @@ from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHO
 from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_nav_for_procthor import ProcTHORObjectNavBaseConfig
 from utils.procthor_utils.procthor_object_nav_task_samplers import ProcTHORObjectNavTaskSampler
 from utils.procthor_utils.procthor_object_nav_tasks import StretchObjectNavTask, ObjectNavTask
-from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, STRETCH_ENV_ARGS
+from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
 from manipulathor_utils.debugger_util import ForkedPdb
 
-from manipulathor_baselines.procthor_baselines.models.clip_preprocessors import ClipResNetPreprocessor
+from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
+from manipulathor_baselines.procthor_baselines.models.clip_resnet_ncamera_preprocess_mixin import \
+    ClipResNetPreprocessNCameraGRUActorCriticMixin
 from allenact.base_abstractions.preprocessor import Preprocessor
 from allenact.utils.experiment_utils import Builder
-from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavActorCritic
-from manipulathor_baselines.procthor_baselines.models.clip_objnav_ncamera_model import ResnetTensorNavNCameraActorCritic
-from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
-from ithor_arm.ithor_arm_viz import TestMetricLogger
-
 
 
 class ProcTHORObjectNavClipResnet50RGBOnly(
     ProcTHORObjectNavBaseConfig
 ):
-    """An Object Navigation experiment configuration in iThor with RGB
-    input."""
+    """Single-camera Object Navigation experiment configuration in ProcTHOR, using CLIP preprocessing."""
 
     with open('datasets/objects/robothor_habitat2022.yaml', 'r') as f:
         OBJECT_TYPES=yaml.safe_load(f)
 
     NOISE_LEVEL = 0
     distance_thr = 1.0 # match procthor config
-    mean = np.array([0.48145466, 0.4578275, 0.40821073])
-    stdev = np.array([0.26862954, 0.26130258, 0.27577711])
     SENSORS = [
         RGBSensorThor(
-            height=224,
-            width=224,
+            height=ProcTHORObjectNavBaseConfig.SCREEN_SIZE,
+            width=ProcTHORObjectNavBaseConfig.SCREEN_SIZE,
             use_resnet_normalization=True,
-            mean=mean,
-            stdev=stdev,
+            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
             uuid="rgb_lowres",
         ),
         GoalObjectTypeThorSensor(
@@ -60,100 +54,55 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
 
     MAX_STEPS = 500
     if platform.system() == "Darwin":
-        MAX_STEPS = 50
+        MAX_STEPS = 100
+        NUM_TRAIN_HOUSES = 100
+        SENSORS += [
+            RGBSensorThor(
+                height=ProcTHORObjectNavBaseConfig.SCREEN_SIZE,
+                width=ProcTHORObjectNavBaseConfig.SCREEN_SIZE,
+                use_resnet_normalization=True,
+                mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+                stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
+                uuid="rgb_lowres_only_viz",
+            ),
+        ]
+
+    NUM_PROCESSES = 40
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
-    TASK_TYPE = ObjectNavTask
+    TASK_TYPE = StretchObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
-    POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
-    VISUALIZE = False
 
-
-    NUM_PROCESSES = 30
-
-    TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(10)] # 9999 is all of train
-    # if platform.system() == "Darwin":
-    #     TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
-
-    TEST_SCENES = [f'ProcTHOR{i}' for i in range(1)]
-    random.shuffle(TRAIN_SCENES)
+    CLIP_MODEL_TYPE = "RN50"
 
 
     def __init__(self):
         super().__init__() 
-        self.REWARD_CONFIG['goal_success_reward'] = 10.0 
-        self.REWARD_CONFIG['step_penalty'] = -0.01 
-        self.REWARD_CONFIG['failed_stop_reward'] = 0.0 
-        self.REWARD_CONFIG['reached_horizon_reward'] = 0.0
-        self.REWARD_CONFIG['shaping_weight'] = 1.0
 
-        # self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
+        self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
+        self.ENV_ARGS['p_randomize_material'] = 0.8
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
-        self.ENV_ARGS['scene'] = 'Procedural'
-        self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
-        self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
-        self.ENV_ARGS['allow_flipping'] = True
+        self.ENV_ARGS['renderInstanceSegmentation'] = False
+        self.ENV_ARGS['renderDepthImage'] = False        
+        self.ENV_ARGS['allow_flipping'] = False
 
-
-    @classmethod
-    @final
-    def preprocessors(cls) -> Sequence[Union[Preprocessor, Builder[Preprocessor]]]:
-        preprocessors = []
-        rgb_sensor = next((s for s in cls.SENSORS if isinstance(s, RGBSensorThor)), None)
-
-        if rgb_sensor is not None:
-            preprocessors.append(
-                ClipResNetPreprocessor(
-                    rgb_input_uuid=rgb_sensor.uuid,
-                    clip_model_type="RN50",
-                    pool=False,
-                    output_uuid="rgb_clip_resnet",
-                    visualize=cls.VISUALIZE
-                )
-            )
-
-        return preprocessors
-
-    # @classmethod
-    # @final
-    # def create_model(cls, **kwargs) -> nn.Module:
-    #     goal_sensor_uuid = next(
-    #         (s.uuid for s in cls.SENSORS if isinstance(s, GoalObjectTypeThorSensor)),
-    #         None,
-    #     )
-    #     resnet_preprocessor_uuids = ["rgb_clip_resnet"]
-
-    #     return ResnetTensorNavNCameraActorCritic(
-    #         action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
-    #         observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
-    #         goal_sensor_uuid=goal_sensor_uuid,
-    #         resnet_preprocessor_uuids=resnet_preprocessor_uuids,
-    #         hidden_size=512,
-    #         goal_dims=32,
-    #         add_prev_actions=True,
-    #     )
-    @classmethod
-    def create_model(cls, **kwargs) -> nn.Module:
-        has_rgb = any(isinstance(s, RGBSensorThor) for s in cls.SENSORS)
-        has_depth = False #any(isinstance(s, DepthSensor) for s in cls.SENSORS)
-
-        goal_sensor_uuid = next(
-            (s.uuid for s in cls.SENSORS if isinstance(s, GoalObjectTypeThorSensor)),
-            None,
+        self.preprocessing_and_model = ClipResNetPreprocessNCameraGRUActorCriticMixin(
+            sensors=self.SENSORS,
+            clip_model_type=self.CLIP_MODEL_TYPE,
+            screen_size=self.SCREEN_SIZE,
         )
 
-        return ResnetTensorNavActorCritic(
-            action_space=gym.spaces.Discrete(len(ObjectNavTask.class_action_names())),
-            observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
-            goal_sensor_uuid=goal_sensor_uuid,
-            rgb_resnet_preprocessor_uuid="rgb_clip_resnet" if has_rgb else None,
-            depth_resnet_preprocessor_uuid="depth_clip_resnet" if has_depth else None,
-            hidden_size=512,
-            goal_dims=32,
-            add_prev_actions=True #cfg.model.add_prev_actions_embedding,
+    def preprocessors(self) -> Sequence[Union[Preprocessor, Builder[Preprocessor]]]:
+        return self.preprocessing_and_model.preprocessors()
+
+    
+    def create_model(self, **kwargs) -> nn.Module:
+        return self.preprocessing_and_model.create_model(
+            num_actions=len(self.TASK_TYPE.class_action_names()), **kwargs,
+            visualize=self.VISUALIZE
         )
 
     @classmethod
     def tag(cls):
-        return cls.__name__    
+        return cls.__name__

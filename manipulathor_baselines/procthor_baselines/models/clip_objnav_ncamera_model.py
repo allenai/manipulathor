@@ -6,6 +6,8 @@ Facebook's Habitat.
 import platform
 from datetime import datetime
 from typing import Tuple, Optional, List, Dict, cast
+import platform
+from datetime import datetime
 
 import gym
 import torch
@@ -20,7 +22,6 @@ from allenact.embodiedai.models.visual_nav_models import (
 
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.hacky_viz_utils import hacky_visualization
-
 
 class ResnetTensorNavNCameraActorCritic(VisualNavActorCritic):
     def __init__(
@@ -43,6 +44,7 @@ class ResnetTensorNavNCameraActorCritic(VisualNavActorCritic):
         goal_dims: int = 32,
         resnet_compressor_hidden_out_dims: Tuple[int, int] = (128, 32),
         combiner_hidden_out_dims: Tuple[int, int] = (128, 32),
+        visualize=False,
     ):
         super().__init__(
             action_space=action_space,
@@ -52,6 +54,7 @@ class ResnetTensorNavNCameraActorCritic(VisualNavActorCritic):
             beliefs_fusion=beliefs_fusion,
             auxiliary_uuids=auxiliary_uuids,
         )
+        self.visualize = visualize
 
         self.goal_visual_encoder = ResnetNCameraTensorGoalEncoder(  # type:ignore
             self.observation_space,
@@ -92,6 +95,11 @@ class ResnetTensorNavNCameraActorCritic(VisualNavActorCritic):
         return self.goal_visual_encoder(observations)
     def forward(self, **kwargs): #TODO NOW remove
         if platform.system() == "Darwin":
+            hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
+        return super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
+
+    def forward(self, **kwargs): #TODO NOW remove
+        if self.visualize:
             hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
         return super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
 

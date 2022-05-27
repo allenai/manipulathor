@@ -1,5 +1,4 @@
 import random
-from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Literal
 
@@ -25,7 +24,6 @@ from utils.stretch_utils.stretch_constants import (
     ROTATE_LEFT_SMALL
 )
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
-# from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 
 from manipulathor_utils.debugger_util import ForkedPdb
 
@@ -235,7 +233,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                 max_reward_mag = position_dist(p0, p1, ignore_y=True)
 
             if (
-                self.reward_config.positive_only_reward
+                self.reward_config['positive_only_reward']
                 and cur_distance is not None
                 and cur_distance > 0.5
             ):
@@ -251,7 +249,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                     min(reward, max_reward_mag),
                     -max_reward_mag,
                 )
-                * self.reward_config.shaping_weight
+                * self.reward_config['shaping_weight']
             )
     
     def get_observations(self, **kwargs) -> Any:
