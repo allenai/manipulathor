@@ -183,24 +183,17 @@ class StretchObjNavImageVisualizer(LoggerVisualizer):
         source_object_id = task_info["target_object_ids"][0]
         episode_success = episode_info._success
 
-        # Put back if you want the images
-        # for i, img in enumerate(self.log_queue):
-        #     image_dir = os.path.join(self.log_dir, time_to_write + '_seq{}.png'.format(str(i)))
-        #     cv2.imwrite(image_dir, img[:,:,[2,1,0]])
-
         episode_success_offset = "succ" if episode_success else "fail"
 
         source_obj_type =  task_info['object_type']
 
         if source_obj_type == 'small':
             source_obj_type = task_info['object_type']
-            # goal_obj_type = task_info['goal_object_type']
 
         room_name = task_info['scene_name']
         gif_name = (
                 f"{time_to_write}_room_{room_name}_to_{source_obj_type}_episode_{episode_success_offset}.gif"
         )
-        # ForkedPdb().set_trace()
         self.log_queue = put_action_on_image(self.log_queue, self.action_queue[1:])
         addition_texts = ['xxx'] + [str(x) for x in episode_info.agent_body_dist_to_obj]
         if not addition_texts == ['xxx']:
@@ -209,18 +202,12 @@ class StretchObjNavImageVisualizer(LoggerVisualizer):
         concat_all_images = np.expand_dims(np.stack(self.log_queue, axis=0), axis=1)
         save_image_list_to_gif(concat_all_images, gif_name, self.log_dir)
         this_controller = environment.controller
-        scene = this_controller.last_event.metadata[
-            "sceneName"
-        ]
+        if room_name == 'RealRobothor':
+            scene = None # reset doesn't do anything
+        else:
+            scene = this_controller.last_event.metadata["sceneName"]
+
         reset_environment_and_additional_commands(this_controller, scene)
-
-        additional_observation_start = []
-        additional_observation_goal = []
-        if 'target_object_mask' in episode_info.get_observations():
-            additional_observation_start.append('target_object_mask')
-        if 'target_location_mask' in episode_info.get_observations():
-            additional_observation_goal.append('target_location_mask')
-
 
         self.log_queue = []
         self.action_queue = []

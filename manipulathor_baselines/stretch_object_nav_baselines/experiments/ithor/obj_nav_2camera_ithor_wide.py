@@ -87,7 +87,7 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
     MAX_STEPS = 500
     if platform.system() == "Darwin":
         MAX_STEPS = 100
-        SENSORS += [
+        SENSORS += [ #TODO FIX ORDER HERE
             RGBSensorStretchKinectBigFov(
             height=ObjectNavBaseConfig.SCREEN_SIZE,
             width=ObjectNavBaseConfig.SCREEN_SIZE,

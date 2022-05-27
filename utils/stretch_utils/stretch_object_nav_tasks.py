@@ -433,10 +433,6 @@ class ExploreWiseObjectNavTask(ObjectNavTask):
         
 
 class RealStretchObjectNavTask(StretchObjectNavTask):
-
-    # def __init__(self, **kwargs) -> None:
-    #     super().__init__(self,distance_type = "real_world", **kwargs)
-    
     
     def _step(self, action: int) -> RLStepResult:
 
@@ -449,18 +445,14 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
         
         if action_str == "Done":
             self._took_end_action = True
+            # TODO do something here - set trace in env to get time to reset room?
 
         self._last_action_str = action_str
         action_dict = {"action": action_str}
-        # object_id = self.task_info["source_object_id"]
-        # if action_str == PICKUP:
-        #     action_dict = {**action_dict, "object_id": object_id}
         self.env.step(action_dict)
         self.last_action_success = self.env.last_action_success
 
         last_action_name = self._last_action_str
-        # last_action_success = float(self.last_action_success)
-        # self.action_sequence_and_success.append((last_action_name, last_action_success))
         self.visualize(last_action_name)
 
         step_result = RLStepResult(
@@ -470,24 +462,6 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
             info={"last_action_success": self.last_action_success},
         )
         return step_result
-    
-    
-    
-    
-    def metrics(self) -> Dict[str, Any]:
-        if self.is_done():
-            result={} # placeholder for future
-            metrics = super().metrics()
-            metrics["success"] = self._success
-            result["success"] = self._success
-            self.finish_visualizer_metrics(result)
-            self.finish_visualizer(self._success)
-            # self.action_sequence_and_success = []
-
-            self._metrics = metrics
-            return metrics
-        else:
-            return {}
     
     def judge(self) -> float:
         """Compute the reward after having taken a step."""

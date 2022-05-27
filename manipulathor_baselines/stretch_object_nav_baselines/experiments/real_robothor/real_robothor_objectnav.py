@@ -41,6 +41,26 @@ class RealStretchObjectNav(
         ),
     ]
 
+    # this should only ever be run on darwin anyway - sensors for visualization
+    SENSORS += [
+        RealRGBSensorStretchIntel(
+            height=desired_screen_size,
+            width=desired_screen_size,
+            use_resnet_normalization=True,
+            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
+            uuid="rgb_lowres_only_viz",
+        ),
+        RealRGBSensorStretchKinect(
+            height=desired_screen_size,
+            width=desired_screen_size,
+            use_resnet_normalization=True,
+            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
+            uuid="rgb_lowres_arm_only_viz",
+        ),
+    ]
+
     MAX_STEPS = 200
 
     TASK_SAMPLER = RealStretchAllRoomsObjectNavTaskSampler #RealStretchDiverseBringObjectTaskSampler
@@ -48,7 +68,6 @@ class RealStretchObjectNav(
     ENVIRONMENT_TYPE = StretchRealEnvironment # account for the super init
 
     NUM_PROCESSES = 20
-    VISUALIZE = False
 
     TRAIN_SCENES = ['RealRobothor']
     TEST_SCENES = ['RealRobothor']
