@@ -39,7 +39,7 @@ ROBOTHOR_TRAIN= [f"FloorPlan_Train{i}_{j}" for i in range(1, 13) for j in range(
 ROBOTHOR_VAL= [f"FloorPlan_Val{i}_{j}" for i in range(1, 4) for j in range(1,6)]
 ROBOTHOR_SCENE_NAMES = ROBOTHOR_TRAIN + ROBOTHOR_VAL
 ROBOTHOR_MOVEABLE_UNIQUE_OBJECTS = ['Vase', 'Bowl', 'AlarmClock', 'Bottle', 'Mug', 'SprayBottle', 'BasketBall', 'RemoteControl', 'BaseballBat', 'Laptop', 'Apple', 'Box']
-
+ROBOTHOR_OBJECTNAV_OBJECTS = ['Apple', 'DiningTable', 'Chair', 'Box', 'Cup', 'Floor', 'HousePlant', 'Pot', 'TennisRacket', 'CoffeeTable', 'Television', 'Bowl', 'Sofa', 'Vase', 'TVStand', 'Mug', 'CD', 'Pillow', 'Book', 'Newspaper', 'SideTable', 'SprayBottle', 'Plate', 'Dresser', 'AlarmClock', 'CellPhone', 'Candle', 'Watch', 'GarbageCan', 'Shelf', 'FloorLamp', 'Bed', 'PepperShaker', 'Bottle', 'Fork', 'Laptop', 'BasketBall', 'ArmChair', 'Pen', 'DeskLamp', 'Drawer', 'Pencil', 'ButterKnife', 'BaseballBat', 'RemoteControl', 'SaltShaker', 'ShelvingUnit', 'Painting', 'Desk', 'Statue', 'TeddyBear']
 FULL_LIST_OF_OBJECTS = {
     'kitchens': kitchens_objects,
     'living_rooms': living_rooms_objects,

@@ -30,8 +30,8 @@ from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
 from ithor_arm.ithor_arm_viz import TestMetricLogger
 from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavActorCritic
 
-from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJECTS, ROBOTHOR_TRAIN, ROBOTHOR_VAL
-
+from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJECTS, ROBOTHOR_TRAIN, ROBOTHOR_VAL, \
+    ROBOTHOR_OBJECTNAV_OBJECTS
 
 
 class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
@@ -40,17 +40,15 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
 
-    TRAIN_SCENES = ROBOTHOR_TRAIN
-    TEST_SCENES = ROBOTHOR_VAL
+
     # OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ == 'robothor']))
     # OBJECT_TYPES.sort()
-
+    OBJECT_TYPES_Habitat_Robothor = None
     with open('datasets/objects/robothor_habitat2022.yaml', 'r') as f:
-        OBJECT_TYPES=yaml.safe_load(f)
+        OBJECT_TYPES_Habitat_Robothor=yaml.safe_load(f)
 
+    OBJECT_TYPES = [o for o in OBJECT_TYPES_Habitat_Robothor if o in ROBOTHOR_OBJECTNAV_OBJECTS]
 
-    random.shuffle(TRAIN_SCENES)
-    random.shuffle(TEST_SCENES)
 
     NOISE_LEVEL = 0
     distance_thr = 1.0 # match procthor config
@@ -74,19 +72,50 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
             uuid="rgb_lowres_arm",
         ),
         GoalObjectTypeThorSensor(
-            object_types=OBJECT_TYPES,
+            object_types=OBJECT_TYPES_Habitat_Robothor,
         ),
     ]
-
-    MAX_STEPS = 500
-    if platform.system() == "Darwin":
-        MAX_STEPS = 500
 
     TASK_SAMPLER = AllRoomsObjectNavTaskSampler
     TASK_TYPE = StretchObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
     VISUALIZE = False
+
+
+    MAX_STEPS = 500
+    if platform.system() == "Darwin":
+        MAX_STEPS = 500
+        SENSORS += [
+            RGBSensorStretchKinect(
+                height=224,
+                width=224,
+                use_resnet_normalization=True,
+                mean=mean,
+                stdev=stdev,
+                uuid="rgb_lowres_arm_only_viz",
+            ),
+            RGBSensorStretchIntel(
+                height=224,
+                width=224,
+                use_resnet_normalization=True,
+                mean=mean,
+                stdev=stdev,
+                uuid="rgb_lowres_only_viz",
+            ),
+        ]
+        VISUALIZE = True
+
+
+
+    TRAIN_SCENES = ROBOTHOR_TRAIN
+    TEST_SCENES = ROBOTHOR_VAL
+    random.shuffle(TRAIN_SCENES)
+    random.shuffle(TEST_SCENES)
+
+
+
+
 
 
     NUM_PROCESSES = 56
@@ -105,9 +134,10 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         # self.ENV_ARGS['scene'] = 'Procedural'
-        self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
+        self.ENV_ARGS['renderInstanceSegmentation'] = False
+        self.ENV_ARGS['renderDepthImage'] = False
         self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
-        self.ENV_ARGS['allow_flipping'] = True
+        self.ENV_ARGS['allow_flipping'] = False
 
 
     @classmethod
