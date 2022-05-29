@@ -290,6 +290,8 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
             init_object = get_full_object_info(self.env, target_obj_type)
 
         agent_state["cameraHorizon"] = 0 # 0 for stretch, 20 for other manipulathor agent
+
+
         event = this_controller.step(
             dict(
                 action="TeleportFull",

@@ -403,11 +403,15 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
             horizon=0,
             standing=True,
         )
+
         event = self.env.controller.step(action="TeleportFull", **starting_pose)
         # if not event:
         #     get_logger().warning(
         #         f"Teleport failing in {self.house_index} at {starting_pose}"
         #     )
+
+        # print(self.env.controller.last_event.metadata['thirdPartyCameras'],'\n', self.env.controller.last_event.metadata['agent'], '\n',self.env.controller.last_event.metadata['fov'])
+
 
         self.episode_index += 1
         self.max_tasks -= 1

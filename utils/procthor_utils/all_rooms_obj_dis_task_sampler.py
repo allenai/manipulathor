@@ -304,6 +304,8 @@ class AllRoomsBringObjectTaskSampler(TaskSampler):
             goal_object = get_full_object_info(self.env, goal_obj_type)
 
         agent_state["cameraHorizon"] = 20 #TODO very important check this everywhere. On every branch except stretch?
+
+
         event = this_controller.step(
             dict(
                 action="TeleportFull",
