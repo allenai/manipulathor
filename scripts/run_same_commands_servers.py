@@ -298,10 +298,10 @@ import pdb
 # --distributed_ip_and_port IP_ADR:6060 \
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 --extra_tag finetune_procthor_on_ithor_smaller_lr_4times_b500 -c ~/exp_ObjDisArmPointNavRGBOnlyProcTHORDistrib_armpointnav_with_ProcTHOR_RGBonly_after_fix__stage_00__steps_000098567812.pt'
-command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/NoPointNavStretchAllRoomsDistrib/ithor_train_no_armpointnav/2022-05-24_16-17-51/exp_NoPointNavStretchAllRoomsDistrib_ithor_train_no_armpointnav__stage_00__steps_000187882302.pt ~/; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/no_pointnav_stretch_all_rooms_distrib \
+command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/NoPointNavStretchAllRoomsDistrib/ithor_train_no_armpointnav/2022-05-26_16-50-25/exp_NoPointNavStretchAllRoomsDistrib_ithor_train_no_armpointnav__stage_00__steps_000297579334.pt ~/; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/no_pointnav_stretch_all_rooms_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag ithor_train_no_armpointnav -c ~/exp_NoPointNavStretchAllRoomsDistrib_ithor_train_no_armpointnav__stage_00__steps_000187882302.pt'
+ --seed 10 --machine_id 0 --extra_tag ithor_train_no_armpointnav -c ~/exp_NoPointNavStretchAllRoomsDistrib_ithor_train_no_armpointnav__stage_00__steps_000297579334.pt'
 command_aws5 = ''
 command_aws15 = ''
 command_vs411 = ''
