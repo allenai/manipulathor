@@ -99,7 +99,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
 
-    NUM_PROCESSES = 50
+    NUM_PROCESSES = 30
 
 
     TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(9999) if i not in PROCTHOR_INVALID_SCENES] # 9999 is all of train

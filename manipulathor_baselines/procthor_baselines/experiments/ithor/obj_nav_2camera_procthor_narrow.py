@@ -13,6 +13,7 @@ from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 
 from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_nav_2camera_procthor_wide import \
     ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV
+from utils.procthor_utils.procthor_helper import PROCTHOR_INVALID_SCENES
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchKinect, RGBSensorStretchIntel
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
@@ -36,7 +37,7 @@ from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavA
 
 
 class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
-    ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV
+    ProcTHORObjectNavBaseConfig
 ):
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
@@ -69,6 +70,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
             object_types=OBJECT_TYPES,
         ),
     ]
+    MAX_STEPS = 500
     if platform.system() == "Darwin":
         MAX_STEPS = 10
         SENSORS += [
@@ -89,4 +91,94 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
                 uuid="rgb_lowres_only_viz",
             ),
         ]
+    TASK_SAMPLER = ProcTHORObjectNavTaskSampler
+    TASK_TYPE = StretchObjectNavTask
+    ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
+    POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
 
+    NUM_PROCESSES = 30
+    TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(9999) if i not in PROCTHOR_INVALID_SCENES] # 9999 is all of train
+    if platform.system() == "Darwin":
+        TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
+
+    TEST_SCENES = [f'ProcTHOR{i}' for i in range(1)]
+    random.shuffle(TRAIN_SCENES)
+    def __init__(self):
+        super().__init__()
+        self.REWARD_CONFIG['goal_success_reward'] = 10.0
+        self.REWARD_CONFIG['step_penalty'] = -0.01
+        self.REWARD_CONFIG['failed_stop_reward'] = 0.0
+        self.REWARD_CONFIG['reached_horizon_reward'] = 0.0
+        self.REWARD_CONFIG['shaping_weight'] = 1.0
+
+        self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
+        self.ENV_ARGS['visibilityDistance'] = self.distance_thr
+        self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
+        self.ENV_ARGS['scene'] = 'Procedural'
+        self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
+        #TODO depth is not False. Kiana added this:
+        self.ENV_ARGS['renderInstanceSegmentation'] = False
+        self.ENV_ARGS['renderDepthImage'] = False
+        self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
+        self.ENV_ARGS['allow_flipping'] = False #TODO important change everywhere
+
+    @classmethod
+    @final
+    def preprocessors(cls) -> Sequence[Union[Preprocessor, Builder[Preprocessor]]]:
+        preprocessors = []
+        # rgb_sensor = next((s for s in cls.SENSORS if isinstance(s, RGBSensorThor)), None)
+
+        preprocessors.append(
+            ClipResNetPreprocessor(
+                rgb_input_uuid="rgb_lowres",
+                clip_model_type="RN50",
+                pool=False,
+                output_uuid="rgb_clip_resnet",
+                visualize=cls.VISUALIZE
+            )
+        )
+        preprocessors.append(
+            ClipResNetPreprocessor(
+                rgb_input_uuid="rgb_lowres_arm",
+                clip_model_type="RN50",
+                pool=False,
+                output_uuid="rgb_clip_resnet_arm",
+                visualize=cls.VISUALIZE
+            )
+        )
+        return preprocessors
+
+
+    @classmethod
+    @final
+    def create_model(cls, **kwargs) -> nn.Module:
+        goal_sensor_uuid = next(
+            (s.uuid for s in cls.SENSORS if isinstance(s, GoalObjectTypeThorSensor)),
+            None,
+        )
+        resnet_preprocessor_uuids = ["rgb_clip_resnet","rgb_clip_resnet_arm"]
+
+        # return ResnetTensorNavActorCritic(
+        #     action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
+        #     observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
+        #     goal_sensor_uuid=goal_sensor_uuid,
+        #     rgb_resnet_preprocessor_uuid="rgb_clip_resnet",
+        #     depth_resnet_preprocessor_uuid="rgb_clip_resnet_arm", # a convenient lie - can't use with a depth sensor too
+        #     hidden_size=512,
+        #     goal_dims=32,
+        #     add_prev_actions=True,
+        # )
+
+        return ResnetTensorNavNCameraActorCritic(
+            action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
+            observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
+            goal_sensor_uuid=goal_sensor_uuid,
+            resnet_preprocessor_uuids=resnet_preprocessor_uuids,
+            hidden_size=512,
+            goal_dims=32,
+            add_prev_actions=True,
+        )
+
+    @classmethod
+    def tag(cls):
+        return cls.__name__

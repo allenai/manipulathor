@@ -272,10 +272,10 @@ command_aws1 = 'scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/O
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 --extra_tag prcthor_obj_nav_narrow_fov -c ~/exp_ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOVDistrib_prcthor_obj_nav_narrow_fov__stage_02__steps_000105130310.pt '
 
-command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOVDistrib/prcthor_obj_nav_narrow_fov/2022-05-26_16-52-13/exp_ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOVDistrib_prcthor_obj_nav_narrow_fov__stage_02__steps_000155199360.pt ~/; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_nav_2camera_robothor_narrow_distrib \
+command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOVDistrib/finetune_robothor/2022-05-27_21-00-03/exp_RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOVDistrib_finetune_robothor__stage_02__steps_000160201650.pt ~/; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_nav_2camera_robothor_narrow_distrib \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag finetune_robothor -c ~/exp_ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOVDistrib_prcthor_obj_nav_narrow_fov__stage_02__steps_000155199360.pt '
+ --seed 10 --machine_id 0 --extra_tag finetune_robothor -c ~/exp_RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOVDistrib_finetune_robothor__stage_02__steps_000160201650.pt '
 
 
 # command = command_aws5
