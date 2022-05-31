@@ -29,7 +29,7 @@ from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, Dept
     KinectNoisyObjectMask, IntelNoisyObjectMask, StretchPickedUpObjSensor
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
-
+# For Karl
 class PointNavEmulStretchAllRooms(
     StretchBringObjectiThorBaseConfig,
     StretchBringObjectMixInPPOConfig,
