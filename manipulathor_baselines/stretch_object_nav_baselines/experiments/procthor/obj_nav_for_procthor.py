@@ -136,6 +136,7 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         out["env_args"]["x_display"] = x_display
         out["env_args"]['commit_id'] = PROCTHOR_COMMIT_ID
         out["env_args"]['scene'] = 'Procedural'
+        out["env_args"]["branch"] = "nanna"
         if allow_flipping is not None:
             out["env_args"]['allow_flipping'] = allow_flipping
         
@@ -147,6 +148,7 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         **kwargs
     ) -> Dict[str, Any]:
         train_houses = self.HOUSE_DATASET["train"]
+
         if self.NUM_TRAIN_HOUSES:
             train_houses = train_houses.select(range(self.NUM_TRAIN_HOUSES))
 
@@ -172,7 +174,6 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
     def test_task_sampler_args(self, **kwargs) -> Dict[str, Any]:
         if self.TEST_ON_VALIDATION:
             return self.valid_task_sampler_args(**kwargs)
-
         test_houses = self.HOUSE_DATASET["test"]
         return self._get_sampler_args_for_scene_split(
             houses=test_houses.select(range(100)),

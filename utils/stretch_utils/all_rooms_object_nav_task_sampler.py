@@ -442,6 +442,25 @@ class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
 
         self.all_possible_points = {}
 
+        # This can be done more elegantly from datasets/objects/robothor_habitat2022.yaml and exclude toilet
+        self.possible_real_objects = [
+            {'object_id': 'AlarmClock|1|1|1', 'object_type':"AlarmClock"},
+            {'object_id': 'Apple|1|1|1', 'object_type':"Apple"},
+            {'object_id': 'BaseballBat|1|1|1', 'object_type':"BaseballBat"},
+            {'object_id': 'BasketBall|1|1|1', 'object_type':"BasketBall"},
+            {'object_id': 'Bed|1|1|1', 'object_type':"Bed"},
+            {'object_id': 'Bowl|1|1|1', 'object_type':"Bowl"},
+            {'object_id': 'Chair|1|1|1', 'object_type':"Chair"},
+            {'object_id': 'GarbageCan|1|1|1', 'object_type':"GarbageCan"},
+            {'object_id': 'HousePlant|1|1|1', 'object_type':"HousePlant"},
+            {'object_id': 'Laptop|1|1|1', 'object_type':"Laptop"},
+            {'object_id': 'Mug|1|1|1', 'object_type':"Mug"},
+            {'object_id': 'Sofa|1|1|1', 'object_type':"Sofa"},
+            {'object_id': 'SprayBottle|1|1|1', 'object_type':"SprayBottle"},
+            {'object_id': 'Television|1|1|1', 'object_type':"Television"},
+            {'object_id': 'Vase|1|1|1', 'object_type':"Vase"}
+        ]
+
         if self.sampler_mode == "test":
             self.max_tasks = self.reset_tasks = 200
 
@@ -459,8 +478,11 @@ class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
             self.env = self._create_environment()
         self.env.reset(scene_name='RealRobothor')
         
-        #TODO apples forever. consider branching out someday
-        target_object = {'object_id': 'Apple|1|1|1', 'object_type':"Apple"}
+        skip_object = True
+        while skip_object:
+            target_object = random.choice(self.possible_real_objects)
+            print('I am now seeking a ', target_object['object_type'], '. Continue by setting skip_object=False')
+            ForkedPdb().set_trace()
 
         task_info = {
             'target_object_ids': [target_object['object_id']],

@@ -1,9 +1,11 @@
+from ast import For
 from dis import dis
 import random
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Literal
 
 import gym
+from importlib_metadata import Lookup
 import numpy as np
 import torch
 from allenact.base_abstractions.misc import RLStepResult
@@ -124,7 +126,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         if min_dist == float("inf"):
             get_logger().error(
                 f"No target object {self.task_info['object_type']} found"
-                f" in house {self.task_info['house_name']}."
+                f" in house {self.task_info['scene_name']}."
             )
             return -1.0
         return min_dist
@@ -140,7 +142,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                 env=self.env,
                 distance_cache=self.distance_cache,
                 object_id=object_id,
-                house_name=self.task_info["house_name"],
+                house_name=self.task_info["scene_name"],
             )
             if (min_dist is None and geo_dist >= 0) or (
                 geo_dist >= 0 and geo_dist < min_dist
@@ -393,6 +395,24 @@ class StretchObjectNavTask(ObjectNavTask):
         DONE,
     )
 
+    # TODO: change this to find the object via segementation or some other way - account for FOV cropping
+    # def _is_goal_in_range(self) -> bool:
+    #     candidates = [obj
+    #         for obj in self.env.last_event.metadata["objects"]
+    #         if obj["visible"] and obj["objectType"] == self.task_info["object_type"]]
+    #     return any(candidates)
+
+class StretchNeckedObjectNavTask(ObjectNavTask):
+    _actions = (
+        MOVE_AHEAD,
+        MOVE_BACK,
+        ROTATE_RIGHT,
+        ROTATE_LEFT,
+        "LookUp",
+        "LookDown",
+        DONE,
+    )
+
 class ExploreWiseObjectNavTask(ObjectNavTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -437,15 +457,18 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
     def _step(self, action: int) -> RLStepResult:
 
         action_str = self.class_action_names()[action]
-        print('Model Said', action_str)
+        print('Model Said', action_str, ' as action ', str(self.num_steps_taken()))
 
         self.manual_action = False
 
-        print('Action Called', action_str)
+        # print('Action Called', action_str)
         
         if action_str == "Done":
             self._took_end_action = True
-            # TODO do something here - set trace in env to get time to reset room?
+            print('I think I found a ', self.task_info['object_type'])
+            # self._success = bool(int(input('Was I correct? 0 for no, 1 for yes: ')))
+            print('Was I correct? Set self._success in trace.')
+            ForkedPdb().set_trace()
 
         self._last_action_str = action_str
         action_dict = {"action": action_str}
