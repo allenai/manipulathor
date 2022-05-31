@@ -1,8 +1,4 @@
-import glob
-from optparse import Option
-from attrs import define
-from typing import Any, Dict, List, Optional, Sequence
-from typing_extensions import Literal
+from typing import Any, Dict, List, Optional
 import platform
 import pickle
 import random
@@ -23,7 +19,7 @@ from ithor_arm.ithor_arm_viz import LoggerVisualizer
 
 
 from utils.procthor_utils.procthor_types import AgentPose, Vector3
-from utils.procthor_utils.procthor_object_nav_tasks import StretchObjectNavTask
+from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask
 from utils.stretch_utils.stretch_constants import ADITIONAL_ARM_ARGS
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 from scripts.stretch_jupyter_helper import make_all_objects_unbreakable
@@ -101,6 +97,8 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.max_vis_points = 6
         self.max_agent_positions = 6         
         self.p_greedy_target_object = 0.8
+
+        self.last_house_idx = None
 
         self.reset()
 
@@ -415,3 +413,93 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.episode_index = 0
         self.max_tasks = self.reset_tasks
         self.house_inds_index = 0
+
+
+
+class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.last_scene = None
+
+        # # visualize 1/10 episodes
+        # self.epids_to_visualize = set(
+        #     np.linspace(
+        #         0, self.reset_tasks, num=min(self.reset_tasks // 10, 4), dtype=np.uint8
+        #     ).tolist()
+        # )
+        # self.args.controller_args = self.args.controller_args.copy()
+        # self.env_args["procedural"] = False
+
+    def next_task(self, force_advance_scene: bool = False) -> Optional[StretchObjectNavTask]:
+        while True:
+            # NOTE: Stopping condition
+            if self.env is None:
+                self.env = self._create_environment()
+        
+            # NOTE: Stopping condition
+            if self.max_tasks <= 0:
+                return None
+
+
+            epidx = self.house_inds[self.max_tasks - 1]
+            ep = self.houses[epidx]
+            # ForkedPdb().set_trace()
+
+            if self.last_house_idx is None or self.last_house_idx != ep["scene"]:
+                self.last_scene = ep["scene"]
+                self.env.reset(ep["scene"])
+
+            # NOTE: not using ep["targetObjectIds"] due to floating points with
+            # target objects moving.
+            event = self.env.controller.step(action="ResetObjectFilter")
+            target_object_ids = [
+                obj["objectId"]
+                for obj in event.metadata["objects"]
+                if obj["objectType"] == ep["targetObjectType"]
+            ]
+            self.env.controller.step(
+                action="SetObjectFilter",
+                objectIds=target_object_ids,
+                raise_for_failure=True,
+            )
+            ep["agentPose"]["horizon"] = 0 # reset for stretch agent
+            ep["agentPose"]["standing"] = True
+            event = self.env.controller.step(action="TeleportFull", **ep["agentPose"])
+            if not event:
+                # NOTE: Skip scenes where TeleportFull fails.
+                # This is added from a bug in the RoboTHOR eval dataset.
+                get_logger().error(
+                    f"Teleport failing {event.metadata['actionReturn']} in {epidx}."
+                )
+                self.max_tasks -= 1
+                self.episode_index += 1
+                continue
+
+            difficulty = {"difficulty": ep["difficulty"]} if "difficulty" in ep else {}
+            self._last_sampled_task = self.TASK_TYPE(
+                # visualize=self.episode_index in self.epids_to_visualize,
+                env=self.env,
+                sensors=self.sensors,
+                max_steps=self.max_steps,
+                reward_config=self.rewards_config,
+                distance_type=self.distance_type,
+                distance_cache=self.distance_cache,
+                visualizers=self.visualizers,
+                task_info={
+                    "mode": self.env_args['agentMode'],
+                    "scene_name": ep["scene"],
+                    "target_object_ids": target_object_ids,
+                    "object_type": ep["targetObjectType"],
+                    "starting_pose": ep["agentPose"],
+                    "mirrored": False,
+                    "id": f"{ep['scene']}__global{epidx}__{ep['targetObjectType']}",
+                    **difficulty,
+                },
+            )
+
+            self.max_tasks -= 1
+            self.episode_index += 1
+
+            return self._last_sampled_task
+
+

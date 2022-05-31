@@ -194,7 +194,7 @@ class StretchObjNavImageVisualizer(LoggerVisualizer):
         gif_name = (
                 f"{time_to_write}_room_{room_name}_to_{source_obj_type}_episode_{episode_success_offset}.gif"
         )
-        self.log_queue = put_action_on_image(self.log_queue, self.action_queue[1:])
+        # self.log_queue = put_action_on_image(self.log_queue, self.action_queue[1:])
         addition_texts = ['xxx'] + [str(x) for x in episode_info.agent_body_dist_to_obj]
         if not addition_texts == ['xxx']:
             self.log_queue = put_additional_text_on_image(self.log_queue, addition_texts)

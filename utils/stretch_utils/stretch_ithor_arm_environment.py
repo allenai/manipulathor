@@ -217,14 +217,14 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
         controller_to_check = controller
         if controller_to_check is None:
             controller_to_check = self.controller
-        if STRETCH_MANIPULATHOR_COMMIT_ID is not None:
-            assert (
-                self.env_args['commit_id'] in controller_to_check._build.url
-            ), "Build number is not right, {} vs {}, use  pip3 install -e git+https://github.com/allenai/ai2thor.git@{}#egg=ai2thor".format(
-                controller_to_check._build.url,
-                STRETCH_MANIPULATHOR_COMMIT_ID,
-                STRETCH_MANIPULATHOR_COMMIT_ID,
-            )
+        # if STRETCH_MANIPULATHOR_COMMIT_ID is not None:
+        #     assert (
+        #         self.env_args['commit_id'] in controller_to_check._build.url
+        #     ), "Build number is not right, {} vs {}, use  pip3 install -e git+https://github.com/allenai/ai2thor.git@{}#egg=ai2thor".format(
+        #         controller_to_check._build.url,
+        #         STRETCH_MANIPULATHOR_COMMIT_ID,
+        #         STRETCH_MANIPULATHOR_COMMIT_ID,
+        #     )
 
     def create_controller(self):
         assert 'commit_id' in self.env_args

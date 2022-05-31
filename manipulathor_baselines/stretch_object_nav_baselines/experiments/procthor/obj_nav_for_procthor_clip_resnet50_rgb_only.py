@@ -17,7 +17,7 @@ from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHO
 
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_for_procthor import ProcTHORObjectNavBaseConfig
 from utils.procthor_utils.procthor_object_nav_task_samplers import ProcTHORObjectNavTaskSampler
-from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask
+from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask, ObjectNavTask, StretchNeckedObjectNavTask
 from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
 from manipulathor_utils.debugger_util import ForkedPdb
 
@@ -70,8 +70,10 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
     NUM_PROCESSES = 40
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
-    TASK_TYPE = StretchObjectNavTask
+    TASK_TYPE = StretchNeckedObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
+
+    # NUM_TRAIN_HOUSES = 500
 
     CLIP_MODEL_TYPE = "RN50"
 
