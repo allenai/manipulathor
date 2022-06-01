@@ -101,6 +101,11 @@ def reset_environment_and_additional_commands(controller, scene_name = None):
         pass
     else:
         controller.reset(scene_name)
+
+        #TODO NOW is this the issue?
+        return
+
+
         controller.step(action="MakeAllObjectsMoveable")
         controller.step(action="MakeObjectsStaticKinematicMassThreshold")
         make_all_objects_unbreakable(controller)

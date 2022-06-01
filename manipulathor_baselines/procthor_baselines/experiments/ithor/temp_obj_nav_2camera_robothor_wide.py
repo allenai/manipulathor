@@ -11,6 +11,8 @@ import copy
 
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 
+from scripts.dataset_generation.find_categories_to_use import ROBOTHOR_OBJECTNAV_OBJECTS, ROBOTHOR_TRAIN, ROBOTHOR_VAL
+from utils.procthor_utils.all_rooms_object_nav_task_sampler import AllRoomsObjectNavTaskSampler
 from utils.procthor_utils.procthor_helper import PROCTHOR_INVALID_SCENES
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchKinect, RGBSensorStretchKinectBigFov
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
@@ -34,14 +36,14 @@ from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavA
 
 
 
-class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
+class TmpRoboTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
     ProcTHORObjectNavBaseConfig
 ):
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
-
+    OBJECT_TYPES_Habitat_Robothor = None
     with open('datasets/objects/robothor_habitat2022.yaml', 'r') as f:
-        OBJECT_TYPES=yaml.safe_load(f)
+        OBJECT_TYPES_Habitat_Robothor=yaml.safe_load(f)
 
     NOISE_LEVEL = 0
     distance_thr = 1.0 # match procthor config
@@ -68,10 +70,10 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
         ),
 
         GoalObjectTypeThorSensor(
-            object_types=OBJECT_TYPES,
+            object_types=OBJECT_TYPES_Habitat_Robothor,
         ),
     ]
-
+    OBJECT_TYPES = [o for o in OBJECT_TYPES_Habitat_Robothor if o in ROBOTHOR_OBJECTNAV_OBJECTS]
     MAX_STEPS = 500
     if platform.system() == "Darwin":
         MAX_STEPS = 500
@@ -94,7 +96,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
             ),
         ]
 
-    TASK_SAMPLER = ProcTHORObjectNavTaskSampler
+    TASK_SAMPLER = AllRoomsObjectNavTaskSampler
     TASK_TYPE = StretchObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
@@ -102,12 +104,10 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
     NUM_PROCESSES = 30
 
 
-    TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(9999) if i not in PROCTHOR_INVALID_SCENES] # 9999 is all of train
-    if platform.system() == "Darwin":
-        TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
-
-    TEST_SCENES = [f'ProcTHOR{i}' for i in range(1)]
+    TRAIN_SCENES = ROBOTHOR_TRAIN
+    TEST_SCENES = ROBOTHOR_VAL
     random.shuffle(TRAIN_SCENES)
+    random.shuffle(TEST_SCENES)
 
 
     def __init__(self):
@@ -120,14 +120,13 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
 
         self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
-        self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
+        self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE
         self.ENV_ARGS['scene'] = 'Procedural'
-        self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
-        #TODO depth is not False. Kiana added this:
+
         self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['renderDepthImage'] = False
         self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
-        self.ENV_ARGS['allow_flipping'] = False #TODO important change everywhere
+        self.ENV_ARGS['allow_flipping'] = False
 
 
     @classmethod

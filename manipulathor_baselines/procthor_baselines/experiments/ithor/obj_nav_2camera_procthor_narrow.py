@@ -70,9 +70,15 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
             object_types=OBJECT_TYPES,
         ),
     ]
+    TASK_SAMPLER = ProcTHORObjectNavTaskSampler
+    TASK_TYPE = StretchObjectNavTask
+    ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
+    POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
+
+
     MAX_STEPS = 500
     if platform.system() == "Darwin":
-        MAX_STEPS = 10
+        MAX_STEPS = 500
         SENSORS += [
             RGBSensorStretchKinect(
                 height=224,
@@ -91,18 +97,18 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
                 uuid="rgb_lowres_only_viz",
             ),
         ]
-    TASK_SAMPLER = ProcTHORObjectNavTaskSampler
-    TASK_TYPE = StretchObjectNavTask
-    ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
-    POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
+        VISUALIZE = True
 
-    NUM_PROCESSES = 30
+
+    NUM_PROCESSES = 50
     TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(9999) if i not in PROCTHOR_INVALID_SCENES] # 9999 is all of train
     if platform.system() == "Darwin":
         TRAIN_SCENES = [f'ProcTHOR{i}' for i in range(100)]
 
     TEST_SCENES = [f'ProcTHOR{i}' for i in range(1)]
     random.shuffle(TRAIN_SCENES)
+    random.shuffle(TEST_SCENES)
+
     def __init__(self):
         super().__init__()
         self.REWARD_CONFIG['goal_success_reward'] = 10.0
@@ -115,7 +121,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         self.ENV_ARGS['scene'] = 'Procedural'
-        self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
         #TODO depth is not False. Kiana added this:
         self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['renderDepthImage'] = False
@@ -157,17 +162,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
             None,
         )
         resnet_preprocessor_uuids = ["rgb_clip_resnet","rgb_clip_resnet_arm"]
-
-        # return ResnetTensorNavActorCritic(
-        #     action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
-        #     observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
-        #     goal_sensor_uuid=goal_sensor_uuid,
-        #     rgb_resnet_preprocessor_uuid="rgb_clip_resnet",
-        #     depth_resnet_preprocessor_uuid="rgb_clip_resnet_arm", # a convenient lie - can't use with a depth sensor too
-        #     hidden_size=512,
-        #     goal_dims=32,
-        #     add_prev_actions=True,
-        # )
 
         return ResnetTensorNavNCameraActorCritic(
             action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),

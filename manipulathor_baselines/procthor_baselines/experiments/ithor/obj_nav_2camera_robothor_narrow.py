@@ -40,9 +40,6 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
 
-
-    # OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ == 'robothor']))
-    # OBJECT_TYPES.sort()
     OBJECT_TYPES_Habitat_Robothor = None
     with open('datasets/objects/robothor_habitat2022.yaml', 'r') as f:
         OBJECT_TYPES_Habitat_Robothor=yaml.safe_load(f)
@@ -80,7 +77,6 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
     TASK_TYPE = StretchObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
-    VISUALIZE = False
 
 
     MAX_STEPS = 500
@@ -112,10 +108,6 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
     TEST_SCENES = ROBOTHOR_VAL
     random.shuffle(TRAIN_SCENES)
     random.shuffle(TEST_SCENES)
-
-
-
-
 
 
     NUM_PROCESSES = 56
@@ -183,17 +175,7 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
             hidden_size=512,
             goal_dims=32,
             add_prev_actions=True,
-        )        
-        # return ResnetTensorNavActorCritic(
-        #     action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
-        #     observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
-        #     goal_sensor_uuid=goal_sensor_uuid,
-        #     rgb_resnet_preprocessor_uuid="rgb_clip_resnet",
-        #     depth_resnet_preprocessor_uuid="rgb_clip_resnet_arm", # a convenient lie - can't use with a depth sensor too
-        #     hidden_size=512,
-        #     goal_dims=32,
-        #     add_prev_actions=True,
-        # )
+        )
 
     @classmethod
     def tag(cls):

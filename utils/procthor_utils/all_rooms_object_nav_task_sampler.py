@@ -150,6 +150,8 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
         for scene in self.scenes:
             for object in self.objects:
 
+
+                #TODO NOW THIS IS VERY WRONG!!
                 if scene in KITCHEN_TRAIN + KITCHEN_TEST + KITCHEN_VAL:
                     scene = scene + '_physics'
                 valid_position_adr = "datasets/apnd-dataset/valid_object_positions/valid_{}_positions_in_{}.json".format(
@@ -190,6 +192,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
             with open('datasets/apnd-dataset/deterministic_stretch_init_location.json') as f: #TODO how many teleport fails?
                 deterministic_locations = json.load(f)
             for scene in self.scenes:
+
                 objects_in_room = [o for (s,o) in self.all_possible_points.keys() if s == scene]
                 if scene in deterministic_locations:
                     list_of_possible_locations = deterministic_locations[scene]

@@ -12,6 +12,8 @@ import copy
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 
 from utils.procthor_utils.procthor_helper import PROCTHOR_INVALID_SCENES
+from utils.procthor_utils.procthor_object_nav_task_samplers_kiana_version import \
+    ProcTHORObjectNavKianaVersionTaskSampler
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchKinect, RGBSensorStretchKinectBigFov
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
@@ -34,7 +36,7 @@ from allenact_plugins.navigation_plugin.objectnav.models import ResnetTensorNavA
 
 
 
-class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
+class KianaProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
     ProcTHORObjectNavBaseConfig
 ):
     """An Object Navigation experiment configuration in iThor with RGB
@@ -94,7 +96,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
             ),
         ]
 
-    TASK_SAMPLER = ProcTHORObjectNavTaskSampler
+    TASK_SAMPLER = ProcTHORObjectNavKianaVersionTaskSampler
     TASK_TYPE = StretchObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
@@ -122,8 +124,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         self.ENV_ARGS['scene'] = 'Procedural'
-        self.ENV_ARGS['renderInstanceSegmentation'] = 'False'
-        #TODO depth is not False. Kiana added this:
         self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['renderDepthImage'] = False
         self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID

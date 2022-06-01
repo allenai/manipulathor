@@ -26,6 +26,8 @@ kill -9 $(ps aux | grep 'ssh -NfL'); ssh -NfL 6006:localhost:6006 aws1; #ssh -Nf
 
 pip3 uninstall clip; pip3 install git+https://github.com/openai/CLIP.git@04f4dc2ca1ed0acc9893bd1a3b526a7e02c4bb10
 pip3 uninstall allenact allenact_plugins; pip3 install -e "git+https://github.com/allenai/allenact.git@timeout-restart-true#egg=allenact&subdirectory=allenact"
+#pip3 uninstall allenact allenact_plugins; pip3 install -e "git+https://github.com/allenai/allenact.git@ad56db85ed107022bb8d1b49917c0f4aaf2fa1ed#egg=allenact&subdirectory=../.."
+
 # remove previous hugging dataset for procthor
 #rm -rf ~/.cache/huggingface
 
