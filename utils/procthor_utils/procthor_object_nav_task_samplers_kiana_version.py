@@ -8,6 +8,7 @@ from typing import Optional, List, Union, Dict, Any
 
 import datasets
 import gym
+import numpy as np
 import torch
 from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import TaskSampler, Task
@@ -150,7 +151,7 @@ class ProcTHORObjectNavKianaVersionTaskSampler(ProcTHORObjectNavTaskSampler): #T
 
         self.max_tasks = max_tasks if max_tasks is not None else np.Inf # stop when I tell you to stop
 
-
+        self.valid_rotations = [0,90,180,270]
 
         self.house_dataset = datasets.load_dataset("allenai/houses", use_auth_token=True)
 
@@ -348,6 +349,10 @@ class ProcTHORObjectNavKianaVersionTaskSampler(ProcTHORObjectNavTaskSampler): #T
             scene_number=scene_number,
         )
 
+    @property
+    def reachable_positions(self) -> List[Vector3]:
+        """Return the reachable positions in the current house."""
+        return self.reachable_positions_map[self.house_index]
 
     def next_task(
             self, force_advance_scene: bool = False
@@ -401,9 +406,9 @@ class ProcTHORObjectNavKianaVersionTaskSampler(ProcTHORObjectNavTaskSampler): #T
 
         # NOTE: Set agent pose
         starting_pose = AgentPose(
-            position=start_pose,
-            rotation=dict(x=0,y=random.choice([i for i in range(0,360,90)]),z=0),
-            horizon=20, #TODO make this a variable that is called from one place
+            position=random.choice(self.reachable_positions),
+            rotation=Vector3(x=0, y=random.choice(self.valid_rotations), z=0),
+            horizon=0,
             standing=True,
         )
         event = self.env.controller.step(action="TeleportFull", **starting_pose)
