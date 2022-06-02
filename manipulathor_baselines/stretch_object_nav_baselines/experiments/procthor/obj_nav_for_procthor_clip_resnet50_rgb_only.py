@@ -14,6 +14,7 @@ from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
 
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
+from utils.stretch_utils.stretch_ithor_arm_environment_minimal import MinimalStretchManipulaTHOREnvironment
 
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_for_procthor import ProcTHORObjectNavBaseConfig
 from utils.procthor_utils.procthor_object_nav_task_samplers import ProcTHORObjectNavTaskSampler
@@ -54,7 +55,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
 
     MAX_STEPS = 500
     if platform.system() == "Darwin":
-        MAX_STEPS = 100
+        MAX_STEPS = 200
         NUM_TRAIN_HOUSES = 100
         SENSORS += [
             RGBSensorThor(
@@ -67,7 +68,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
             ),
         ]
 
-    NUM_PROCESSES = 40
+    NUM_PROCESSES = 32
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
     TASK_TYPE = StretchNeckedObjectNavTask
@@ -82,12 +83,13 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         super().__init__() 
 
         self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
+        self.ENV_ARGS['agentMode']='locobot'
         self.ENV_ARGS['p_randomize_material'] = 0.8
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['renderDepthImage'] = False        
-        self.ENV_ARGS['allow_flipping'] = False
+        self.ENV_ARGS['allow_flipping'] = True
 
         self.preprocessing_and_model = ClipResNetPreprocessNCameraGRUActorCriticMixin(
             sensors=self.SENSORS,

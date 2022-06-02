@@ -405,7 +405,7 @@ class StretchObjectNavTask(ObjectNavTask):
 class StretchNeckedObjectNavTask(ObjectNavTask):
     _actions = (
         MOVE_AHEAD,
-        MOVE_BACK,
+        # MOVE_BACK,
         ROTATE_RIGHT,
         ROTATE_LEFT,
         "LookUp",

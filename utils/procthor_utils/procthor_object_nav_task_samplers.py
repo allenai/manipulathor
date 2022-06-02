@@ -160,7 +160,10 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         ]
 
     def get_nearest_agent_height(self, y_coordinate: float) -> float:
-        return 1.5759992 # from default agent - is guess. TODO check stretch
+        if self.env_args['agentMode'] == 'locobot':
+            return 0.8697997
+        else:
+            return 1.5759992 # from default agent - is guess. TODO check stretch
 
     @property
     def house_index(self) -> int:
@@ -300,20 +303,39 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.env.controller.step(
             action="CreateHouse", house=self.house, raise_for_failure=True
         )
-        self.env.controller.step("ResetObjectFilter")
+        # self.env.controller.step("ResetObjectFilter")
 
-        #TODO dude this is ugly!
-        pose = self.house["metadata"]["agent"].copy()
-        event = self.env.controller.step(action="TeleportFull", **pose)
-        if not event:
-            get_logger().warning(f"Initial teleport failing in {self.house_index}.") # clear logger noise
-            return False #TODO this can mess FPS
-        self.env.controller.step(action="MakeAllObjectsMoveable")
-        self.env.controller.step(action="MakeObjectsStaticKinematicMassThreshold")
-        make_all_objects_unbreakable(self.env.controller)
+        # #TODO dude this is ugly!
+        # pose = self.house["metadata"]["agent"].copy()
+        # event = self.env.controller.step(action="TeleportFull", **pose)
+        # if not event:
+        #     get_logger().warning(f"Initial teleport failing in {self.house_index}.") # clear logger noise
+        #     return False #TODO this can mess FPS
+        # self.env.controller.step(action="MakeAllObjectsMoveable")
+        # self.env.controller.step(action="MakeObjectsStaticKinematicMassThreshold")
+        # make_all_objects_unbreakable(self.env.controller)
 
         # NOTE: Set reachable positions
+        # if self.house_index not in self.reachable_positions_map:
+        #     rp_event = self.env.controller.step(action="GetReachablePositions")
+        #     if not rp_event:
+        #         # NOTE: Skip scenes where GetReachablePositions fails
+        #         get_logger().warning(
+        #             f"GetReachablePositions failed in {self.house_index}"
+        #         )
+        #         return False
+        #     reachable_positions = rp_event.metadata["actionReturn"]
+        #     self.reachable_positions_map[self.house_index] = reachable_positions
+        
         if self.house_index not in self.reachable_positions_map:
+            pose = self.house["metadata"]["agent"].copy()
+            # ForkedPdb().set_trace()
+            if self.env_args['agentMode'] == 'locobot':
+                del pose["standing"]
+            event = self.env.controller.step(action="TeleportFull", **pose)
+            if not event:
+                get_logger().warning(f"Initial teleport failing in {self.house_index}.")
+                return False
             rp_event = self.env.controller.step(action="GetReachablePositions")
             if not rp_event:
                 # NOTE: Skip scenes where GetReachablePositions fails
@@ -323,8 +345,8 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 return False
             reachable_positions = rp_event.metadata["actionReturn"]
             self.reachable_positions_map[self.house_index] = reachable_positions
-        
         return True
+        
 
     def increment_scene_index(self):
         self.house_inds_index = (self.house_inds_index + 1) % len(self.house_inds)
@@ -376,8 +398,11 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 position=random.choice(self.reachable_positions),
                 rotation=Vector3(x=0, y=random.choice(self.valid_rotations), z=0),
                 horizon=0,
-                standing=True,
+                # standing=standing,
             )
+            # ForkedPdb().set_trace()
+            if self.env_args['agentMode'] != 'locobot':
+                starting_pose['standing']=True
             event = self.env.controller.step(action="TeleportFull", **starting_pose)
             if attempts > 10:
                 get_logger().error(f"Teleport failed {attempts-1} times in house {self.house_index} - something may be wrong")
@@ -447,7 +472,7 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
 
             if self.last_house_idx is None or self.last_house_idx != ep["scene"]:
                 self.last_scene = ep["scene"]
-                self.env.reset(ep["scene"])
+                self.env.controller.reset(ep["scene"])
 
             # NOTE: not using ep["targetObjectIds"] due to floating points with
             # target objects moving.
@@ -463,7 +488,8 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
                 raise_for_failure=True,
             )
             ep["agentPose"]["horizon"] = 0 # reset for stretch agent
-            ep["agentPose"]["standing"] = True
+            if self.env_args['agentMode'] != 'locobot':
+                ep["agentPose"]["standing"] = True
             event = self.env.controller.step(action="TeleportFull", **ep["agentPose"])
             if not event:
                 # NOTE: Skip scenes where TeleportFull fails.

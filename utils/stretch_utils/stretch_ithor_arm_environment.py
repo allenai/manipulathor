@@ -121,6 +121,8 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
         self.MEMORY_SIZE = 5
         # self.memory_frames = []
 
+        self.list_of_actions_so_far = []
+
 
         if "quality" not in self.env_args:
             self.env_args["quality"] = self._quality
@@ -185,19 +187,23 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             scene_name = self.controller.last_event.metadata["sceneName"]
         # self.reset_init_params()#**kwargs) removing this fixes one of the crashing problem
 
-        # to solve the crash issue
-        # why do we still have this crashing problem?
-        try:
-            reset_environment_and_additional_commands(self.controller, scene_name)
-        except Exception as e:
-            print("RESETTING THE SCENE,", scene_name, 'because of', str(e))
-            self.controller = self.create_controller()
-            reset_environment_and_additional_commands(self.controller, scene_name)
+        if self.env_args['agentMode'] is not 'stretch':
+            self.controller.reset(scene_name)
+        else:
 
-        if self.object_open_speed != 1.0:
-            self.controller.step(
-                {"action": "ChangeOpenSpeed", "x": self.object_open_speed}
-            )
+            # to solve the crash issue
+            # why do we still have this crashing problem?
+            try:
+                reset_environment_and_additional_commands(self.controller, scene_name)
+            except Exception as e:
+                print("RESETTING THE SCENE,", scene_name, 'because of', str(e))
+                self.controller = self.create_controller()
+                reset_environment_and_additional_commands(self.controller, scene_name)
+
+            if self.object_open_speed != 1.0:
+                self.controller.step(
+                    {"action": "ChangeOpenSpeed", "x": self.object_open_speed}
+                )
 
         self._initially_reachable_points = None
         self._initially_reachable_points_set = None
@@ -299,6 +305,19 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
         """Take a step in the ai2thor environment."""
 
         action = typing.cast(str, action_dict["action"])
+
+        if self.env_args['agentMode']=='locobot' or self.env_args['agentMode']=='default':
+            sr = self.controller.step(action_dict)
+            self.list_of_actions_so_far.append(action_dict)
+
+            if self._verbose:
+                print(self.controller.last_event)
+
+            if self.restrict_to_initially_reachable_points:
+                self._snap_agent_to_initially_reachable()
+            
+            return sr
+
 
         skip_render = "renderImage" in action_dict and not action_dict["renderImage"]
         last_frame: Optional[np.ndarray] = None

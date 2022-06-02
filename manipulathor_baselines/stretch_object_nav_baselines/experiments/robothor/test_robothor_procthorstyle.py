@@ -3,20 +3,26 @@ from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.ob
     import ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_2camera_procthor_wide import \
     ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV
+from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_for_procthor_clip_resnet50_rgb_only import \
+    ProcTHORObjectNavClipResnet50RGBOnly
 from utils.procthor_utils.procthor_object_nav_task_samplers import RoboThorObjectNavTestTaskSampler
-from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask
+from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask, ObjectNavTask, StretchNeckedObjectNavTask
+
+from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
+
 
 from manipulathor_utils.debugger_util import ForkedPdb
 
 
 
-class ObjectNavRoboTHORConfig(ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV):
+class ObjectNavTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
     EVAL_TASKS = datasets.load_dataset(
         f"allenai/robothor-objectnav-eval", use_auth_token=True
     )
 
     TASK_SAMPLER = RoboThorObjectNavTestTaskSampler
-    TASK_TYPE = StretchObjectNavTask
+    TASK_TYPE = StretchNeckedObjectNavTask
+    ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     TEST_ON_VALIDATION = True
 
     @classmethod

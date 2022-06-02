@@ -207,7 +207,7 @@ class StretchObjNavImageVisualizer(LoggerVisualizer):
         else:
             scene = this_controller.last_event.metadata["sceneName"]
 
-        reset_environment_and_additional_commands(this_controller, scene)
+        # reset_environment_and_additional_commands(this_controller, scene) # RH: why is there a reset in the visualizer?
 
         self.log_queue = []
         self.action_queue = []
