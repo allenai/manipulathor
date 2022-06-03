@@ -38,7 +38,9 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         OBJECT_TYPES=yaml.safe_load(f)
 
     NOISE_LEVEL = 0
-    distance_thr = 1.0 # match procthor config
+    distance_thr = 4.0 # set larger for stretch work
+    WHICH_AGENT = 'stretch' # 'locobot' 'default'
+
     SENSORS = [
         RGBSensorThor(
             height=ProcTHORObjectNavBaseConfig.SCREEN_SIZE,
@@ -83,7 +85,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         super().__init__() 
 
         self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
-        self.ENV_ARGS['agentMode']='locobot'
+        self.ENV_ARGS['agentMode']=self.WHICH_AGENT
         self.ENV_ARGS['p_randomize_material'] = 0.8
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
@@ -107,6 +109,9 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
             visualize=self.VISUALIZE
         )
 
+    def get_agent(self):
+        return self.ENV_ARGS['agentMode']
+
     @classmethod
     def tag(cls):
-        return cls.__name__
+        return cls.TASK_TYPE.__name__ + '-RGB-SingleCam-ProcTHOR' + '-' +  cls.WHICH_AGENT

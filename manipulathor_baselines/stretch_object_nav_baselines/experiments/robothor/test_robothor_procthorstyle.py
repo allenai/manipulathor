@@ -15,25 +15,19 @@ from manipulathor_utils.debugger_util import ForkedPdb
 
 
 
-class ObjectNavTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
+class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
     EVAL_TASKS = datasets.load_dataset(
         f"allenai/robothor-objectnav-eval", use_auth_token=True
     )
 
-    TASK_SAMPLER = RoboThorObjectNavTestTaskSampler
+    TEST_TASK_SAMPLER = RoboThorObjectNavTestTaskSampler
     TASK_TYPE = StretchNeckedObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     TEST_ON_VALIDATION = True
 
     @classmethod
     def tag(cls):
-        return super().tag() + "-RoboTHOR-Target"
-
-    # def make_sampler_fn(self, task_sampler_args: TaskSamplerArgs, **kwargs):
-    #     if task_sampler_args.mode == "eval":
-    #         return ObjectNavTestTaskSampler(args=task_sampler_args)
-    #     else:
-    #         return ObjectNavTaskSampler(args=task_sampler_args)
+        return super().tag() + "-RoboTHOR-Test"
     
     @classmethod
     def make_sampler_fn(cls, **kwargs):
@@ -48,10 +42,11 @@ class ObjectNavTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
             ]
             kwargs["visualizers"] = visualizers
         kwargs["exp_name"] = exp_name_w_time
-        # ForkedPdb().set_trace()
 
-        assert kwargs["sampler_mode"] == "eval"
-        return cls.TASK_SAMPLER(**kwargs)
+        if kwargs["sampler_mode"] == "train":
+            return cls.TASK_SAMPLER(**kwargs)
+        else:
+            return cls.TEST_TASK_SAMPLER(**kwargs)
 
     def valid_task_sampler_args(self, **kwargs):
         out = self._get_sampler_args_for_scene_split(

@@ -22,7 +22,7 @@ from utils.procthor_utils.procthor_types import AgentPose, Vector3
 from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask
 from utils.stretch_utils.stretch_constants import ADITIONAL_ARM_ARGS
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
-from scripts.stretch_jupyter_helper import make_all_objects_unbreakable
+from scripts.stretch_jupyter_helper import get_relative_stretch_current_arm_state
 
 
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -162,6 +162,8 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
     def get_nearest_agent_height(self, y_coordinate: float) -> float:
         if self.env_args['agentMode'] == 'locobot':
             return 0.8697997
+        elif self.env_args['agentMode'] == 'stretch':
+            return 1.27 # to intel camera, measured physical
         else:
             return 1.5759992 # from default agent - is guess. TODO check stretch
 
@@ -303,33 +305,9 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.env.controller.step(
             action="CreateHouse", house=self.house, raise_for_failure=True
         )
-        # self.env.controller.step("ResetObjectFilter")
-
-        # #TODO dude this is ugly!
-        # pose = self.house["metadata"]["agent"].copy()
-        # event = self.env.controller.step(action="TeleportFull", **pose)
-        # if not event:
-        #     get_logger().warning(f"Initial teleport failing in {self.house_index}.") # clear logger noise
-        #     return False #TODO this can mess FPS
-        # self.env.controller.step(action="MakeAllObjectsMoveable")
-        # self.env.controller.step(action="MakeObjectsStaticKinematicMassThreshold")
-        # make_all_objects_unbreakable(self.env.controller)
-
-        # NOTE: Set reachable positions
-        # if self.house_index not in self.reachable_positions_map:
-        #     rp_event = self.env.controller.step(action="GetReachablePositions")
-        #     if not rp_event:
-        #         # NOTE: Skip scenes where GetReachablePositions fails
-        #         get_logger().warning(
-        #             f"GetReachablePositions failed in {self.house_index}"
-        #         )
-        #         return False
-        #     reachable_positions = rp_event.metadata["actionReturn"]
-        #     self.reachable_positions_map[self.house_index] = reachable_positions
         
         if self.house_index not in self.reachable_positions_map:
             pose = self.house["metadata"]["agent"].copy()
-            # ForkedPdb().set_trace()
             if self.env_args['agentMode'] == 'locobot':
                 del pose["standing"]
             event = self.env.controller.step(action="TeleportFull", **pose)
@@ -345,6 +323,12 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 return False
             reachable_positions = rp_event.metadata["actionReturn"]
             self.reachable_positions_map[self.house_index] = reachable_positions
+        
+        # verify the stretch arm is stowed
+        if self.env_args['agentMode'] == 'stretch':
+            arm_pos = get_relative_stretch_current_arm_state(self.env.controller)
+            assert abs(sum(arm_pos.values())) < 0.001
+
         return True
         
 
@@ -398,9 +382,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 position=random.choice(self.reachable_positions),
                 rotation=Vector3(x=0, y=random.choice(self.valid_rotations), z=0),
                 horizon=0,
-                # standing=standing,
             )
-            # ForkedPdb().set_trace()
             if self.env_args['agentMode'] != 'locobot':
                 starting_pose['standing']=True
             event = self.env.controller.step(action="TeleportFull", **starting_pose)
@@ -445,15 +427,6 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.last_scene = None
-
-        # # visualize 1/10 episodes
-        # self.epids_to_visualize = set(
-        #     np.linspace(
-        #         0, self.reset_tasks, num=min(self.reset_tasks // 10, 4), dtype=np.uint8
-        #     ).tolist()
-        # )
-        # self.args.controller_args = self.args.controller_args.copy()
-        # self.env_args["procedural"] = False
 
     def next_task(self, force_advance_scene: bool = False) -> Optional[StretchObjectNavTask]:
         while True:

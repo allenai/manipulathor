@@ -267,10 +267,21 @@ command_aws1 = 'scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/O
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 --extra_tag armpointnav_with_ProcTHOR_RGBonly_after_fix_clip '
 
-command_aws5 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_nav_2camera_procthor_wide_distrib \
+# command_aws5 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_nav_2camera_procthor_wide_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag prcthor_obj_nav '
+
+# command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOVDistrib/finetune_robothor/2022-05-27_21-00-03/exp_RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOVDistrib_finetune_robothor__stage_02__steps_000160201650.pt ~/; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch/experiments/ithor/kiana_obj_nav_2camera_procthor_wide_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag kiana_objnav_outside_room_wide -c ~/exp_ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVDistrib_prcthor_obj_nav__stage_02__steps_000100123710.pt '
+
+command_aws5 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_distrib.py \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag prcthor_obj_nav '
+ --seed 10 --machine_id 0'
+
 
 
 # command = command_aws5
