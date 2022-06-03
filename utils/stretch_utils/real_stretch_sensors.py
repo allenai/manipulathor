@@ -13,7 +13,8 @@ import numpy as np
 import torch
 from PIL import Image
 import matplotlib.pyplot as plt
-from allenact.base_abstractions.sensor import DepthSensor, Sensor, RGBSensor
+# from allenact.base_abstractions.sensor import DepthSensor, Sensor, RGBSensor
+from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import Task
 from allenact.utils.misc_utils import prepare_locals_for_super
 from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
@@ -165,6 +166,10 @@ class StretchDetectronObjectMask(Sensor):
         elif self.type == 'destination':
             info_to_search = 'goal_object_id'
             #TODO remove
+            mask = torch.zeros((224,224,1))
+            return mask
+
+        if True: #TODO NOW
             mask = torch.zeros((224,224,1))
             return mask
 
@@ -352,7 +357,7 @@ class RealKinectArmPointNavEmulSensor(Sensor):
             self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
         #TODO remove
-        if self.type == 'destination':
+        if self.type == 'destination' or True: #TODO NOW
             return self.dummy_answer
         mask = (self.mask_sensor.get_observation(env, task, *args, **kwargs)) #TODO this is called multiple times?
         depth_frame_original = self.depth_sensor.get_observation(env, task, *args, **kwargs).squeeze(-1)
@@ -473,7 +478,8 @@ class RealIntelAgentBodyPointNavEmulSensor(Sensor):
         if mask.sum() != 0:
             depth_frame_original = self.depth_sensor.get_observation(env, task, *args, **kwargs).squeeze(-1)
             middle_of_object = get_mid_point_of_object_from_depth_and_mask(mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
-            self.pointnav_history_aggr.append((middle_of_object.cpu(), 1, task.num_steps_taken()))
+            if not torch.any(torch.isnan(middle_of_object) + torch.isinf(middle_of_object)): #TODO NOW double check
+                self.pointnav_history_aggr.append((middle_of_object.cpu(), 1, task.num_steps_taken()))
 
             # result = middle_of_object.cpu()
         # else:

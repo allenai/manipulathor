@@ -265,7 +265,7 @@ class AgentBodyPointNavEmulSensor(Sensor):
         fov = agent_locations['fov']
 
         #TODO we have to rewrite this such that it rotates the object not the agent
-        if mask.sum() != 0:
+        if not np.all(depth_frame == -1):
             world_space_point_cloud = calc_world_coordinates(self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device, depth_frame)
             valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
             point_in_world = world_space_point_cloud[valid_points]
@@ -362,7 +362,7 @@ class ArmPointNavEmulSensor(Sensor):
         fov = agent_locations['fov']
 
         #TODO we have to rewrite this such that it rotates the object not the agent
-        if mask.sum() != 0:
+        if not np.all(depth_frame == -1):
             world_space_point_cloud = calc_world_coordinates(self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device, depth_frame)
             valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
             point_in_world = world_space_point_cloud[valid_points]
