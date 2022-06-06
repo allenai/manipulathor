@@ -9,7 +9,7 @@ from allenact.base_abstractions.preprocessor import Preprocessor
 from allenact.base_abstractions.sensor import Sensor
 from allenact.embodiedai.sensors.vision_sensors import RGBSensor, DepthSensor
 from allenact.utils.experiment_utils import Builder
-from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
+# from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
 from allenact_plugins.navigation_plugin.objectnav.models import (

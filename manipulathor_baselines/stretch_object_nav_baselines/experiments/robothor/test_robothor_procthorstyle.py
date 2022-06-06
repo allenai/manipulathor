@@ -25,7 +25,10 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
     TASK_TYPE = StretchNeckedObjectNavTaskUpdateOrder
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     TEST_ON_VALIDATION = True
-    TEST_GPU_IDS = list(range(torch.cuda.device_count())) # uncomment for faster testing
+    TEST_GPU_IDS = list(range(torch.cuda.device_count())) # uncomment for vision server testing
+
+    # POTENTIAL_VISUALIZERS = []
+    # DISTANCE_TYPE = "geo"
 
     @classmethod
     def tag(cls):

@@ -92,8 +92,8 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['renderDepthImage'] = False        
         self.ENV_ARGS['allow_flipping'] = True
-        # if self.WHICH_AGENT == 'stretch':
-        #     self.ENV_ARGS['gridSize']=0.2
+        if self.WHICH_AGENT == 'locobot':
+            self.ENV_ARGS['fieldOfView'] = 63.453048374758716
 
         self.preprocessing_and_model = ClipResNetPreprocessNCameraGRUActorCriticMixin(
             sensors=self.SENSORS,

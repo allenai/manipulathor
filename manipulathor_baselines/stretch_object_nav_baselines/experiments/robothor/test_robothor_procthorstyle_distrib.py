@@ -18,8 +18,8 @@ class ObjectNavRoboTHORTestProcTHORstyleDistrib(
 ):
     NUM_PROCESSES = 56 # one them crashed for space?
     NUM_TRAIN_PROCESSES = 64
-    NUM_VAL_PROCESSES = 8
-    NUM_TEST_PROCESSES = 0
+    NUM_VAL_PROCESSES = 10
+    NUM_TEST_PROCESSES = 16
 
     TRAIN_DEVICES = (
         tuple(range(torch.cuda.device_count()))

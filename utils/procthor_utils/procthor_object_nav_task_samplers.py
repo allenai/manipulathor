@@ -462,9 +462,9 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
                 objectIds=target_object_ids,
                 raise_for_failure=True,
             )
-            ep["agentPose"]["horizon"] = 0 # reset for stretch agent
             if self.env_args['agentMode'] != 'locobot':
                 ep["agentPose"]["standing"] = True
+                ep["agentPose"]["horizon"] = 0 # reset for stretch agent
             event = self.env.controller.step(action="TeleportFull", **ep["agentPose"])
             if not event:
                 # NOTE: Skip scenes where TeleportFull fails.
