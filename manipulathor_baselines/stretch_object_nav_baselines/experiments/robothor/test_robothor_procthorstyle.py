@@ -1,4 +1,5 @@
 import datasets
+import torch
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_2camera_procthor_narrow \
     import ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_2camera_procthor_wide import \
@@ -6,7 +7,7 @@ from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.ob
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_for_procthor_clip_resnet50_rgb_only import \
     ProcTHORObjectNavClipResnet50RGBOnly
 from utils.procthor_utils.procthor_object_nav_task_samplers import RoboThorObjectNavTestTaskSampler
-from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask, ObjectNavTask, StretchNeckedObjectNavTask
+from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask, ObjectNavTask, StretchNeckedObjectNavTask, StretchNeckedObjectNavTaskUpdateOrder
 
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 
@@ -21,9 +22,10 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
     )
 
     TEST_TASK_SAMPLER = RoboThorObjectNavTestTaskSampler
-    TASK_TYPE = StretchNeckedObjectNavTask
+    TASK_TYPE = StretchNeckedObjectNavTaskUpdateOrder
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     TEST_ON_VALIDATION = True
+    TEST_GPU_IDS = list(range(torch.cuda.device_count())) # uncomment for faster testing
 
     @classmethod
     def tag(cls):
@@ -52,7 +54,7 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
         out = self._get_sampler_args_for_scene_split(
             houses=self.EVAL_TASKS["validation"],
             mode="eval",
-            max_tasks=150,
+            max_tasks=None,
             allow_flipping=False,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,  # ignored
             **kwargs,
@@ -66,7 +68,7 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
         out = self._get_sampler_args_for_scene_split(
             houses=self.EVAL_TASKS["test"].shuffle(),
             mode="eval",
-            max_tasks=150,
+            max_tasks=None,
             allow_flipping=False,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,  # ignored
             **kwargs,

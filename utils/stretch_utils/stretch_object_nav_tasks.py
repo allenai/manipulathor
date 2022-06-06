@@ -414,6 +414,17 @@ class StretchNeckedObjectNavTask(ObjectNavTask):
         DONE,
     )
 
+class StretchNeckedObjectNavTaskUpdateOrder(ObjectNavTask):
+    # for evaluating weights from Matt
+    _actions = (
+        MOVE_AHEAD,
+        ROTATE_LEFT,
+        ROTATE_RIGHT,
+        DONE,
+        "LookUp",
+        "LookDown"
+    )
+
 class ExploreWiseObjectNavTask(ObjectNavTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

@@ -38,8 +38,8 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         OBJECT_TYPES=yaml.safe_load(f)
 
     NOISE_LEVEL = 0
-    distance_thr = 4.0 # set larger for stretch work
-    WHICH_AGENT = 'stretch' # 'locobot' 'default'
+    distance_thr = 1.0 # set larger for stretch work
+    WHICH_AGENT = 'locobot' # 'locobot' 'default' 'stretch'
 
     SENSORS = [
         RGBSensorThor(
@@ -70,7 +70,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
             ),
         ]
 
-    NUM_PROCESSES = 32
+    NUM_PROCESSES = 56
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
     TASK_TYPE = StretchNeckedObjectNavTask
@@ -92,6 +92,8 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['renderDepthImage'] = False        
         self.ENV_ARGS['allow_flipping'] = True
+        # if self.WHICH_AGENT == 'stretch':
+        #     self.ENV_ARGS['gridSize']=0.2
 
         self.preprocessing_and_model = ClipResNetPreprocessNCameraGRUActorCriticMixin(
             sensors=self.SENSORS,

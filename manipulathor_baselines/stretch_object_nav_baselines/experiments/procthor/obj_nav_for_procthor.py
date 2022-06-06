@@ -109,7 +109,11 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
     ) -> Dict[str, Any]:
 
         house_inds = list(range(len(houses)))
-        scenes = [str(h) for h in house_inds if h not in PROCTHOR_INVALID_SCENES]
+        if mode is "train":
+            scenes = [str(h) for h in house_inds if h not in PROCTHOR_INVALID_SCENES]
+        else:
+            scenes = [str(h) for h in house_inds]
+
         general_args = super()._get_sampler_args_for_scene_split(scenes=scenes,                                                               # scenes=scenes,
                                                                 process_ind=process_ind,
                                                                 **kwargs)
@@ -122,7 +126,7 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
             "house_inds": list(map(int,general_args['scenes'])),
             "process_ind": process_ind,
             "target_object_types": self.OBJECT_TYPES,
-            "max_tasks": max_tasks if max_tasks is not None else len(house_inds),
+            "max_tasks": max_tasks if max_tasks is not None else len(general_args['scenes']),
             "distance_type": self.DISTANCE_TYPE,
             "resample_same_scene_freq": resample_same_scene_freq,
             "scene_name": "Procedural"

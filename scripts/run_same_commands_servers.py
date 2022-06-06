@@ -277,11 +277,15 @@ command_aws1 = 'scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/O
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 --extra_tag kiana_objnav_outside_room_wide -c ~/exp_ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVDistrib_prcthor_obj_nav__stage_02__steps_000100123710.pt '
 
-command_aws5 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_distrib.py \
+# command_aws5 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_distrib.py \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0'
+
+command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/StretchNeckedObjectNavTask-RGB-SingleCam-ProcTHOR-locobot-RoboTHOR-Test/2022-06-06_06-58-41/exp_StretchNeckedObjectNavTask-RGB-SingleCam-ProcTHOR-locobot-RoboTHOR-Test__stage_01__steps_000020007984.pt  ~/; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_distrib.py \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0'
-
+ --seed 10 --machine_id 0 -c ~/exp_StretchNeckedObjectNavTask-RGB-SingleCam-ProcTHOR-locobot-RoboTHOR-Test__stage_01__steps_000020007984.pt '
 
 
 # command = command_aws5
@@ -320,6 +324,7 @@ def parse_args():
     args.command  = server['command']
     args.command = args.command.replace('IP_ADR', ip_adr)
     args.command = args.command.replace('NUM_MACHINES', str(len(args.servers)))
+    args.command = args.command.replace('MAIN_SERVER', ip_adr) 
     return args
 
 def main(args):

@@ -246,6 +246,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
             for obj_type, count in reversed(self.obj_type_counter.most_common()):
                 instances_of_type = self.target_objects_in_scene.get(obj_type, [])
 
+
                 # NOTE: object type doesn't appear in the scene.
                 if not instances_of_type:
                     continue
@@ -429,6 +430,7 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
         self.last_scene = None
 
     def next_task(self, force_advance_scene: bool = False) -> Optional[StretchObjectNavTask]:
+        # ForkedPdb().set_trace()
         while True:
             # NOTE: Stopping condition
             if self.env is None:
