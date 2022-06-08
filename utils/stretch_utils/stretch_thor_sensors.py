@@ -185,8 +185,83 @@ class RGBSensorStretchIntel(
 
 
 
+class AgentOdometryEmulSensor(Sensor):
+    def __init__(self, noise=0, uuid: str = "odometry_emul", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )
+        self.noise = noise
+        assert self.noise == 0
+
+        self.initial_pos = np.zeros(3)
+        self.initial_rot = 0.0
+
+        super().__init__(**prepare_locals_for_super(locals()))
+
+    def get_observation(
+            self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        camera_info = {}
+
+        metadata = copy.deepcopy(env.controller.last_event.metadata)
+        # if task.num_steps_taken() == 0:
+        if metadata['lastAction'] == 'GetReachablePositions':
+            self.initial_rot = metadata["agent"]["rotation"]["y"]
+            self.initial_pos = np.array([metadata['agent']['position'][k] for k in ["x", "y", "z"]])
+
+            # Set elevation to zero
+            self.initial_pos[1] = 0
+        
+        # if task.num_steps_taken() < 5:
+        #     print("last action", task.num_steps_taken(), metadata['lastAction'], self.initial_rot,  metadata["agent"]["rotation"]["y"])
+        sin_of_rot = np.sin(np.deg2rad(self.initial_rot))
+        cos_of_rot = np.cos(np.deg2rad(self.initial_rot))
 
 
+        agent_xyz = np.array([metadata['agent']['position'][k] for k in ["x", "y", "z"]]) - self.initial_pos
+        agent_rot = metadata["agent"]["rotation"]["y"] - self.initial_rot
+        agent_xyz_rot = np.array([cos_of_rot * agent_xyz[0] - sin_of_rot * agent_xyz[2],
+                                   agent_xyz[1],
+                                   sin_of_rot * agent_xyz[0] + cos_of_rot * agent_xyz[2]])
+        agent_info = dict(xyz=agent_xyz_rot,
+                          rotation=agent_rot)
+
+
+        camera_xyz = np.array([metadata["cameraPosition"][k] for k in ["x", "y", "z"]]) - self.initial_pos
+        camera_rotation=metadata["agent"]["rotation"]["y"] - self.initial_rot
+        
+        camera_xyz_rot = np.array([cos_of_rot * camera_xyz[0] - sin_of_rot * camera_xyz[2],
+                                   camera_xyz[1],
+                                   sin_of_rot * camera_xyz[0] + cos_of_rot * camera_xyz[2]])
+
+        # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+        
+        camera_horizon=metadata["agent"]["cameraHorizon"]
+        fov = metadata['fov']
+        camera_info['camera'] = dict(xyz=camera_xyz_rot,
+                                       rotation=camera_rotation,
+                                       horizon=camera_horizon,
+                                       fov=fov)
+
+        metadata = copy.deepcopy(env.controller.last_event.metadata['thirdPartyCameras'][0])
+        camera_xyz = np.array([metadata["position"][k] for k in ["x", "y", "z"]]) - self.initial_pos
+        camera_xyz_rot = np.array([cos_of_rot * camera_xyz[0] - sin_of_rot * camera_xyz[2],
+                                   camera_xyz[1],
+                                   sin_of_rot * camera_xyz[0] + cos_of_rot * camera_xyz[2]])
+        camera_rotation = metadata['rotation']['y'] - self.initial_rot
+        camera_horizon = metadata['rotation']['x']
+        fov = metadata['fieldOfView']
+        camera_info['camera_arm'] = dict(xyz=camera_xyz_rot,
+                                       rotation=camera_rotation,
+                                       horizon=camera_horizon,
+                                       fov=fov)
+
+
+
+
+        return {'agent_info': agent_info, 'camera_info': camera_info}
+
+    
 
 class AgentBodyPointNavSensor(Sensor):
 
