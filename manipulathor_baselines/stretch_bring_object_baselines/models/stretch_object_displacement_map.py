@@ -167,21 +167,29 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             camera: Dict, 
             timestep: int
         ) -> torch.FloatTensor:
-        camera_space_xyz = depth_frame_to_camera_space_xyz(frame, mask, fov=camera['fov'][timestep])
-        world_points = camera_space_xyz_to_world_xyz(camera_space_xyzs=camera_space_xyz, 
-                                                    camera_world_xyz=camera['xyz'][timestep].reshape(3), 
-                                                    rotation=camera['rotation'][timestep], 
-                                                    horizon=camera['horizon'][timestep])
-        world_points = world_points.permute(1, 0).unsqueeze(0)
-        world_points_plus_min = world_points + self.min_xyz
-        binned_map_update = project_point_cloud_to_map(xyz_points = world_points_plus_min,
-                                                    bin_axis="y",
-                                                    bins=self.bins,
-                                                    map_size=self.map_size,
-                                                    resolution_in_cm=self.map_resolution_cm,
-                                                    flip_row_col=True)
 
-        return binned_map_update
+        binned_updates = []
+        for i in range(frame.shape[0]):
+            if torch.sum(mask[i]) == 0:
+                binned_updates.append(torch.zeros(*frame[i].shape, len(self.bins)+1, device=frame.device))
+                continue
+
+            camera_space_xyz = depth_frame_to_camera_space_xyz(frame[i], mask[i], fov=camera['fov'][timestep][i])
+            world_points = camera_space_xyz_to_world_xyz(camera_space_xyzs=camera_space_xyz, 
+                                                        camera_world_xyz=camera['xyz'][timestep][i], 
+                                                        rotation=camera['rotation'][timestep][i], 
+                                                        horizon=camera['horizon'][timestep][i])
+            world_points = world_points.permute(1, 0).unsqueeze(0)
+            world_points_plus_min = world_points + self.min_xyz
+            binned_map_update = project_point_cloud_to_map(xyz_points = world_points_plus_min,
+                                                        bin_axis="y",
+                                                        bins=self.bins,
+                                                        map_size=self.map_size,
+                                                        resolution_in_cm=self.map_resolution_cm,
+                                                        flip_row_col=True)
+            binned_updates.append(binned_map_update)
+        binned_updates = torch.stack(binned_updates)
+        return binned_updates
 
     def forward(  # type:ignore
         self,
@@ -191,21 +199,22 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         masks: torch.FloatTensor,
     ) -> Tuple[ActorCriticOutput[DistributionType], Optional[Memory]]:
 
-        current_map = memory.tensor("map").reshape(1, self.map_size, self.map_size, self.map_channels)
+        batch_size = memory.tensor("map").shape[1]
+        current_map = memory.tensor("map").reshape(batch_size, self.map_size, self.map_size, self.map_channels)
         # print("min max", torch.min(observations['depth_lowres']), torch.max(observations['depth_lowres']))
 
         # Builds geocentric maps
         all_maps = [current_map]
         for timestep in range(observations['depth_lowres'].shape[0]):
-            all_maps.append(all_maps[-1].clone() * masks[timestep])
+            all_maps.append(all_maps[-1].clone() * masks[timestep].reshape(batch_size, 1, 1, 1))
             for camera_name, frame, source_mask, destination_mask in \
                     zip(observations['odometry_emul']['camera_info'],
                         (observations['depth_lowres'], observations['depth_lowres_arm']),
                         (observations['object_mask_source'], observations['object_mask_kinect_source']),
                         (observations['object_mask_destination'], observations['object_mask_kinect_destination'])):
                 camera = observations['odometry_emul']['camera_info'][camera_name]
-
-                reshaped_frame = frame[timestep].reshape(224, 224).clone()
+                
+                reshaped_frame = frame[timestep].reshape(batch_size, *frame.shape[2:4]).clone()
                 
                 valid_depths = torch.logical_and(reshaped_frame>0.01, reshaped_frame < 2.99)
 
@@ -217,9 +226,9 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                     continue
                 
                 binned_map_update = self.get_binned_map(reshaped_frame, valid_depths, camera, timestep)
-                
+
                 # Discards ceiling detections when updating the map
-                all_maps[-1][:, :, :, :2] += binned_map_update[:, :, :2]
+                all_maps[-1][:, :, :, :2] += binned_map_update[:, :, :, :2]
 
                 # Adds the source object detections
                 source_object_mask = torch.logical_and(valid_depths, source_mask[timestep].reshape(valid_depths.shape) > 0.0)
@@ -274,8 +283,8 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         #     # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
         #     pass
         # else:
-        #     if self.step_count % 1 == 0:
-        #         cv2.imwrite("/Users/karls/debug_images/act_all_map_{}.png".format(self.step_count), all_maps[-1, 0].detach().cpu().numpy())
+        #     for i in range(all_maps.shape[1]):
+        #         cv2.imwrite("/Users/karls/debug_images/act_all_map_batch{}_{}.png".format(i, self.step_count), all_maps[-1, i, :, :, :3].detach().cpu().numpy()*256)
         #     # cv2.imwrite("/Users/karls/debug_images/act_all_map_{}_rgb_front.png".format(self.step_count), observations['rgb_lowres'][-1, 0].cpu().numpy() * 50+ 100 )
         #     # cv2.imwrite("/Users/karls/debug_images/act_all_map_{}_rgb_arm.png".format(self.step_count), observations['rgb_lowres_arm'][-1, 0].cpu().numpy() * 50+ 100 )
         #     # cv2.imwrite("/Users/karls/debug_images/act_all_map_{}_depth_front.png".format(self.step_count), observations['depth_lowres'][-1, 0].cpu().numpy() * 50+ 100 )
