@@ -27,8 +27,11 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
     TEST_ON_VALIDATION = True
     TEST_GPU_IDS = list(range(torch.cuda.device_count())) # uncomment for vision server testing
 
-    # POTENTIAL_VISUALIZERS = []
+    POTENTIAL_VISUALIZERS = []
     # DISTANCE_TYPE = "geo"
+    CAMERA_WIDTH = 400
+    CAMERA_HEIGHT = 300
+    # ROTATION_DEGREES = 30
 
     @classmethod
     def tag(cls):

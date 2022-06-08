@@ -98,8 +98,6 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.max_agent_positions = 6         
         self.p_greedy_target_object = 0.8
 
-        self.last_house_idx = None
-
         self.reset()
 
 
@@ -445,7 +443,7 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
             ep = self.houses[epidx]
             # ForkedPdb().set_trace()
 
-            if self.last_house_idx is None or self.last_house_idx != ep["scene"]:
+            if self.last_scene is None or self.last_scene != ep["scene"]:
                 self.last_scene = ep["scene"]
                 self.env.controller.reset(ep["scene"])
 
