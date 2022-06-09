@@ -150,7 +150,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         ego_rotations = -torch.deg2rad(agent_info['rotation'].reshape(-1))
         ego_xyz = agent_info['xyz'].reshape(-1, 3) / (self.map_resolution_cm / 100.) / self.map_size * 2.0
         transform_world_to_ego = torch.tensor([[[torch.cos(a), -torch.sin(a), pos[0]],
-                                                [torch.sin(a),  torch.cos(a), pos[2]]] for a, pos in zip(ego_rotations, ego_xyz)], dtype=global_maps.dtype)
+                                                [torch.sin(a),  torch.cos(a), pos[2]]] for a, pos in zip(ego_rotations, ego_xyz)], dtype=global_maps.dtype, device=global_maps.device)
         global_maps_reshaped = global_maps.reshape(-1, *global_maps.shape[2:]).permute(0, 3, 1, 2)
 
         affine_grid_world_to_ego = F.affine_grid(transform_world_to_ego, global_maps_reshaped.shape)
@@ -177,10 +177,10 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             camera_space_xyz = depth_frame_to_camera_space_xyz(frame[i], mask[i], fov=camera['fov'][timestep][i])
             world_points = camera_space_xyz_to_world_xyz(camera_space_xyzs=camera_space_xyz, 
                                                         camera_world_xyz=camera['xyz'][timestep][i], 
-                                                        rotation=camera['rotation'][timestep][i], 
-                                                        horizon=camera['horizon'][timestep][i])
-            world_points = world_points.permute(1, 0).unsqueeze(0)
-            world_points_plus_min = world_points + self.min_xyz
+                                                        rotation=camera['rotation'][timestep][i].cpu(), 
+                                                        horizon=camera['horizon'][timestep][i].cpu())
+            world_points = world_points.permute(1, 0).unsqueeze(0).to(frame.device)
+            world_points_plus_min = world_points + self.min_xyz.to(frame.device)
             binned_map_update = project_point_cloud_to_map(xyz_points = world_points_plus_min,
                                                         bin_axis="y",
                                                         bins=self.bins,
