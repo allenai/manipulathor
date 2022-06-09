@@ -74,7 +74,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         
         self.visualizers = visualizers
         self.sampler_mode = kwargs["sampler_mode"]
-        self.cap_training = kwargs["cap_training"]
+        # self.cap_training = kwargs["cap_training"]
 
         self.episode_index = 0
         self.houses = houses

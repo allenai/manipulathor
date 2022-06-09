@@ -85,22 +85,22 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         super().__init__() 
 
         # self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
-        self.ENV_ARGS['agentMode']=self.WHICH_AGENT
+        # self.ENV_ARGS['agentMode']=self.WHICH_AGENT
         self.ENV_ARGS['p_randomize_material'] = 0.8
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['renderDepthImage'] = False        
         self.ENV_ARGS['allow_flipping'] = True
-        if self.WHICH_AGENT == 'locobot':
-            self.ENV_ARGS['fieldOfView'] = 63.453048374758716
-            self.ENV_ARGS['rotateStepDegrees'] = 30.0
-            self.ENV_ARGS["snapToGrid"] = False
-            self.ENV_ARGS["quality"] = 'Ultra'
-            self.ENV_ARGS['width'] = 400
-            self.ENV_ARGS['height'] = 300
+        # if self.WHICH_AGENT == 'locobot':
+        #     self.ENV_ARGS['fieldOfView'] = 63.453048374758716
+        #     self.ENV_ARGS['rotateStepDegrees'] = 30.0
+        #     self.ENV_ARGS["snapToGrid"] = False
+            # self.ENV_ARGS["quality"] = 'Ultra'
+            # self.ENV_ARGS['width'] = 400
+            # self.ENV_ARGS['height'] = 300
         
-        self.REWARD_CONFIG['shaping_weight'] = 0.0
+        # self.REWARD_CONFIG['shaping_weight'] = 0.0
 
         self.preprocessing_and_model = ClipResNetPreprocessNCameraGRUActorCriticMixin(
             sensors=self.SENSORS,

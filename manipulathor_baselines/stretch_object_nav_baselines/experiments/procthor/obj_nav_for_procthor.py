@@ -45,7 +45,7 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
 
     DISTANCE_TYPE = "l2"  # "geo"  # Can be "geo" or "l2"
 
-    CAP_TRAINING = None
+    # CAP_TRAINING = None
 
     ADVANCE_SCENE_ROLLOUT_PERIOD: Optional[
         int
@@ -135,7 +135,7 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         out = {**general_args,**procthor_specific}
 
         out["task_type"] = self.TASK_TYPE
-        out["cap_training"] = self.CAP_TRAINING
+        # out["cap_training"] = self.CAP_TRAINING
 
         out["env_args"]["x_display"] = x_display
         out["env_args"]['commit_id'] = UPDATED_PROCTHOR_COMMIT_ID#PROCTHOR_COMMIT_ID

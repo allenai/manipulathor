@@ -25,12 +25,12 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
     TASK_TYPE = StretchNeckedObjectNavTaskUpdateOrder
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     TEST_ON_VALIDATION = True
-    TEST_GPU_IDS = list(range(torch.cuda.device_count())) # uncomment for vision server testing
+    # TEST_GPU_IDS = list(range(torch.cuda.device_count())) # uncomment for vision server testing
 
     POTENTIAL_VISUALIZERS = []
     # DISTANCE_TYPE = "geo"
-    CAMERA_WIDTH = 400
-    CAMERA_HEIGHT = 300
+    # CAMERA_WIDTH = 400
+    # CAMERA_HEIGHT = 300
     # ROTATION_DEGREES = 30
 
     @classmethod
@@ -60,7 +60,7 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
         out = self._get_sampler_args_for_scene_split(
             houses=self.EVAL_TASKS["validation"],
             mode="eval",
-            max_tasks=None,
+            max_tasks=15,
             allow_flipping=False,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,  # ignored
             **kwargs,
@@ -74,7 +74,7 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
         out = self._get_sampler_args_for_scene_split(
             houses=self.EVAL_TASKS["test"].shuffle(),
             mode="eval",
-            max_tasks=None,
+            max_tasks=15,
             allow_flipping=False,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,  # ignored
             **kwargs,

@@ -55,9 +55,9 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
     def __init__(self):
         super().__init__()
         assert (
-                # self.CAMERA_WIDTH == 224
-                # and self.CAMERA_HEIGHT == 224
-                self.VISIBILITY_DISTANCE == 1
+                self.CAMERA_WIDTH == 224
+                and self.CAMERA_HEIGHT == 224
+                and self.VISIBILITY_DISTANCE == 1
                 and self.STEP_SIZE == 0.25
         )
         self.ENV_ARGS = {**MANIPULATHOR_ENV_ARGS, "renderDepthImage": True}
