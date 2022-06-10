@@ -5,10 +5,7 @@ import platform
 
 import datasets
 import numpy as np
-from math import ceil
-import torch
 
-from allenact.utils.system import get_logger
 from allenact.base_abstractions.preprocessor import (
     Preprocessor,
     SensorPreprocessorGraph,
@@ -18,7 +15,6 @@ from allenact.base_abstractions.sensor import (
     Union,
 )
 from allenact.base_abstractions.task import TaskSampler
-from allenact.embodiedai.sensors.vision_sensors import DepthSensor
 from allenact.utils.experiment_utils import (
     Builder,
 )
@@ -45,8 +41,6 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
 
     DISTANCE_TYPE = "l2"  # "geo"  # Can be "geo" or "l2"
 
-    # CAP_TRAINING = None
-
     ADVANCE_SCENE_ROLLOUT_PERIOD: Optional[
         int
     ] = 20 # default config/main.yaml
@@ -65,7 +59,6 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         "allenai/houses", use_auth_token=True, ignore_verifications=True
     )
 
-    MAX_STEPS = 500
     NUM_TRAIN_HOUSES = None # none means all
 
     @classmethod
@@ -116,6 +109,7 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
 
         general_args = super()._get_sampler_args_for_scene_split(scenes=scenes,                                                               # scenes=scenes,
                                                                 process_ind=process_ind,
+                                                                devices=devices,
                                                                 **kwargs)
         
         x_display = (("0.%d" % devices[process_ind % len(devices)]) if len(devices) > 0 else None)
@@ -129,18 +123,15 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
             "max_tasks": max_tasks if max_tasks is not None else len(general_args['scenes']),
             "distance_type": self.DISTANCE_TYPE,
             "resample_same_scene_freq": resample_same_scene_freq,
-            "scene_name": "Procedural"
         }
         del general_args['scenes']
         out = {**general_args,**procthor_specific}
 
         out["task_type"] = self.TASK_TYPE
-        # out["cap_training"] = self.CAP_TRAINING
 
         out["env_args"]["x_display"] = x_display
         out["env_args"]['commit_id'] = UPDATED_PROCTHOR_COMMIT_ID#PROCTHOR_COMMIT_ID
         out["env_args"]['scene'] = 'Procedural'
-        out["env_args"]["branch"] = "nanna"
         if allow_flipping is not None:
             out["env_args"]['allow_flipping'] = allow_flipping
         

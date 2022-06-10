@@ -54,6 +54,8 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
 
     ALL_SCENES = TRAIN_SCENES + TEST_SCENES + VALID_SCENES
 
+    WHICH_AGENT = 'stretch'
+
     # OBJECT_TYPES = tuple(sorted(TRAIN_OBJECTS))
     with open('datasets/objects/robothor_habitat2022.yaml', 'r') as f:
         OBJECT_TYPES=yaml.safe_load(f)

@@ -8,12 +8,10 @@ import numpy as np
 import torch
 import torch.optim as optim
 
-# from ai2thor.platform import CloudRendering
-# from allenact.embodiedai.sensors.vision_sensors import DepthSensor
 from allenact.base_abstractions.experiment_config import ExperimentConfig
+from allenact.base_abstractions.task import TaskSampler
 import ai2thor.fifo_server
 
-# from manipulathor_baselines.bring_object_baselines.experiments.bring_object_thor_base import BringObjectThorBaseConfig
 from allenact.utils.experiment_utils import (
     Builder,
     PipelineStage,
@@ -55,11 +53,11 @@ STRETCH_ENV_ARGS = dict(
     gridSize=0.25,
     width=224,
     height=224,
-    visibilityDistance=1.0,
+    visibilityDistance=3.0,
     agentMode='stretch',
     fieldOfView=69,
-    # agentControllerType="mid-level",
-    # server_class=ai2thor.fifo_server.FifoServer,
+    agentControllerType="mid-level",
+    server_class=ai2thor.fifo_server.FifoServer,
     snapToGrid=False,
     useMassThreshold=True,
     massThreshold=10,
@@ -109,6 +107,13 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
     VALID_GPU_IDS = []
     TEST_GPU_IDS = []
 
+    TRAIN_SCENES: str = None
+    VALID_SCENES: str = None
+    TEST_SCENES: str = None
+    VALID_SAMPLES_IN_SCENE = 1
+    TEST_SAMPLES_IN_SCENE = 1
+    OBJECT_TYPES: Optional[Sequence[str]] = None
+
     WHICH_AGENT = None
 
     CAMERA_WIDTH = 224
@@ -120,6 +125,7 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
     TASK_SAMPLER = AllRoomsObjectNavTaskSampler
     TASK_TYPE = ObjectNavTask
     DISTANCE_TYPE = "l2"  # "geo"  # Can be "geo" or "l2"
+    MAX_STEPS = 500
 
     def __init__(self):
         # super().__init__()
@@ -149,6 +155,23 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
             np.int32
         )
 
+    @classmethod
+    def make_sampler_fn(cls, **kwargs) -> TaskSampler:
+        from datetime import datetime
+
+        now = datetime.now()
+
+        exp_name_w_time = cls.__name__ + "_" + now.strftime("%m_%d_%Y_%H_%M_%S_%f")
+        if cls.VISUALIZE:
+            visualizers = [
+                viz(exp_name=exp_name_w_time) for viz in cls.POTENTIAL_VISUALIZERS
+            ]
+            kwargs["visualizers"] = visualizers
+        kwargs["objects"] = cls.OBJECT_TYPES
+        kwargs["task_type"] = cls.TASK_TYPE
+        kwargs["exp_name"] = exp_name_w_time
+        return cls.TASK_SAMPLER(**kwargs)
+
     def _get_sampler_args_for_scene_split(
         self,
         scenes: List[str],
@@ -156,6 +179,7 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
         total_processes: int,
         seeds: Optional[List[int]] = None,
         deterministic_cudnn: bool = False,
+        devices: Optional[List[int]] = None
     ) -> Dict[str, Any]:
         if total_processes > len(scenes):  # oversample some scenes -> bias
             if total_processes % len(scenes) != 0:
@@ -173,7 +197,7 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
                 )
         inds = self._partition_inds(len(scenes), total_processes)
 
-        return {
+        out = {
             "scenes": scenes[inds[process_ind] : inds[process_ind + 1]],
             "env_args": self.ENV_ARGS,
             "max_steps": self.MAX_STEPS,
@@ -185,8 +209,11 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
             "deterministic_cudnn": deterministic_cudnn,
             "rewards_config": self.REWARD_CONFIG,
         }
+        
+        x_display = (("0.%d" % devices[process_ind % len(devices)]) if len(devices) > 0 else None)
+        out['env_args']["x_display"] = x_display
+        return out
 
-    # TODO clean these up
     def train_task_sampler_args(
         self,
         process_ind: int,
@@ -201,15 +228,11 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
             total_processes,
             seeds=seeds,
             deterministic_cudnn=deterministic_cudnn,
+            devices=devices
         )
         res["scene_period"] = "manual"
         res["sampler_mode"] = "train"
-        res["cap_training"] = self.CAP_TRAINING
-        res["env_args"] = {}
-        res["env_args"].update(self.ENV_ARGS)
-        res["env_args"]["x_display"] = (
-            ("0.%d" % devices[process_ind % len(devices)]) if len(devices) > 0 else None
-        )
+
         return res
 
     def valid_task_sampler_args(
@@ -226,16 +249,11 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
             total_processes,
             seeds=seeds,
             deterministic_cudnn=deterministic_cudnn,
+            devices=devices
         )
         res["scene_period"] = self.VALID_SAMPLES_IN_SCENE
         res["sampler_mode"] = "val"
-        res["cap_training"] = self.CAP_TRAINING
         res["max_tasks"] = self.VALID_SAMPLES_IN_SCENE * len(res["scenes"])
-        res["env_args"] = {}
-        res["env_args"].update(self.ENV_ARGS)
-        res["env_args"]["x_display"] = (
-            ("0.%d" % devices[process_ind % len(devices)]) if len(devices) > 0 else None
-        )
         return res
 
     def test_task_sampler_args(
@@ -252,15 +270,10 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
             total_processes,
             seeds=seeds,
             deterministic_cudnn=deterministic_cudnn,
+            devices=devices
         )
         res["scene_period"] = self.TEST_SAMPLES_IN_SCENE
         res["sampler_mode"] = "test"
-        res["env_args"] = {}
-        res["cap_training"] = self.CAP_TRAINING
-        res["env_args"].update(self.ENV_ARGS)
-        res["env_args"]["x_display"] = (
-            ("0.%d" % devices[process_ind % len(devices)]) if len(devices) > 0 else None
-        )
         return res
         
 

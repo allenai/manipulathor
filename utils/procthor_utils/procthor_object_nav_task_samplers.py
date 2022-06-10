@@ -74,7 +74,8 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         
         self.visualizers = visualizers
         self.sampler_mode = kwargs["sampler_mode"]
-        # self.cap_training = kwargs["cap_training"]
+        if self.sampler_mode is not "train":
+            self.rewards_config['shaping_weight'] = 0.0
 
         self.episode_index = 0
         self.houses = houses
@@ -91,7 +92,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.reachable_positions_map: Dict[int, Vector3] = dict()
         self.objects_in_scene_map: Dict[str, List[str]] = dict()
         self.visible_objects_cache = dict()
-        self.max_tasks = max_tasks #if max_tasks is not None else np.Inf # stop when I tell you to stop
+        self.max_tasks = max_tasks 
         self.reset_tasks = self.max_tasks
         
         self.max_vis_points = 6
@@ -210,7 +211,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 if (
                     event.metadata["lastActionSuccess"]
                     and hit["objectId"] == object_id
-                    and hit["hitDistance"] < self.env_args['visibilityDistance']
+                    and hit["hitDistance"] < 1.5#self.env_args['visibilityDistance']
                 ):
                     self.visible_objects_cache[self.house_index][object_id] = True
                     return True
@@ -380,7 +381,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
             starting_pose = AgentPose(
                 position=random.choice(self.reachable_positions),
                 rotation=Vector3(x=0, y=random.choice(self.valid_rotations), z=0),
-                horizon=0,
+                horizon=30,
             )
             if self.env_args['agentMode'] != 'locobot':
                 starting_pose['standing']=True
@@ -462,7 +463,7 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
             )
             if self.env_args['agentMode'] != 'locobot':
                 ep["agentPose"]["standing"] = True
-                ep["agentPose"]["horizon"] = 0 # reset for stretch agent
+                ep["agentPose"]["horizon"] = 30 # reset for stretch agent
             event = self.env.controller.step(action="TeleportFull", **ep["agentPose"])
             if not event:
                 # NOTE: Skip scenes where TeleportFull fails.

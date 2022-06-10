@@ -142,7 +142,6 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
         self.reset()
         self.visualizers = visualizers
         self.sampler_mode = kwargs["sampler_mode"]
-        self.cap_training = kwargs["cap_training"]
 
         possible_initial_locations = (
             "datasets/apnd-dataset/valid_agent_initial_locations.json"
