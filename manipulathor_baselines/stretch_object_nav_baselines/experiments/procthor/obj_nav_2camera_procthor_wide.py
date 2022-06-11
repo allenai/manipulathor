@@ -22,6 +22,9 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
 
+    WHICH_AGENT = 'stretch' # this only works for stretch
+    #TODO add check for allow flipping false
+
     with open('datasets/objects/robothor_habitat2022.yaml', 'r') as f:
         OBJECT_TYPES=yaml.safe_load(f)
 
@@ -76,6 +79,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
 
     @classmethod
     def tag(cls):
-        return cls.__name__
+        return cls.TASK_TYPE.__name__ + '-RGB-2Camera-ProcTHOR' + '-' +  cls.WHICH_AGENT
 
     

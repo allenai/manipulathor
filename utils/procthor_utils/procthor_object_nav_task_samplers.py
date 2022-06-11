@@ -74,7 +74,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         
         self.visualizers = visualizers
         self.sampler_mode = kwargs["sampler_mode"]
-        if self.sampler_mode is not "train":
+        if self.sampler_mode != "train":
             self.rewards_config['shaping_weight'] = 0.0
 
         self.episode_index = 0
@@ -381,7 +381,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
             starting_pose = AgentPose(
                 position=random.choice(self.reachable_positions),
                 rotation=Vector3(x=0, y=random.choice(self.valid_rotations), z=0),
-                horizon=30,
+                horizon=15,
             )
             if self.env_args['agentMode'] != 'locobot':
                 starting_pose['standing']=True
@@ -463,7 +463,7 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
             )
             if self.env_args['agentMode'] != 'locobot':
                 ep["agentPose"]["standing"] = True
-                ep["agentPose"]["horizon"] = 30 # reset for stretch agent
+                ep["agentPose"]["horizon"] = 15 # reset for stretch agent
             event = self.env.controller.step(action="TeleportFull", **ep["agentPose"])
             if not event:
                 # NOTE: Skip scenes where TeleportFull fails.
