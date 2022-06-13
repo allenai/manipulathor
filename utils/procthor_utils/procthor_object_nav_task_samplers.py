@@ -211,7 +211,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 if (
                     event.metadata["lastActionSuccess"]
                     and hit["objectId"] == object_id
-                    and hit["hitDistance"] < 1.5#self.env_args['visibilityDistance']
+                    and hit["hitDistance"] < np.min([self.env_args['visibilityDistance'],1.5])
                 ):
                     self.visible_objects_cache[self.house_index][object_id] = True
                     return True
@@ -381,10 +381,11 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
             starting_pose = AgentPose(
                 position=random.choice(self.reachable_positions),
                 rotation=Vector3(x=0, y=random.choice(self.valid_rotations), z=0),
-                horizon=15,
+                horizon=0,
             )
             if self.env_args['agentMode'] != 'locobot':
                 starting_pose['standing']=True
+                starting_pose['horizon'] = 15
             event = self.env.controller.step(action="TeleportFull", **starting_pose)
             if attempts > 10:
                 get_logger().error(f"Teleport failed {attempts-1} times in house {self.house_index} - something may be wrong")

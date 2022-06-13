@@ -18,7 +18,7 @@ from utils.stretch_utils.stretch_ithor_arm_environment_minimal import MinimalStr
 
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_for_procthor import ProcTHORObjectNavBaseConfig
 from utils.procthor_utils.procthor_object_nav_task_samplers import ProcTHORObjectNavTaskSampler
-from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask, ObjectNavTask, StretchNeckedObjectNavTask
+from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask, ObjectNavTask, StretchNeckedObjectNavTask, StretchNeckedObjectNavTaskUpdateOrder
 from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS
 from manipulathor_utils.debugger_util import ForkedPdb
 
@@ -38,7 +38,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         OBJECT_TYPES=yaml.safe_load(f)
 
     NOISE_LEVEL = 0
-    WHICH_AGENT = 'stretch' # 'locobot' 'default' 'stretch'
+    WHICH_AGENT = 'locobot' # 'locobot' 'default' 'stretch'
 
     SENSORS = [
         RGBSensorThor(
@@ -72,7 +72,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
     NUM_PROCESSES = 56
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
-    TASK_TYPE = StretchNeckedObjectNavTask
+    TASK_TYPE = StretchNeckedObjectNavTaskUpdateOrder
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
 
     # NUM_TRAIN_HOUSES = 500

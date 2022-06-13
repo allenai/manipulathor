@@ -78,7 +78,7 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
     # STEP_SIZE = 0.25
     # ROTATION_DEGREES = 30.0
     # VISIBILITY_DISTANCE = 1.0
-    # STOCHASTIC = False
+    STOCHASTIC = False
 
     VISUALIZE = False
     if platform.system() == "Darwin":

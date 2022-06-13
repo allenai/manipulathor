@@ -15,20 +15,20 @@ from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHO
 from manipulathor_utils.debugger_util import ForkedPdb
 
 
-# class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
-class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV):
+class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
+# class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV):
     EVAL_TASKS = datasets.load_dataset(
         f"allenai/robothor-objectnav-eval", use_auth_token=True
     )
 
     TEST_TASK_SAMPLER = RoboThorObjectNavTestTaskSampler
-    TASK_TYPE = StretchObjectNavTask
-    ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
+    # TASK_TYPE = StretchObjectNavTask
+    # ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     TEST_ON_VALIDATION = True
     # TEST_GPU_IDS = list(range(torch.cuda.device_count())) # uncomment for vision server testing
 
     # POTENTIAL_VISUALIZERS = []
-    WHICH_AGENT = 'stretch'
+    # WHICH_AGENT = 'stretch'
 
     @classmethod
     def tag(cls):
