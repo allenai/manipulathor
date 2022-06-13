@@ -385,7 +385,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
             )
             if self.env_args['agentMode'] != 'locobot':
                 starting_pose['standing']=True
-                starting_pose['horizon'] = 15
+                starting_pose['horizon'] = self.env_args['horizon_init']
             event = self.env.controller.step(action="TeleportFull", **starting_pose)
             if attempts > 10:
                 get_logger().error(f"Teleport failed {attempts-1} times in house {self.house_index} - something may be wrong")
@@ -464,7 +464,7 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
             )
             if self.env_args['agentMode'] != 'locobot':
                 ep["agentPose"]["standing"] = True
-                ep["agentPose"]["horizon"] = 15 # reset for stretch agent
+                ep["agentPose"]["horizon"] = self.env_args['horizon_init'] # reset for stretch agent
             event = self.env.controller.step(action="TeleportFull", **ep["agentPose"])
             if not event:
                 # NOTE: Skip scenes where TeleportFull fails.

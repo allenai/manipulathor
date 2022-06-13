@@ -51,7 +51,7 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
     if platform.system() == "Darwin":
         RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN = 1
 
-    RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 100 # TODO apparently this won't work with 100 (why?)
+    RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 100 
 
     TEST_ON_VALIDATION = False
 

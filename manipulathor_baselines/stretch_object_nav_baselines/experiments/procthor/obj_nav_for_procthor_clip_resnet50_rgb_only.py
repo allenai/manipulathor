@@ -1,7 +1,6 @@
 import platform
 import random
 from typing import Sequence, Union
-from typing_extensions import final
 
 import gym
 import numpy as np
@@ -14,7 +13,6 @@ from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
 
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
-from utils.stretch_utils.stretch_ithor_arm_environment_minimal import MinimalStretchManipulaTHOREnvironment
 
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_for_procthor import ProcTHORObjectNavBaseConfig
 from utils.procthor_utils.procthor_object_nav_task_samplers import ProcTHORObjectNavTaskSampler
@@ -38,7 +36,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         OBJECT_TYPES=yaml.safe_load(f)
 
     NOISE_LEVEL = 0
-    WHICH_AGENT = 'locobot' # 'locobot' 'default' 'stretch'
+    WHICH_AGENT = 'stretch' # 'locobot' 'default' 'stretch'
 
     SENSORS = [
         RGBSensorThor(
@@ -72,7 +70,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
     NUM_PROCESSES = 56
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
-    TASK_TYPE = StretchNeckedObjectNavTaskUpdateOrder
+    TASK_TYPE = StretchObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
 
     # NUM_TRAIN_HOUSES = 500

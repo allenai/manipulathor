@@ -65,7 +65,8 @@ STRETCH_ENV_ARGS = dict(
     autoSyncTransforms=True,
     renderInstanceSegmentation=False,
     renderDepthImage=False,
-    commit_id=UPDATED_PROCTHOR_COMMIT_ID #### TODO not sure if this works for stetch
+    commit_id=UPDATED_PROCTHOR_COMMIT_ID, #### TODO not sure if this works for stretch
+    horizon_init=0
 )
 
 
@@ -78,7 +79,7 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
     # STEP_SIZE = 0.25
     # ROTATION_DEGREES = 30.0
     # VISIBILITY_DISTANCE = 1.0
-    STOCHASTIC = False
+    # STOCHASTIC = False
 
     VISUALIZE = False
     if platform.system() == "Darwin":
@@ -102,6 +103,7 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
     distributed_nodes = 1
 
     NUM_PROCESSES: Optional[int] = None
+    NUMBER_OF_TEST_PROCESS: Optional[int] = None
     TRAIN_GPU_IDS = list(range(torch.cuda.device_count()))
     SAMPLER_GPU_IDS = TRAIN_GPU_IDS
     VALID_GPU_IDS = []

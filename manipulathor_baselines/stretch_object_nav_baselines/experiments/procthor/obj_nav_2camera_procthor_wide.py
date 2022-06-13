@@ -2,8 +2,6 @@ import platform
 import yaml
 
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
-
-from utils.procthor_utils.procthor_helper import PROCTHOR_INVALID_SCENES
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchKinect, RGBSensorStretchKinectBigFov
 from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
@@ -22,9 +20,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
     """An Object Navigation experiment configuration in iThor with RGB
     input."""
 
-    WHICH_AGENT = 'stretch' # this only works for stretch
-    #TODO add check for allow flipping false
-
+    
     with open('datasets/objects/robothor_habitat2022.yaml', 'r') as f:
         OBJECT_TYPES=yaml.safe_load(f)
 
@@ -76,6 +72,13 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
         ]
 
     TASK_TYPE = StretchObjectNavTask
+
+    def __init__(self):
+        super().__init__()
+        assert (
+                self.WHICH_AGENT == 'stretch' # this only works for stretch
+                and self.ENV_ARGS['allow_flipping'] == False # not with 2-camera
+        )
 
     @classmethod
     def tag(cls):
