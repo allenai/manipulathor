@@ -218,7 +218,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             obj
             for obj in self.env.last_event.metadata["objects"]
             if obj["visible"] and obj["objectType"] == self.task_info["object_type"]
-            and self.dist_to_target_func() < 1.5 # only applies if viz distance is greater than 1.5
+            # and self.dist_to_target_func() < 1.5 # only applies if viz distance is greater than 1.5
         )
 
     def shaping(self) -> float:

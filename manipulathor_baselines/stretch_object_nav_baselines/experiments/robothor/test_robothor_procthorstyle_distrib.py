@@ -17,7 +17,7 @@ class ObjectNavRoboTHORTestProcTHORstyleDistrib(
     ObjectNavRoboTHORTestProcTHORstyle
 ):
     NUM_PROCESSES = 56 # one them crashed for space?
-    NUM_TRAIN_PROCESSES = 56
+    NUM_TRAIN_PROCESSES = 64
     NUM_VAL_PROCESSES = 8
     NUM_TEST_PROCESSES = 60
 

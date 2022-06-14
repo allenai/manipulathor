@@ -36,7 +36,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         OBJECT_TYPES=yaml.safe_load(f)
 
     NOISE_LEVEL = 0
-    WHICH_AGENT = 'stretch' # 'locobot' 'default' 'stretch'
+    WHICH_AGENT = 'locobot' # 'locobot' 'default' 'stretch'
 
     SENSORS = [
         RGBSensorThor(
@@ -70,7 +70,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
     NUM_PROCESSES = 56
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
-    TASK_TYPE = StretchObjectNavTask
+    TASK_TYPE = StretchNeckedObjectNavTaskUpdateOrder
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
 
     # NUM_TRAIN_HOUSES = 500
@@ -85,7 +85,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
         self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['renderDepthImage'] = False        
-        self.ENV_ARGS['allow_flipping'] = False
+        self.ENV_ARGS['allow_flipping'] = True
 
         self.preprocessing_and_model = ClipResNetPreprocessNCameraGRUActorCriticMixin(
             sensors=self.SENSORS,
