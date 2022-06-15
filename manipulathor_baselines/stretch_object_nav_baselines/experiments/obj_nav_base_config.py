@@ -66,7 +66,7 @@ STRETCH_ENV_ARGS = dict(
     renderInstanceSegmentation=False,
     renderDepthImage=False,
     commit_id=UPDATED_PROCTHOR_COMMIT_ID, #### TODO not sure if this works for stretch
-    horizon_init=0
+    horizon_init=15
 )
 
 

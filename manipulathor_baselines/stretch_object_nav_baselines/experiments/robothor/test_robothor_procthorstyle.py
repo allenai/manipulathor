@@ -15,8 +15,8 @@ from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHO
 from manipulathor_utils.debugger_util import ForkedPdb
 
 
-class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
-# class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV):
+# class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
+class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV):
     EVAL_TASKS = datasets.load_dataset(
         f"allenai/robothor-objectnav-eval", use_auth_token=True
     )
