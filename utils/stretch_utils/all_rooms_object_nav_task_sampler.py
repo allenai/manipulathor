@@ -294,7 +294,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
 
             init_object = get_full_object_info(self.env, target_obj_type)
 
-        agent_state["cameraHorizon"] = 0 # 0 for stretch, 20 for other manipulathor agent
+        agent_state["cameraHorizon"] = self.env_args['horizon_init'] # 0 for stretch, 20 for other manipulathor agent
         event = this_controller.step(
             dict(
                 action="TeleportFull",
@@ -397,7 +397,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
                 "name": "agent",
                 "position": dict(x=agent_pose['x'], y=agent_pose['y'], z=agent_pose['z']),
                 "rotation": dict(x=0, y=agent_pose['rotation'], z=0),
-                "cameraHorizon": agent_pose['horizon'],
+                "cameraHorizon": self.env_args['horizon_init'], #agent_pose['horizon'],
                 "isStanding": True,
             }
 
@@ -414,7 +414,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
                 "name": "agent",
                 "position": dict(x=agent_pose['x'], y=agent_pose['y'], z=agent_pose['z']),
                 "rotation": dict(x=0, y=agent_pose['rotation'], z=0),
-                "cameraHorizon": agent_pose['horizon'],
+                "cameraHorizon": self.env_args['horizon_init'], #agent_pose['horizon'],
                 "isStanding": True,
             }
 
@@ -476,6 +476,8 @@ class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
         if self.env is None:
             self.env = self._create_environment()
         self.env.reset(scene_name='RealRobothor')
+
+        # TODO: set horizon to horizon_init
         
         skip_object = True
         while skip_object:

@@ -71,8 +71,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
             ),
         ]
 
-    TASK_TYPE = StretchObjectNavTask
-
     def __init__(self):
         super().__init__()
         assert (

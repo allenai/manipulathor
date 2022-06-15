@@ -51,13 +51,13 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
     if platform.system() == "Darwin":
         RESAMPLE_SAME_SCENE_FREQ_IN_TRAIN = 1
 
-    RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 100 
+    RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE = 1 # change from 100
 
     TEST_ON_VALIDATION = False
 
     HOUSE_DATASET = datasets.load_dataset(
         "allenai/houses", use_auth_token=True, ignore_verifications=True
-    )
+    ) # this loads even for inherited classes where is unused - not necessarily a problem 
 
     NUM_TRAIN_HOUSES = None # none means all
 

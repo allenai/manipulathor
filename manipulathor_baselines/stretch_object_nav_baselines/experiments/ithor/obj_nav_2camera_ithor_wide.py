@@ -1,13 +1,9 @@
 import platform
-import random
 from typing import Sequence, Union
-from typing_extensions import final
 
-import gym
-import numpy as np
 from torch import nn
+import torch
 import yaml
-import copy
 
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchKinect, RGBSensorStretchIntel, RGBSensorStretchKinectBigFov
@@ -19,10 +15,8 @@ from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHO
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.obj_nav_base_config import ObjectNavBaseConfig
 from utils.stretch_utils.all_rooms_object_nav_task_sampler import AllRoomsObjectNavTaskSampler
 from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask
-from utils.stretch_utils.stretch_constants import STRETCH_MANIPULATHOR_COMMIT_ID, STRETCH_ENV_ARGS
 from manipulathor_utils.debugger_util import ForkedPdb
 
-# from manipulathor_baselines.procthor_baselines.models.clip_preprocessors import ClipResNetPreprocessor
 from manipulathor_baselines.stretch_object_nav_baselines.models.clip_resnet_ncamera_preprocess_mixin import \
     ClipResNetPreprocessNCameraGRUActorCriticMixin
 from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
@@ -60,10 +54,6 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
     with open('datasets/objects/robothor_habitat2022.yaml', 'r') as f:
         OBJECT_TYPES=yaml.safe_load(f)
 
-    NOISE_LEVEL = 0
-    distance_thr = 1.0 # match procthor config
-    mean = np.array([0.48145466, 0.4578275, 0.40821073])
-    stdev = np.array([0.26862954, 0.26130258, 0.27577711])
     SENSORS = [
         RGBSensorThor(
             height=ObjectNavBaseConfig.SCREEN_SIZE,
@@ -86,7 +76,6 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
         ),
     ]
 
-    MAX_STEPS = 500
     if platform.system() == "Darwin":
         MAX_STEPS = 100
         SENSORS += [ #TODO FIX ORDER HERE
@@ -113,18 +102,16 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
     POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
 
+    TEST_GPU_IDS = list(range(torch.cuda.device_count()))
+    NUMBER_OF_TEST_PROCESS = 8
+
     NUM_PROCESSES = 40
     CLIP_MODEL_TYPE = "RN50"
 
 
     def __init__(self):
         super().__init__() 
-
-        self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
-        self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #TODO this is nto the best choice
-        self.ENV_ARGS['renderInstanceSegmentation'] = False
-        self.ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
         
         self.preprocessing_and_model = ClipResNetPreprocessNCameraGRUActorCriticMixin(
             sensors=self.SENSORS,
@@ -145,6 +132,6 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
 
     @classmethod
     def tag(cls):
-        return cls.__name__
+        return cls.TASK_TYPE.__name__ + '-RGB-2Camera-iTHOR' + '-' +  cls.WHICH_AGENT
 
     

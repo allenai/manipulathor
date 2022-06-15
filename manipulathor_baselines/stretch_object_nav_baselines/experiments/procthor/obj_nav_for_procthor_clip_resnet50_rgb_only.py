@@ -70,7 +70,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly(
     NUM_PROCESSES = 56
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
-    TASK_TYPE = StretchNeckedObjectNavTaskUpdateOrder
+    TASK_TYPE = StretchObjectNavTask
     ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
 
     # NUM_TRAIN_HOUSES = 500
