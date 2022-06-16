@@ -69,24 +69,25 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         network_args = {'input_channels': self.map_channels, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder_map = make_cnn(**network_args)
 
-        # self.body_pointnav_embedding = nn.Sequential(
-        #     nn.Linear(3, 32),
-        #     nn.LeakyReLU(),
-        #     nn.Linear(32, 128),
-        #     nn.LeakyReLU(),
-        #     nn.Linear(128, 512),
-        # )
-        # self.arm_pointnav_embedding = nn.Sequential(
-        #     nn.Linear(3, 32),
-        #     nn.LeakyReLU(),
-        #     nn.Linear(32, 128),
-        #     nn.LeakyReLU(),
-        #     nn.Linear(128, 512),
-        # )
+        self.body_pointnav_embedding = nn.Sequential(
+             nn.Linear(3, 32),
+             nn.LeakyReLU(),
+             nn.Linear(32, 128),
+             nn.LeakyReLU(),
+             nn.Linear(128, 512),
+        )
+        self.arm_pointnav_embedding = nn.Sequential(
+             nn.Linear(3, 32),
+             nn.LeakyReLU(),
+             nn.Linear(32, 128),
+             nn.LeakyReLU(),
+             nn.Linear(128, 512),
+        )
 
         self.state_encoder = RNNStateEncoder(
-            512 * 3,
+            #512 * 3,
             # 512 * 4,
+            512 * 5,
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -315,28 +316,28 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
 
         encoding_map = compute_cnn_output(self.full_visual_encoder_map, ego_maps)
 
-        visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, encoding_map], dim=-1)
+        #visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, encoding_map], dim=-1)
 
 
         # From old model
-        # agent_distance_to_obj_source = observations['point_nav_emul_source'].clone()
-        # agent_distance_to_obj_destination = observations['point_nav_emul_destination'].clone()
-        # #TODO eventually change this and the following to only calculate embedding for the ones we want
-        # agent_distance_to_obj_embedding_source = self.body_pointnav_embedding(agent_distance_to_obj_source)
-        # agent_distance_to_obj_embedding_destination = self.body_pointnav_embedding(agent_distance_to_obj_destination)
-        # agent_distance_to_obj_embedding = agent_distance_to_obj_embedding_source
-        # agent_distance_to_obj_embedding[after_pickup] = agent_distance_to_obj_embedding_destination[after_pickup]
+        agent_distance_to_obj_source = observations['point_nav_emul_source'].clone()
+        agent_distance_to_obj_destination = observations['point_nav_emul_destination'].clone()
+        #TODO eventually change this and the following to only calculate embedding for the ones we want
+        agent_distance_to_obj_embedding_source = self.body_pointnav_embedding(agent_distance_to_obj_source)
+        agent_distance_to_obj_embedding_destination = self.body_pointnav_embedding(agent_distance_to_obj_destination)
+        agent_distance_to_obj_embedding = agent_distance_to_obj_embedding_source
+        agent_distance_to_obj_embedding[after_pickup] = agent_distance_to_obj_embedding_destination[after_pickup]
 
 
-        # arm_distance_to_obj_source = observations['arm_point_nav_emul_source'].clone()
-        # arm_distance_to_obj_destination = observations['arm_point_nav_emul_destination'].clone()
-        # #TODO eventually change this and the following to only calculate embedding for the ones we want
-        # arm_distance_to_obj_embedding_source = self.arm_pointnav_embedding(arm_distance_to_obj_source)
-        # arm_distance_to_obj_embedding_destination = self.arm_pointnav_embedding(arm_distance_to_obj_destination)
-        # arm_distance_to_obj_embedding = arm_distance_to_obj_embedding_source
-        # arm_distance_to_obj_embedding[after_pickup] = arm_distance_to_obj_embedding_destination[after_pickup]
+        arm_distance_to_obj_source = observations['arm_point_nav_emul_source'].clone()
+        arm_distance_to_obj_destination = observations['arm_point_nav_emul_destination'].clone()
+        #TODO eventually change this and the following to only calculate embedding for the ones we want
+        arm_distance_to_obj_embedding_source = self.arm_pointnav_embedding(arm_distance_to_obj_source)
+        arm_distance_to_obj_embedding_destination = self.arm_pointnav_embedding(arm_distance_to_obj_destination)
+        arm_distance_to_obj_embedding = arm_distance_to_obj_embedding_source
+        arm_distance_to_obj_embedding[after_pickup] = arm_distance_to_obj_embedding_destination[after_pickup]
 
-        # visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, agent_distance_to_obj_embedding, arm_distance_to_obj_embedding], dim=-1)
+        visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, agent_distance_to_obj_embedding, arm_distance_to_obj_embedding, encoding_map], dim=-1)
 
         # visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, ], dim=-1)
 
