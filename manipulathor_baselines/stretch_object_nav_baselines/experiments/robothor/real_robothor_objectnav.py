@@ -67,7 +67,7 @@ class RealStretchObjectNav(
     TASK_TYPE = RealStretchObjectNavTask #RealStretchExploreWiseRewardTask
     ENVIRONMENT_TYPE = StretchRealEnvironment # account for the super init
 
-    NUM_PROCESSES = 20
+    NUM_PROCESSES = 1
 
     TRAIN_SCENES = ['RealRobothor']
     TEST_SCENES = ['RealRobothor']

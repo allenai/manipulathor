@@ -18,7 +18,7 @@ class ObjectNavRoboTHORTestProcTHORstyleDistrib(
 ):
     NUM_PROCESSES = 56 # one them crashed for space?
     NUM_TRAIN_PROCESSES = 64
-    NUM_VAL_PROCESSES = 8
+    NUM_VAL_PROCESSES = 4
     NUM_TEST_PROCESSES = 60
 
     TRAIN_DEVICES = (
@@ -42,6 +42,9 @@ class ObjectNavRoboTHORTestProcTHORstyleDistrib(
     ):
         super().__init__()
         self.distributed_nodes = distributed_nodes
+        # self.ENV_ARGS['continuousMode']=True
+        # self.ENV_ARGS["returnToStart"]= False # do either of these actually do something
+
         # self.train_gpu_ids = tuple(range(torch.cuda.device_count())) # should I do this for everyone?, should i add val
 
 

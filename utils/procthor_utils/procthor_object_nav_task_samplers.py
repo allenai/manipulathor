@@ -98,6 +98,9 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.max_vis_points = 6
         self.max_agent_positions = 6         
         self.p_greedy_target_object = 0.8
+        self.min_raycast_distance = 1.5
+
+        self.success_distance = 1.0
 
         self.reset()
 
@@ -211,7 +214,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 if (
                     event.metadata["lastActionSuccess"]
                     and hit["objectId"] == object_id
-                    and hit["hitDistance"] < np.min([self.env_args['visibilityDistance'],1.5])
+                    and hit["hitDistance"] < np.min([self.env_args['visibilityDistance'],self.min_raycast_distance])
                 ):
                     self.visible_objects_cache[self.house_index][object_id] = True
                     return True
@@ -413,6 +416,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 "object_type": target_object_type,
                 "starting_pose": starting_pose,
                 "mirrored": self.env_args['allow_flipping'] and random.random() > 0.5,
+                'success_distance': self.success_distance
             },
         )
         return self._last_sampled_task
@@ -494,6 +498,7 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
                     "starting_pose": ep["agentPose"],
                     "mirrored": False,
                     "id": f"{ep['scene']}__global{epidx}__{ep['targetObjectType']}",
+                    'success_distance': self.success_distance,
                     **difficulty,
                 },
             )

@@ -29,6 +29,7 @@ from utils.stretch_utils.stretch_constants import (
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 
 from manipulathor_utils.debugger_util import ForkedPdb
+from datetime import datetime
 
 class ObjectNavTask(Task[ManipulaTHOREnvironment]):
     _actions = (
@@ -218,7 +219,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             obj
             for obj in self.env.last_event.metadata["objects"]
             if obj["visible"] and obj["objectType"] == self.task_info["object_type"]
-            and self.dist_to_target_func() < 1.5 # only applies if viz distance is greater than 1.5
+            and self.dist_to_target_func() < self.task_info['success_distance'] 
         )
 
     def shaping(self) -> float:
@@ -396,13 +397,6 @@ class StretchObjectNavTask(ObjectNavTask):
         DONE,
     )
 
-    # TODO: change this to find the object via segementation or some other way - account for FOV cropping
-    # def _is_goal_in_range(self) -> bool:
-    #     candidates = [obj
-    #         for obj in self.env.last_event.metadata["objects"]
-    #         if obj["visible"] and obj["objectType"] == self.task_info["object_type"]]
-    #     return any(candidates)
-
 class StretchNeckedObjectNavTask(ObjectNavTask):
     _actions = (
         MOVE_AHEAD,
@@ -424,6 +418,16 @@ class StretchNeckedObjectNavTaskUpdateOrder(ObjectNavTask):
         "LookUp",
         "LookDown"
     )
+
+class StretchObjectNavTaskSegmentationSuccess(StretchObjectNavTask):
+    def _is_goal_in_range(self) -> bool:
+        all_kinect_masks = self.env.controller.last_event.third_party_instance_masks[0]
+        for object_id in self.task_info["target_object_ids"]:
+            if object_id in all_kinect_masks and self.dist_to_target_func() < self.task_info['success_distance']:
+                return True
+        
+        return False
+
 
 class ExploreWiseObjectNavTask(ObjectNavTask):
     def __init__(self, **kwargs):
@@ -465,6 +469,10 @@ class ExploreWiseObjectNavTask(ObjectNavTask):
         
 
 class RealStretchObjectNavTask(StretchObjectNavTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.start_time = datetime.now()
+        self.last_time = None
     
     def _step(self, action: int) -> RLStepResult:
 
@@ -477,14 +485,20 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
         
         if action_str == "Done":
             self._took_end_action = True
-            print('I think I found a ', self.task_info['object_type'])
-            # self._success = bool(int(input('Was I correct? 0 for no, 1 for yes: ')))
-            print('Was I correct? Set self._success in trace.')
+            dt_total = (datetime.now() - self.start_time).total_seconds()/60
+            print('I think I found a ', self.task_info['object_type'], ' after ', str(dt_total), ' minutes.' )
+            print('Was I correct? Set self._success in trace.')            
             ForkedPdb().set_trace()
 
         self._last_action_str = action_str
         action_dict = {"action": action_str}
         self.env.step(action_dict)
+
+        if self.last_time is not None:
+            dt = (datetime.now() - self.last_time).total_seconds()
+            print('FPS: ', str(1/dt))
+        self.last_time = datetime.now()
+
         self.last_action_success = self.env.last_action_success
 
         last_action_name = self._last_action_str

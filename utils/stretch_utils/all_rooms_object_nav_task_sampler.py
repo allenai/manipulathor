@@ -143,6 +143,8 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
         self.visualizers = visualizers
         self.sampler_mode = kwargs["sampler_mode"]
 
+        self.success_distance = 1.0
+
         possible_initial_locations = (
             "datasets/apnd-dataset/valid_agent_initial_locations.json"
         )
@@ -328,7 +330,8 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
             'mode': self.env_args['agentMode'],
             'house_name': scene_name,
             'scene_name': scene_name,
-            'mirrored': False #self.env_args['allow_flipping'] and random.random() > 0.5, # not including for non-procthor
+            'mirrored': False, #self.env_args['allow_flipping'] and random.random() > 0.5, # not including for non-procthor
+            'success_distance': self.success_distance
         }
 
 
@@ -476,13 +479,11 @@ class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
         if self.env is None:
             self.env = self._create_environment()
         self.env.reset(scene_name='RealRobothor')
-
-        # TODO: set horizon to horizon_init
         
         skip_object = True
         while skip_object:
             target_object = random.choice(self.possible_real_objects)
-            print('I am now seeking a ', target_object['object_type'], '. Continue by setting skip_object=False')
+            print('I am now seeking a', target_object['object_type'], '. Accept by setting skip_object=False')
             ForkedPdb().set_trace()
 
         task_info = {

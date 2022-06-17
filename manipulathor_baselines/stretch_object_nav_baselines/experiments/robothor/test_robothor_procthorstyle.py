@@ -16,8 +16,8 @@ from manipulathor_utils.debugger_util import ForkedPdb
 
 
 # class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
-# class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV):
-class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV):
+class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV):
+# class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV):
     EVAL_TASKS = datasets.load_dataset(
         f"allenai/robothor-objectnav-eval", use_auth_token=True
     )
@@ -53,7 +53,7 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2Ca
         out = self._get_sampler_args_for_scene_split(
             houses=self.EVAL_TASKS["validation"],
             mode="eval",
-            max_tasks=None,
+            max_tasks=5,
             allow_flipping=False,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,  # ignored
             **kwargs,
@@ -67,7 +67,7 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2Ca
         out = self._get_sampler_args_for_scene_split(
             houses=self.EVAL_TASKS["test"].shuffle(),
             mode="eval",
-            max_tasks=None,
+            max_tasks=5,
             allow_flipping=False,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,  # ignored
             **kwargs,

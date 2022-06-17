@@ -87,7 +87,7 @@ class RealDepthSensorStretchKinect(
         return (depth)
 
 def normalize_real_intel_image(image,final_size=224):
-    image = cv2.rotate(image, cv2.cv2.ROTATE_90_CLOCKWISE)
+    image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
     # if len(image.shape) == 3:
     #     image = image[:,:,::-1]
     #     image = cv2.flip(image,1)
