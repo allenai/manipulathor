@@ -190,6 +190,8 @@ class AgentOdometryEmulSensor(Sensor):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )
+        self.noisy_pose = False
+
         self.noise = noise
         assert self.noise == 0
 
@@ -201,63 +203,98 @@ class AgentOdometryEmulSensor(Sensor):
     def get_observation(
             self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        camera_info = {}
-
+        
         metadata = copy.deepcopy(env.controller.last_event.metadata)
+        # print("last action", metadata["lastAction"])
+        # Use env.nominal_agent_location to handle noise
+
         # if task.num_steps_taken() == 0:
         if metadata['lastAction'] == 'GetReachablePositions':
             self.initial_rot = metadata["agent"]["rotation"]["y"]
             self.initial_pos = np.array([metadata['agent']['position'][k] for k in ["x", "y", "z"]])
 
-            # Set elevation to zero
-            self.initial_pos[1] = 0
-        
+            self.prev_rot = 0.0
+            self.prev_pos = np.array([0.0 for k in ["x", "y", "z"]])
+
+            sin_of_neg_rot = np.sin(np.deg2rad(-self.initial_rot))
+            cos_of_neg_rot = np.cos(np.deg2rad(-self.initial_rot))
+
+            self.camera_offsets = dict()
+            self.camera_offsets['camera'] = dict(
+                rotation=0.0,
+                xyz=np.array([metadata["cameraPosition"][k] for k in ["x", "y", "z"]]) - self.initial_pos,
+                horizon=metadata["agent"]["cameraHorizon"],
+                fov=metadata['fov']
+            )
+            arm_metadata = copy.deepcopy(env.controller.last_event.metadata['thirdPartyCameras'][0])
+            self.camera_offsets['camera_arm'] = dict(
+                rotation = arm_metadata['rotation']['y'] - self.initial_rot,
+                xyz = np.array([arm_metadata["position"][k] for k in ["x", "y", "z"]]) - self.initial_pos,
+                horizon=arm_metadata['rotation']['x'],
+                fov=arm_metadata['fieldOfView']
+            )
+            # # Set elevation to zero
+            # self.initial_pos[1] = 0
+            # print("initial pos", self.initial_pos)
+        # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
         # if task.num_steps_taken() < 5:
         #     print("last action", task.num_steps_taken(), metadata['lastAction'], self.initial_rot,  metadata["agent"]["rotation"]["y"])
         sin_of_rot = np.sin(np.deg2rad(self.initial_rot))
         cos_of_rot = np.cos(np.deg2rad(self.initial_rot))
+        # print("metadata['lastAction", metadata['lastAction'])
+        # if not metadata['lastActionSuccess']:
+        #     print("action failed", metadata['lastAction'])
 
 
-        agent_xyz = np.array([metadata['agent']['position'][k] for k in ["x", "y", "z"]]) - self.initial_pos
-        agent_rot = metadata["agent"]["rotation"]["y"] - self.initial_rot
+        if self.noisy_pose:
+            agent_xyz = np.array([env.nominal_agent_location[k] for k in ["x", "y", "z"]]) - self.initial_pos
+            agent_rot = env.nominal_agent_location['rotation'] - self.initial_rot
+        else:
+            agent_xyz = np.array([metadata['agent']['position'][k] for k in ["x", "y", "z"]]) - self.initial_pos
+            agent_rot = metadata["agent"]["rotation"]["y"] - self.initial_rot
         agent_xyz_rot = np.array([cos_of_rot * agent_xyz[0] - sin_of_rot * agent_xyz[2],
                                    agent_xyz[1],
                                    sin_of_rot * agent_xyz[0] + cos_of_rot * agent_xyz[2]])
+
+        relative_rot = (agent_rot - self.prev_rot) % 360
+        if relative_rot > 300:
+            relative_rot -= 360
+        relative_pos = agent_xyz_rot - self.prev_pos
+
+        cos_of_prev = np.cos(np.deg2rad(self.prev_rot))
+        sin_of_prev = np.sin(np.deg2rad(self.prev_rot))
+        relative_pos = np.array([cos_of_prev * relative_pos[0] - sin_of_prev * relative_pos[2],
+                                relative_pos[1],
+                                sin_of_prev * relative_pos[0] + cos_of_prev * relative_pos[2] ])
+
+        self.prev_pos = agent_xyz_rot
+        self.prev_rot = agent_rot
+        
         agent_info = dict(xyz=agent_xyz_rot,
-                          rotation=agent_rot)
+                          rotation=agent_rot,
+                          relative_xyz=relative_pos,
+                          relative_rot=relative_rot)
+
+        camera_info = dict()
+        for camera in self.camera_offsets:
+            xyz_offset = self.camera_offsets[camera]['xyz']
+            camera_xyz = agent_xyz.copy()
+            camera_xyz[0] += xyz_offset[0] * np.cos(np.deg2rad(-agent_rot)) - xyz_offset[2] * np.sin(np.deg2rad(-agent_rot))
+            camera_xyz[1] += xyz_offset[1]
+            camera_xyz[2] += xyz_offset[0] * np.sin(np.deg2rad(-agent_rot)) + xyz_offset[2] * np.cos(np.deg2rad(-agent_rot))
+            camera_xyz_rot = np.array([cos_of_rot * camera_xyz[0] - sin_of_rot * camera_xyz[2],
+                                       camera_xyz[1],
+                                       sin_of_rot * camera_xyz[0] + cos_of_rot * camera_xyz[2]])
+            
+            camera_rot = agent_rot + self.camera_offsets[camera]['rotation']
+            camera_info[camera] = dict(xyz=camera_xyz_rot,
+                                       rotation=camera_rot,
+                                       horizon=self.camera_offsets[camera]['horizon'],
+                                       fov=self.camera_offsets[camera]['fov'])
 
 
-        camera_xyz = np.array([metadata["cameraPosition"][k] for k in ["x", "y", "z"]]) - self.initial_pos
-        camera_rotation=metadata["agent"]["rotation"]["y"] - self.initial_rot
         
-        camera_xyz_rot = np.array([cos_of_rot * camera_xyz[0] - sin_of_rot * camera_xyz[2],
-                                   camera_xyz[1],
-                                   sin_of_rot * camera_xyz[0] + cos_of_rot * camera_xyz[2]])
-
-        # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
         
-        camera_horizon=metadata["agent"]["cameraHorizon"]
-        fov = metadata['fov']
-        camera_info['camera'] = dict(xyz=camera_xyz_rot,
-                                       rotation=camera_rotation,
-                                       horizon=camera_horizon,
-                                       fov=fov)
-
-        metadata = copy.deepcopy(env.controller.last_event.metadata['thirdPartyCameras'][0])
-        camera_xyz = np.array([metadata["position"][k] for k in ["x", "y", "z"]]) - self.initial_pos
-        camera_xyz_rot = np.array([cos_of_rot * camera_xyz[0] - sin_of_rot * camera_xyz[2],
-                                   camera_xyz[1],
-                                   sin_of_rot * camera_xyz[0] + cos_of_rot * camera_xyz[2]])
-        camera_rotation = metadata['rotation']['y'] - self.initial_rot
-        camera_horizon = metadata['rotation']['x']
-        fov = metadata['fieldOfView']
-        camera_info['camera_arm'] = dict(xyz=camera_xyz_rot,
-                                       rotation=camera_rotation,
-                                       horizon=camera_horizon,
-                                       fov=fov)
-
-
-
 
         return {'agent_info': agent_info, 'camera_info': camera_info}
 
