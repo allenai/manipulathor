@@ -97,7 +97,11 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         self.critic_pickup = LinearCriticHead(self._hidden_size)
 
         
-        self.bins = [0.2, 1.5]
+        # Bins for zero elevation being at ground
+        # self.bins = [0.2, 1.5]
+
+        # bins for zero elevation being at the robot's origin
+        self.bins = [-0.7, 0.6]
 
         self.train()
 
