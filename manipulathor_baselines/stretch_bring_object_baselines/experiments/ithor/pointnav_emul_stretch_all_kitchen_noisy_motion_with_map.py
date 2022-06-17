@@ -98,6 +98,7 @@ class PointNavEmulStretchAllKitchensWithMap(
 
     TRAIN_SCENES = KITCHEN_TRAIN# + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN
     TEST_SCENES = KITCHEN_TEST # + LIVING_ROOM_TEST + BEDROOM_TEST + BATHROOM_TEST
+    VALID_SCENES = KITCHEN_VAL
     VAL_SCENES = KITCHEN_VAL
     OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ != 'robothor']))
 

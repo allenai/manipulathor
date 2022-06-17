@@ -118,7 +118,7 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
         self.max_tasks: Optional[int] = None
         self.reset_tasks = max_tasks
 
-        self.all_test_tasks = [i for i in range(25)]
+        self.all_test_tasks = [i for i in range(1000)]
 
 
         self._last_sampled_task: Optional[Task] = None
