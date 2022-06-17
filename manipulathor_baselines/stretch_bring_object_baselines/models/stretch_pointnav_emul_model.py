@@ -52,6 +52,7 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         num_rnn_layers=1,
         rnn_type="GRU",
         teacher_forcing=1,
+        use_odom_pose=False,
         visualize=False,
     ):
         """Initializer.
@@ -63,6 +64,7 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
 
         self._hidden_size = hidden_size
         self.object_type_embedding_size = obj_state_embedding_size
+        self.use_odom_pose = use_odom_pose
 
         # sensor_names = self.observation_space.spaces.keys()
         network_args = {'input_channels': 5, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
@@ -85,9 +87,19 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
             nn.LeakyReLU(),
             nn.Linear(128, 512),
         )
+        num_rnn_inputs = 4
+        if use_odom_pose:
+            self.odom_pose_embedding = nn.Sequential(
+                nn.Linear(3, 32),
+                nn.LeakyReLU(),
+                nn.Linear(32, 128),
+                nn.LeakyReLU(),
+                nn.Linear(128, 512),
+            )
+            num_rnn_inputs = 5
 
         self.state_encoder = RNNStateEncoder(
-            512 * 4, #TODO this might be too big, maybe combine visual encodings and pointnav encodings first
+            512 * num_rnn_inputs, #TODO this might be too big, maybe combine visual encodings and pointnav encodings first
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -216,7 +228,15 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         arm_distance_to_obj_embedding[after_pickup] = arm_distance_to_obj_embedding_destination[after_pickup]
 
 
-        visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, agent_distance_to_obj_embedding, arm_distance_to_obj_embedding], dim=-1)
+        if self.use_odom_pose:
+            odom_observation = torch.stack([observations['odometry_emul']['agent_info']['xyz'][:, :, 0],
+                                            observations['odometry_emul']['agent_info']['xyz'][:, :, 2],
+                                            observations['odometry_emul']['agent_info']['rotation']], dim=-1).float()
+            odom_embedding = self.odom_pose_embedding(odom_observation)
+
+            visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, agent_distance_to_obj_embedding, arm_distance_to_obj_embedding, odom_embedding], dim=-1)
+        else:
+            visual_observation_encoding = torch.cat([visual_observation_encoding_body, visual_observation_encoding_arm, agent_distance_to_obj_embedding, arm_distance_to_obj_embedding], dim=-1)
 
         x_out, rnn_hidden_states = self.state_encoder(
             visual_observation_encoding, memory.tensor("rnn"), masks
