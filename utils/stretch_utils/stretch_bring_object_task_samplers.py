@@ -118,6 +118,9 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
         self.max_tasks: Optional[int] = None
         self.reset_tasks = max_tasks
 
+        self.all_test_tasks = [i for i in range(25)]
+
+
         self._last_sampled_task: Optional[Task] = None
 
         self.seed: Optional[int] = None
@@ -197,7 +200,6 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
             # we need to fix this later
             # small_objects = ['Spatula', 'Egg']
             small_objects = []
-
 
             #TODO implement this
             if True:
@@ -452,14 +454,14 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
                 "isStanding": True,
             }
 
+            if self.sampler_mode != 'train':
+                self.sampler_index += 1
         else:
 
             task = self.all_test_tasks[self.sampler_index]
             self.sampler_index += 1
 
             data_point = task
-
-
 
 
         return data_point
