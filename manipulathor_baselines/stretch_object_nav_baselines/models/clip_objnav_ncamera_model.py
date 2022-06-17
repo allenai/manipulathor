@@ -93,15 +93,15 @@ class ResnetTensorNavNCameraActorCritic(VisualNavActorCritic):
 
     def forward_encoder(self, observations: ObservationType) -> torch.FloatTensor:
         return self.goal_visual_encoder(observations)
-    def forward(self, **kwargs): #TODO NOW remove
-        if platform.system() == "Darwin":
-            hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
-        return super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
+    # def forward(self, **kwargs): #TODO NOW remove
+    #     if platform.system() == "Darwin":
+    #         hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
+    #     return super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
 
-    def forward(self, **kwargs): #TODO NOW remove
-        if self.visualize:
-            hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
-        return super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
+    # def forward(self, **kwargs): #TODO NOW remove
+    #     if self.visualize:
+    #         hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
+    #     return super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
 
 
 class ResnetNCameraTensorGoalEncoder(nn.Module):

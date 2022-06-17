@@ -42,32 +42,36 @@ class RealStretchObjectNav(
     ]
 
     # this should only ever be run on darwin anyway - sensors for visualization
-    SENSORS += [
-        RealRGBSensorStretchIntel(
-            height=desired_screen_size,
-            width=desired_screen_size,
-            use_resnet_normalization=True,
-            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-            uuid="rgb_lowres_only_viz",
-        ),
-        RealRGBSensorStretchKinect(
-            height=desired_screen_size,
-            width=desired_screen_size,
-            use_resnet_normalization=True,
-            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-            uuid="rgb_lowres_arm_only_viz",
-        ),
-    ]
+    # SENSORS += [
+    #     RealRGBSensorStretchIntel(
+    #         height=desired_screen_size,
+    #         width=desired_screen_size,
+    #         use_resnet_normalization=True,
+    #         mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+    #         stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
+    #         uuid="rgb_lowres_only_viz",
+    #     ),
+    #     RealRGBSensorStretchKinect(
+    #         height=desired_screen_size,
+    #         width=desired_screen_size,
+    #         use_resnet_normalization=True,
+    #         mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+    #         stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
+    #         uuid="rgb_lowres_arm_only_viz",
+    #     ),
+    # ]
 
     MAX_STEPS = 60
 
     TASK_SAMPLER = RealStretchAllRoomsObjectNavTaskSampler #RealStretchDiverseBringObjectTaskSampler
     TASK_TYPE = RealStretchObjectNavTask #RealStretchExploreWiseRewardTask
     ENVIRONMENT_TYPE = StretchRealEnvironment # account for the super init
+    VISUALIZE = True
 
     NUM_PROCESSES = 1
+    NUMBER_OF_TEST_PROCESS = 0
+    VAL_DEVICES = []
+    TEST_DEVICES = []
 
     TRAIN_SCENES = ['RealRobothor']
     TEST_SCENES = ['RealRobothor']

@@ -463,6 +463,21 @@ class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
             {'object_id': 'Vase|1|1|1', 'object_type':"Vase"}
         ]
 
+        self.preset_easyish_tasks = [
+            # {'object_id': 'Apple|1|1|1', 'object_type':"Apple"},
+            # {'object_id': 'BaseballBat|1|1|1', 'object_type':"BaseballBat"},
+            # {'object_id': 'BasketBall|1|1|1', 'object_type':"BasketBall"},
+            # {'object_id': 'Bowl|1|1|1', 'object_type':"Bowl"},
+            # {'object_id': 'Chair|1|1|1', 'object_type':"Chair"},
+            # {'object_id': 'HousePlant|1|1|1', 'object_type':"HousePlant"},
+            # {'object_id': 'Mug|1|1|1', 'object_type':"Mug"},
+            # {'object_id': 'SprayBottle|1|1|1', 'object_type':"SprayBottle"},
+            # {'object_id': 'Television|1|1|1', 'object_type':"Television"},
+            {'object_id': 'Vase|1|1|1', 'object_type':"Vase"}
+        ]
+
+        self.real_object_index = 0
+
         if self.sampler_mode == "test":
             self.max_tasks = self.reset_tasks = 200
 
@@ -480,11 +495,15 @@ class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
             self.env = self._create_environment()
         self.env.reset(scene_name='RealRobothor')
         
-        skip_object = True
-        while skip_object:
-            target_object = random.choice(self.possible_real_objects)
-            print('I am now seeking a', target_object['object_type'], '. Accept by setting skip_object=False')
-            ForkedPdb().set_trace()
+        # skip_object = True
+        # while skip_object:
+        #     target_object = random.choice(self.possible_real_objects)
+        #     print('I am now seeking a', target_object['object_type'], '. Accept by setting skip_object=False')
+        #     ForkedPdb().set_trace()
+        
+        target_object = self.preset_easyish_tasks[self.real_object_index]
+        print('I am now seeking a', target_object['object_type'], '. Continue when ready.')
+        ForkedPdb().set_trace()
 
         task_info = {
             'target_object_ids': [target_object['object_id']],
@@ -508,5 +527,6 @@ class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
             distance_cache=self.distance_cache,
             additional_visualize=False # not implemented for non-procthor
         )
+        self.real_object_index = self.real_object_index + 1
 
         return self._last_sampled_task
