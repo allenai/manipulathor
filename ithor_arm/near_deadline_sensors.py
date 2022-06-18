@@ -1,4 +1,5 @@
 """Utility classes and functions for sensory inputs used by the models."""
+from ast import For
 import copy
 import datetime
 import math
@@ -38,6 +39,8 @@ from utils.klemens_constants import OMNI_CATEGORIES, OMNI_TO_ITHOR, ITHOR_TO_OMN
 from utils.noise_depth_util_files.sim_depth import RedwoodDepthNoise
 from utils.noise_from_habitat import ControllerNoiseModel, MotionNoiseModel, _TruncatedMultivariateGaussian
 from utils.noise_in_motion_util import NoiseInMotion, squeeze_bool_mask, tensor_from_dict
+
+KINECT_FOV_W, KINECT_FOV_H = 59, 90
 
 
 class FancyNoisyObjectMaskWLabels(Sensor):
@@ -366,7 +369,140 @@ class PointNavEmulatorSensorOnlyAgentLocation(PointNavEmulatorSensor):
 #         self.noise = something
 #         return super(PointNavEmulatorSensorwScheduler, self).get_observation(env, task, *args, **kwargs)
 
+class PointNavEmulSensorDeadReckoning(Sensor):
 
+    def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, uuid: str = "point_nav_emul", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        self.mask_sensor = mask_sensor
+        self.depth_sensor = depth_sensor
+        uuid = '{}_{}'.format(uuid, type)
+
+        self.min_xyz = np.zeros((3))
+
+        self.dummy_answer = torch.zeros(3)
+        self.dummy_answer[:] = 4 # is this good enough?
+        self.device = torch.device("cpu")
+        super().__init__(**prepare_locals_for_super(locals()))
+
+    def get_agent_belief_state(self,env):
+        #TODO all these values need to be checked
+        fov=max(KINECT_FOV_W, KINECT_FOV_H)#TODO are you sure? it should be smaller one I think
+        belief_agent_state = env.nominal_agent_location
+        real_agent_state = env.get_agent_location()
+
+        belief_camera_horizon = 45
+        belief_camera_xyz = np.array([belief_agent_state[k] for k in ['x','y','z']])
+        belief_camera_rotation = (belief_agent_state['rotation'] + 90) % 360
+
+        real_camera_xyz = np.array([real_agent_state[k] for k in ['x','y','z']])
+
+        self.belief_prev_location.append(belief_camera_xyz)
+        self.real_prev_location.append(real_camera_xyz)
+        
+        return fov, belief_camera_horizon, belief_camera_xyz, belief_camera_rotation
+
+    def get_observation(
+            self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        #TODO remove
+        if self.type == 'destination':
+            return self.dummy_answer
+        mask = (self.mask_sensor.get_observation(env, task, *args, **kwargs)) #TODO this is called multiple times?
+        depth_frame_original = self.depth_sensor.get_observation(env, task, *args, **kwargs).squeeze(-1)
+
+        if task.num_steps_taken() == 0:
+            self.pointnav_history_aggr = []
+            self.real_prev_location = []
+            self.belief_prev_location = []
+
+
+        fov, camera_horizon, camera_xyz, camera_rotation = self.get_agent_belief_state(env)
+        arm_agent_coord = env.get_current_arm_state()
+
+        if mask.sum() != 0:
+
+            midpoint_agent_coord = get_mid_point_of_object_from_depth_and_mask(mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
+            self.pointnav_history_aggr.append((midpoint_agent_coord.cpu(), 1, task.num_steps_taken()))
+
+        # if len(self.belief_prev_location) > 190:
+        #     import matplotlib
+        #     matplotlib.use('TkAgg')
+        #     import matplotlib.pyplot as plt
+        #     fig = plt.figure()
+        #     ax = fig.add_subplot(projection='3d')
+        #     def draw_points(locations, color):
+        #         xs = [x[0] for x in locations]
+        #         ys = [x[1] for x in locations]
+        #         zs = [x[2] for x in locations]
+        #         ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
+
+        #     def draw(locations, color):
+        #         xs = [x['camera_xyz'][0] for x in locations]
+        #         ys = [x['camera_xyz'][1] for x in locations]
+        #         zs = [x['camera_xyz'][2] for x in locations]
+        #         ax.plot(xs, zs, ys, marker='o' if color=='g' else 'x', color=color)
+
+        #     draw_points(self.real_prev_location, 'g'); draw_points(self.belief_prev_location, 'b'); plt.show()
+        #     ForkedPdb().set_trace()
+
+
+
+        result = self.history_aggregation(camera_xyz, camera_rotation, arm_agent_coord, task.num_steps_taken())
+        return result
+        
+    def history_aggregation(self, camera_xyz, camera_rotation, arm_agent_coord, current_step_number):
+        if len(self.pointnav_history_aggr) == 0:
+            return self.dummy_answer
+        else:
+            weights = [1. / (current_step_number + 1 - num_steps) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
+            total_weights = sum(weights)
+            total_sum = [mid * (1. / (current_step_number + 1 - num_steps)) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
+            total_sum = sum(total_sum)
+            midpoint = total_sum / total_weights
+            agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
+            midpoint_position_rotation = dict(position=dict(x=midpoint[0], y=midpoint[1], z=midpoint[2]), rotation=dict(x=0,y=0,z=0))
+            midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
+            midpoint_agent_coord = torch.Tensor([midpoint_agent_coord['position'][k] for k in ['x','y','z']])
+
+            # arm_world_coord = dict(position=dict(x=arm_world_coord[0], y=arm_world_coord[1], z=arm_world_coord[2]), rotation=dict(x=0,y=0,z=0))
+            # arm_state_agent_coord = convert_world_to_agent_coordinate(arm_world_coord, agent_state)
+            arm_state_agent_coord = torch.Tensor([arm_agent_coord[k] for k in ['x','y','z']])
+            # ForkedPdb().set_trace()
+
+            distance_in_agent_coord = midpoint_agent_coord - arm_state_agent_coord
+
+            return distance_in_agent_coord.cpu()
+
+
+def calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, device, depth_frame):
+    with torch.no_grad():
+        camera_xyz = (
+            torch.from_numpy(camera_xyz - min_xyz).float().to(device)
+        )
+
+        depth_frame = torch.from_numpy(depth_frame).to(device)
+        depth_frame[depth_frame == -1] = np.NaN
+        world_space_point_cloud = depth_frame_to_world_space_xyz(
+            depth_frame=depth_frame,
+            camera_world_xyz=camera_xyz,
+            rotation=camera_rotation,
+            horizon=camera_horizon,
+            fov=fov,
+        )
+        return world_space_point_cloud
+
+def get_mid_point_of_object_from_depth_and_mask(mask, depth_frame_original, min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, device):
+    mask = squeeze_bool_mask(mask)
+    depth_frame_masked = depth_frame_original.copy()
+    depth_frame_masked[~mask] = -1
+    world_space_point_cloud = calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, device, depth_frame_masked)
+    valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
+    point_in_world = world_space_point_cloud[valid_points]
+    midpoint_agent_coord = point_in_world.mean(dim=0)
+    return midpoint_agent_coord
 
 
 class PredictionObjectMask(Sensor):
