@@ -297,7 +297,9 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.increment_scene_index()
 
         # self.env.controller.step(action="DestroyHouse", raise_for_failure=True)
-        self.env.controller.reset()
+        # self.env.controller.reset()
+        self.env.reset(scene_name='Procedural')
+        
         self.env.list_of_actions_so_far = []
         self.house_entry = self.houses[self.house_index]
         self.house = pickle.loads(self.house_entry["house"])

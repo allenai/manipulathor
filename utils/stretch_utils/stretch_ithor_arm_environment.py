@@ -205,6 +205,8 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
 
         if self.env_args['agentMode'] is not 'stretch':
             self.controller.reset(scene_name)
+        elif scene_name=='Procedural':
+            self.controller.reset()
         else:
 
             # to solve the crash issue
@@ -221,16 +223,16 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                     {"action": "ChangeOpenSpeed", "x": self.object_open_speed}
                 )
 
-        self._initially_reachable_points = None
-        self._initially_reachable_points_set = None
-        self.controller.step({"action": "GetReachablePositions"})
-        if not self.controller.last_event.metadata["lastActionSuccess"]:
-            warnings.warn(
-                "Error when getting reachable points: {}".format(
-                    self.controller.last_event.metadata["errorMessage"]
+            self._initially_reachable_points = None
+            self._initially_reachable_points_set = None
+            self.controller.step({"action": "GetReachablePositions"})
+            if not self.controller.last_event.metadata["lastActionSuccess"]:
+                warnings.warn(
+                    "Error when getting reachable points: {}".format(
+                        self.controller.last_event.metadata["errorMessage"]
+                    )
                 )
-            )
-        self._initially_reachable_points = self.last_action_return
+            self._initially_reachable_points = self.last_action_return
 
         self.list_of_actions_so_far = []
 

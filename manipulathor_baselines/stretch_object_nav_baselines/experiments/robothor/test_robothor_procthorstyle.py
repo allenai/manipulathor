@@ -1,11 +1,15 @@
 import datasets
 import torch
+
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_2camera_procthor_narrow \
     import ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_2camera_procthor_wide import \
     ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_for_procthor_clip_resnet50_rgb_only import \
     ProcTHORObjectNavClipResnet50RGBOnly
+from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_2camera_procthor_wide_stochastic import \
+    ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVNoisy
+
 from utils.procthor_utils.procthor_object_nav_task_samplers import RoboThorObjectNavTestTaskSampler
 from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask, ObjectNavTask, StretchNeckedObjectNavTask, StretchNeckedObjectNavTaskUpdateOrder
 
@@ -16,8 +20,10 @@ from manipulathor_utils.debugger_util import ForkedPdb
 
 
 # class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly):
-class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV):
+# class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV):
 # class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV):
+class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVNoisy):
+
     EVAL_TASKS = datasets.load_dataset(
         f"allenai/robothor-objectnav-eval", use_auth_token=True
     )
