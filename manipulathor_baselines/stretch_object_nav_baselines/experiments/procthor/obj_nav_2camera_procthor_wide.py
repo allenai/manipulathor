@@ -7,7 +7,7 @@ from allenact_plugins.ithor_plugin.ithor_sensors import GoalObjectTypeThorSensor
 
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_for_procthor_clip_resnet50_rgb_only \
     import ProcTHORObjectNavClipResnet50RGBOnly
-from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTaskSegmentationSuccess
+from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTaskSegmentationSuccess, StretchObjectNavTaskSegmentationSuccessActionFail
 from manipulathor_utils.debugger_util import ForkedPdb
 
 
@@ -26,6 +26,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
         OBJECT_TYPES=yaml.safe_load(f)
     
     TASK_TYPE = StretchObjectNavTaskSegmentationSuccess
+    # TASK_TYPE = StretchObjectNavTaskSegmentationSuccessActionFail
 
     SENSORS = [
         RGBSensorThor(

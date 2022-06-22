@@ -7,6 +7,7 @@ from typing_extensions import Literal
 import gym
 from importlib_metadata import Lookup
 import numpy as np
+from sklearn.metrics import recall_score
 import torch
 from allenact.base_abstractions.misc import RLStepResult
 from allenact.base_abstractions.sensor import Sensor
@@ -427,6 +428,34 @@ class StretchObjectNavTaskSegmentationSuccess(StretchObjectNavTask):
                 return True
         
         return False
+
+class StretchObjectNavTaskSegmentationSuccessActionFail(StretchObjectNavTaskSegmentationSuccess):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.recent_three_strikes = 0
+        self.reward_config['got_stuck_penalty'] = -1.0 # TODO this is hacky
+        # possible enhancement: add a "I'm stuck" action that agent is not penalized for 
+    
+    def _step(self, action: int) -> RLStepResult:
+        sr = super()._step(action)
+
+        if self.last_action_success or self._took_end_action:
+            self.recent_three_strikes = 0
+            return sr
+        elif self.recent_three_strikes < 2:
+            self.recent_three_strikes += 1
+            return sr
+        else:
+            # print('Task ended for repeated action failure')
+            # ForkedPdb().set_trace()
+            self._took_end_action = True
+            step_result = RLStepResult(
+                observation=sr.observation,
+                reward=sr.reward - self.reward_config['got_stuck_penalty'],
+                done=self.is_done(),
+                info={"last_action_success": self.last_action_success, "action": action},
+            )
+            return step_result
 
 
 class ExploreWiseObjectNavTask(ObjectNavTask):
