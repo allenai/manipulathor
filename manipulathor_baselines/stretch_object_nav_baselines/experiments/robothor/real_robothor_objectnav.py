@@ -70,6 +70,7 @@ class RealStretchObjectNav(
 
     NUM_PROCESSES = 1
     NUMBER_OF_TEST_PROCESS = 0
+    NUMBER_OF_VALID_PROCESS = 0
     VAL_DEVICES = []
     TEST_DEVICES = []
 

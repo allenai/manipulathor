@@ -104,6 +104,7 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
 
     NUM_PROCESSES: Optional[int] = None
     NUMBER_OF_TEST_PROCESS: Optional[int] = None
+    NUMBER_OF_VALID_PROCESS: Optional[int] = 1
     TRAIN_GPU_IDS = list(range(torch.cuda.device_count()))
     SAMPLER_GPU_IDS = TRAIN_GPU_IDS
     VALID_GPU_IDS = []
@@ -354,7 +355,7 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
             )
             sampler_devices = self.SAMPLER_GPU_IDS
         elif mode == "valid":
-            nprocesses = 1
+            nprocesses = self.NUMBER_OF_VALID_PROCESS
             gpu_ids = [] if not torch.cuda.is_available() else self.VALID_GPU_IDS
         elif mode == "test":
             # nprocesses = self.NUMBER_OF_TEST_PROCESS if torch.cuda.is_available() else 1

@@ -1,8 +1,12 @@
 from ast import For
 from dis import dis
+from email.encoders import encode_noop
 import random
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Literal
+
+import signal
+import time
 
 import gym
 from importlib_metadata import Lookup
@@ -31,6 +35,9 @@ from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 
 from manipulathor_utils.debugger_util import ForkedPdb
 from datetime import datetime
+
+def handler(signum, frame):
+    raise Exception("Controller call took too long")
 
 class ObjectNavTask(Task[ManipulaTHOREnvironment]):
     _actions = (
@@ -433,7 +440,8 @@ class StretchObjectNavTaskSegmentationSuccessActionFail(StretchObjectNavTaskSegm
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.recent_three_strikes = 0
-        self.reward_config['got_stuck_penalty'] = -1.0 # TODO this is hacky
+        self.reward_config['got_stuck_penalty'] = 0.0 # TODO this is hacky
+        self.reward_config['failed_action_penalty'] = -0.25
         # possible enhancement: add a "I'm stuck" action that agent is not penalized for 
     
     def _step(self, action: int) -> RLStepResult:
@@ -456,6 +464,25 @@ class StretchObjectNavTaskSegmentationSuccessActionFail(StretchObjectNavTaskSegm
                 info={"last_action_success": self.last_action_success, "action": action},
             )
             return step_result
+    
+    def judge(self) -> float:
+        """Judge the last event."""
+        reward = self.reward_config['step_penalty']
+        if not self.last_action_success:
+            reward += self.reward_config['failed_action_penalty']
+
+        reward += self.shaping()
+
+        if self._took_end_action:
+            if self._success:
+                reward += self.reward_config['goal_success_reward']
+            else:
+                reward += self.reward_config['failed_stop_reward']
+        elif self.num_steps_taken() + 1 >= self.max_steps:
+            reward += self.reward_config['reached_horizon_reward']
+
+        self._rewards.append(float(reward))
+        return float(reward)
 
 
 class ExploreWiseObjectNavTask(ObjectNavTask):
@@ -502,6 +529,7 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
         super().__init__(**kwargs)
         self.start_time = datetime.now()
         self.last_time = None
+        signal.signal(signal.SIGALRM, handler)
     
     def _step(self, action: int) -> RLStepResult:
 
@@ -510,18 +538,30 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
 
         self.manual_action = False
 
-        # print('Action Called', action_str)
-        
-        if action_str == "Done":
-            self._took_end_action = True
-            dt_total = (datetime.now() - self.start_time).total_seconds()/60
-            print('I think I found a ', self.task_info['object_type'], ' after ', str(dt_total), ' minutes.' )
-            print('Was I correct? Set self._success in trace.')            
+        # add/remove/adjust to allow graceful exit from auto-battlebots
+        end_ep_early = False
+        if self.num_steps_taken() % 10 == 0:
+            print('verify continue? set end_ep_early=True to gracefully fail out')
             ForkedPdb().set_trace()
 
         self._last_action_str = action_str
         action_dict = {"action": action_str}
-        self.env.step(action_dict)
+        signal.alarm(10) # second timeout - catch missed server connection. THIS IS NOT THREAD SAFE
+        try:
+            self.env.step(action_dict)
+        except:
+            print('continue to try again or set end_ep_early to fail out instead')
+            ForkedPdb().set_trace()
+            self.env.step(action_dict)
+        
+        signal.alarm(0)
+
+        if action_str == "Done" or end_ep_early:
+            self._took_end_action = True
+            dt_total = (datetime.now() - self.start_time).total_seconds()/60
+            print('I think I found a ', self.task_info['object_type'], ' after ', str(dt_total), ' minutes.' )
+            print('Was I correct? Set self._success in trace. Default false.')            
+            ForkedPdb().set_trace()
 
         if self.last_time is not None:
             dt = (datetime.now() - self.last_time).total_seconds()

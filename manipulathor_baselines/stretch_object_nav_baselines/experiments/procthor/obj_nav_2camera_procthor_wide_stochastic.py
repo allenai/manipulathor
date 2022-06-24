@@ -6,7 +6,9 @@
 
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_2camera_procthor_wide \
     import ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV
-# from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
+from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_2camera_procthor_narrow \
+    import ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV
+    # from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
 
 
 class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVNoisy(
@@ -18,4 +20,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVNoisy(
         self.ENV_ARGS['motion_noise_args'] = dict()
         self.ENV_ARGS['motion_noise_args']['multiplier_means'] = [1,1,1,1,1,1]
         self.ENV_ARGS['motion_noise_args']['multiplier_sigmas'] = [0.01,0.01,0.01,0.01,0.01,0.01,0.01]
-        self.ENV_ARGS['motion_noise_args']['effect_scale'] = .25
+        self.ENV_ARGS['motion_noise_args']['effect_scale'] = .1 # .1 for eval .25 for training
+
+        self.ENV_ARGS['returnToStart'] = False # for eval

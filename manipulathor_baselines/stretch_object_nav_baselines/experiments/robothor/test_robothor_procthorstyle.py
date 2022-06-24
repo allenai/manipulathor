@@ -68,12 +68,15 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2Ca
 
     def test_task_sampler_args(self, **kwargs):
         if self.TEST_ON_VALIDATION:
-            return self.valid_task_sampler_args(**kwargs)
+            houses = self.EVAL_TASKS["validation"]
+        else:
+            houses = self.EVAL_TASKS["test"].shuffle()
+            # return self.valid_task_sampler_args(**kwargs)
 
         out = self._get_sampler_args_for_scene_split(
-            houses=self.EVAL_TASKS["test"].shuffle(),
+            houses=houses,
             mode="eval",
-            max_tasks=5,
+            max_tasks=None,
             allow_flipping=False,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,  # ignored
             **kwargs,

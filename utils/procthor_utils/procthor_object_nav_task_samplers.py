@@ -453,7 +453,8 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
 
             if self.last_scene is None or self.last_scene != ep["scene"]:
                 self.last_scene = ep["scene"]
-                self.env.controller.reset(ep["scene"])
+                # self.env.controller.reset(ep["scene"])
+                self.env.reset(scene_name=ep["scene"])
 
             # NOTE: not using ep["targetObjectIds"] due to floating points with
             # target objects moving.
