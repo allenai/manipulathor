@@ -63,8 +63,8 @@ class RealStretchObjectNav(
 
     MAX_STEPS = 60
 
-    TASK_SAMPLER = RealStretchAllRoomsObjectNavTaskSampler #RealStretchDiverseBringObjectTaskSampler
-    TASK_TYPE = RealStretchObjectNavTask #RealStretchExploreWiseRewardTask
+    TASK_SAMPLER = RealStretchAllRoomsObjectNavTaskSampler 
+    TASK_TYPE = RealStretchObjectNavTask #
     ENVIRONMENT_TYPE = StretchRealEnvironment # account for the super init
     VISUALIZE = True
 

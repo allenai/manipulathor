@@ -20,6 +20,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVNoisy(
         self.ENV_ARGS['motion_noise_args'] = dict()
         self.ENV_ARGS['motion_noise_args']['multiplier_means'] = [1,1,1,1,1,1]
         self.ENV_ARGS['motion_noise_args']['multiplier_sigmas'] = [0.01,0.01,0.01,0.01,0.01,0.01,0.01]
-        self.ENV_ARGS['motion_noise_args']['effect_scale'] = .1 # .1 for eval .25 for training
+        self.ENV_ARGS['motion_noise_args']['effect_scale'] = .1 # .1 for eval .25 for training. change to .1 for fine-tune with action penalties
 
         self.ENV_ARGS['returnToStart'] = False # for eval

@@ -26,8 +26,8 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
     with open('datasets/objects/robothor_habitat2022.yaml', 'r') as f:
         OBJECT_TYPES=yaml.safe_load(f)
     
-    TASK_TYPE = StretchObjectNavTaskSegmentationSuccess
-    # TASK_TYPE = StretchObjectNavTaskSegmentationSuccessActionFail
+    # TASK_TYPE = StretchObjectNavTaskSegmentationSuccess
+    TASK_TYPE = StretchObjectNavTaskSegmentationSuccessActionFail
 
     SENSORS = [
         RGBSensorThor(

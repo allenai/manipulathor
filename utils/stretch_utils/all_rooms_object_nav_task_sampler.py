@@ -464,15 +464,15 @@ class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
         ]
 
         self.preset_easyish_tasks = [
-            # {'object_id': 'Apple|1|1|1', 'object_type':"Apple"},
-            # {'object_id': 'BaseballBat|1|1|1', 'object_type':"BaseballBat"},
-            # {'object_id': 'BasketBall|1|1|1', 'object_type':"BasketBall"},
-            # {'object_id': 'Bowl|1|1|1', 'object_type':"Bowl"},
-            # {'object_id': 'Chair|1|1|1', 'object_type':"Chair"},
-            # {'object_id': 'HousePlant|1|1|1', 'object_type':"HousePlant"},
-            # {'object_id': 'Mug|1|1|1', 'object_type':"Mug"},
-            # {'object_id': 'SprayBottle|1|1|1', 'object_type':"SprayBottle"},
-            # {'object_id': 'Television|1|1|1', 'object_type':"Television"},
+            {'object_id': 'Apple|1|1|1', 'object_type':"Apple"},
+            {'object_id': 'BaseballBat|1|1|1', 'object_type':"BaseballBat"},
+            {'object_id': 'BasketBall|1|1|1', 'object_type':"BasketBall"},
+            {'object_id': 'Bowl|1|1|1', 'object_type':"Bowl"},
+            {'object_id': 'Chair|1|1|1', 'object_type':"Chair"},
+            {'object_id': 'HousePlant|1|1|1', 'object_type':"HousePlant"},
+            {'object_id': 'Mug|1|1|1', 'object_type':"Mug"},
+            {'object_id': 'SprayBottle|1|1|1', 'object_type':"SprayBottle"},
+            {'object_id': 'Television|1|1|1', 'object_type':"Television"},
             {'object_id': 'Vase|1|1|1', 'object_type':"Vase"}
         ]
 

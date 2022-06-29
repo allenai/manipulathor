@@ -440,9 +440,9 @@ class StretchObjectNavTaskSegmentationSuccessActionFail(StretchObjectNavTaskSegm
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.recent_three_strikes = 0
-        self.reward_config['got_stuck_penalty'] = 0.0 # TODO this is hacky
-        self.reward_config['failed_action_penalty'] = -0.25
-        # possible enhancement: add a "I'm stuck" action that agent is not penalized for 
+        self.reward_config['got_stuck_penalty'] = 0.0 # TODO this is hacky, should be in config
+        self.reward_config['failed_action_penalty'] = -0.2
+        # possible enhancement: add a "I'm stuck" action? 
     
     def _step(self, action: int) -> RLStepResult:
         sr = super()._step(action)
@@ -546,11 +546,11 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
 
         self._last_action_str = action_str
         action_dict = {"action": action_str}
-        signal.alarm(10) # second timeout - catch missed server connection. THIS IS NOT THREAD SAFE
+        signal.alarm(8) # second timeout - catch missed server connection. THIS IS NOT THREAD SAFE
         try:
             self.env.step(action_dict)
         except:
-            print('continue to try again or set end_ep_early to fail out instead')
+            print('Controller call took too long, continue to try again or set end_ep_early to fail out instead')
             ForkedPdb().set_trace()
             self.env.step(action_dict)
         
