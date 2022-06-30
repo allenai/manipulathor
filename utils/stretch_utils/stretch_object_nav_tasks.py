@@ -441,7 +441,7 @@ class StretchObjectNavTaskSegmentationSuccessActionFail(StretchObjectNavTaskSegm
         super().__init__(**kwargs)
         self.recent_three_strikes = 0
         self.reward_config['got_stuck_penalty'] = 0.0 # TODO this is hacky, should be in config
-        self.reward_config['failed_action_penalty'] = -0.2
+        self.reward_config['failed_action_penalty'] = -0.5
         # possible enhancement: add a "I'm stuck" action? 
     
     def _step(self, action: int) -> RLStepResult:
