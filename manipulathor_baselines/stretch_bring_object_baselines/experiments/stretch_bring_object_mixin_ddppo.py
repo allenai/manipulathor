@@ -12,7 +12,7 @@ from torch.optim.lr_scheduler import LambdaLR
 from manipulathor_baselines.stretch_bring_object_baselines.experiments.stretch_bring_object_base import \
     StretchBringObjectBaseConfig
 
-
+from manipulathor_baselines.stretch_bring_object_baselines.models.pose_estimation_loss import PoseEstimationLoss
 class StretchBringObjectMixInPPOConfig(StretchBringObjectBaseConfig):
     def training_pipeline(self, **kwargs):
         ppo_steps = int(300000000000)
@@ -34,7 +34,7 @@ class StretchBringObjectMixInPPOConfig(StretchBringObjectBaseConfig):
             update_repeats=update_repeats,
             max_grad_norm=max_grad_norm,
             num_steps=num_steps,
-            named_losses={"ppo_loss": PPO(**PPOConfig)},#, "pred_distance_loss": PredictDistanceLoss()},
+            named_losses={"ppo_loss": PPO(**PPOConfig), 'pose_loss':PoseEstimationLoss()},#, "pred_distance_loss": PredictDistanceLoss()},
             gamma=gamma,
             use_gae=use_gae,
             gae_lambda=gae_lambda,
@@ -42,8 +42,8 @@ class StretchBringObjectMixInPPOConfig(StretchBringObjectBaseConfig):
             pipeline_stages=[
                 # PipelineStage(loss_names=["ppo_loss"], max_stage_steps=ppo_steps)
                 PipelineStage(
-                    loss_names=["ppo_loss"],#, "pred_distance_loss"],
-                    loss_weights=[1.0],#, 1.0],
+                    loss_names=["ppo_loss", "pose_loss"],#, "pred_distance_loss"],
+                    loss_weights=[1.0, 1.0],#, 1.0],
                     max_stage_steps=ppo_steps,
                 )
             ],

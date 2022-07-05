@@ -190,7 +190,6 @@ class AgentOdometryEmulSensor(Sensor):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )
-        self.noisy_pose = False
 
         self.noise = noise
         assert self.noise == 0
@@ -199,6 +198,42 @@ class AgentOdometryEmulSensor(Sensor):
         self.initial_rot = 0.0
 
         super().__init__(**prepare_locals_for_super(locals()))
+
+    def get_agent_pose(self, metadata, env, noisy_pose: bool):
+        sin_of_rot = np.sin(np.deg2rad(self.initial_rot))
+        cos_of_rot = np.cos(np.deg2rad(self.initial_rot))
+        if noisy_pose:
+            agent_xyz = np.array([env.nominal_agent_location[k] for k in ["x", "y", "z"]]) - self.initial_pos
+            agent_rot = env.nominal_agent_location['rotation'] - self.initial_rot
+            prev_pos = self.noisy_prev_pos
+            prev_rot = self.noisy_prev_rot
+        else:
+            agent_xyz = np.array([metadata['agent']['position'][k] for k in ["x", "y", "z"]]) - self.initial_pos
+            agent_rot = metadata["agent"]["rotation"]["y"] - self.initial_rot
+            prev_pos = self.prev_pos
+            prev_rot = self.noisy_prev_rot
+        agent_xyz_rot = np.array([cos_of_rot * agent_xyz[0] - sin_of_rot * agent_xyz[2],
+                                   agent_xyz[1],
+                                   sin_of_rot * agent_xyz[0] + cos_of_rot * agent_xyz[2]])
+
+
+        relative_rot = (agent_rot - prev_rot) % 360
+        if relative_rot > 180:
+            relative_rot -= 360
+        relative_pos = agent_xyz_rot - prev_pos
+
+        cos_of_prev = np.cos(np.deg2rad(prev_rot))
+        sin_of_prev = np.sin(np.deg2rad(prev_rot))
+        relative_pos = np.array([cos_of_prev * relative_pos[0] - sin_of_prev * relative_pos[2],
+                                relative_pos[1],
+                                sin_of_prev * relative_pos[0] + cos_of_prev * relative_pos[2] ])
+        if noisy_pose:
+            self.noisy_prev_pos = agent_xyz_rot
+            self.noisy_prev_rot = agent_rot
+        else:
+            self.prev_pos = agent_xyz_rot
+            self.prev_rot = agent_rot
+        return agent_xyz, agent_xyz_rot, agent_rot, relative_pos, relative_rot
 
     def get_observation(
             self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
@@ -215,6 +250,8 @@ class AgentOdometryEmulSensor(Sensor):
 
             self.prev_rot = 0.0
             self.prev_pos = np.array([0.0 for k in ["x", "y", "z"]])
+            self.noisy_prev_rot = 0.0
+            self.noisy_prev_pos = np.array([0.0 for k in ["x", "y", "z"]])
 
             sin_of_neg_rot = np.sin(np.deg2rad(-self.initial_rot))
             cos_of_neg_rot = np.cos(np.deg2rad(-self.initial_rot))
@@ -246,34 +283,18 @@ class AgentOdometryEmulSensor(Sensor):
         #     print("action failed", metadata['lastAction'])
 
 
-        if self.noisy_pose:
-            agent_xyz = np.array([env.nominal_agent_location[k] for k in ["x", "y", "z"]]) - self.initial_pos
-            agent_rot = env.nominal_agent_location['rotation'] - self.initial_rot
-        else:
-            agent_xyz = np.array([metadata['agent']['position'][k] for k in ["x", "y", "z"]]) - self.initial_pos
-            agent_rot = metadata["agent"]["rotation"]["y"] - self.initial_rot
-        agent_xyz_rot = np.array([cos_of_rot * agent_xyz[0] - sin_of_rot * agent_xyz[2],
-                                   agent_xyz[1],
-                                   sin_of_rot * agent_xyz[0] + cos_of_rot * agent_xyz[2]])
-
-        relative_rot = (agent_rot - self.prev_rot) % 360
-        if relative_rot > 300:
-            relative_rot -= 360
-        relative_pos = agent_xyz_rot - self.prev_pos
-
-        cos_of_prev = np.cos(np.deg2rad(self.prev_rot))
-        sin_of_prev = np.sin(np.deg2rad(self.prev_rot))
-        relative_pos = np.array([cos_of_prev * relative_pos[0] - sin_of_prev * relative_pos[2],
-                                relative_pos[1],
-                                sin_of_prev * relative_pos[0] + cos_of_prev * relative_pos[2] ])
-
-        self.prev_pos = agent_xyz_rot
-        self.prev_rot = agent_rot
         
+        agent_xyz, agent_xyz_rot, agent_rot, relative_pos, relative_rot = self.get_agent_pose(metadata, env, noisy_pose=False)
+        _, _, noisy_agent_rot, noisy_relative_pos, noisy_relative_rot = self.get_agent_pose(metadata, env, noisy_pose=True)
+        # self.prev_pos = agent_xyz_rot
+        # self.prev_rot = agent_rot
+        # print("agent rot", agent_rot - noisy_agent_rot)
         agent_info = dict(xyz=agent_xyz_rot,
                           rotation=agent_rot,
                           relative_xyz=relative_pos,
-                          relative_rot=relative_rot)
+                          relative_rot=relative_rot,
+                          noisy_relative_xyz=noisy_relative_pos,
+                          noisy_relative_rot=noisy_relative_rot)
 
         camera_info = dict()
         for camera in self.camera_offsets:
@@ -287,8 +308,14 @@ class AgentOdometryEmulSensor(Sensor):
                                        sin_of_rot * camera_xyz[0] + cos_of_rot * camera_xyz[2]])
             
             camera_rot = agent_rot + self.camera_offsets[camera]['rotation']
+
+            rot_offset = np.array([cos_of_rot * xyz_offset[0] - sin_of_rot * xyz_offset[2],
+                                       xyz_offset[1],
+                                       sin_of_rot * xyz_offset[0] + cos_of_rot * xyz_offset[2]])
             camera_info[camera] = dict(xyz=camera_xyz_rot,
                                        rotation=camera_rot,
+                                       xyz_offset=rot_offset,
+                                       rotation_offset=self.camera_offsets[camera]['rotation'],
                                        horizon=self.camera_offsets[camera]['horizon'],
                                        fov=self.camera_offsets[camera]['fov'])
 
