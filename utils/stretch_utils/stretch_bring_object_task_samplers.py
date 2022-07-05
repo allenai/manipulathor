@@ -118,7 +118,7 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
         self.max_tasks: Optional[int] = None
         self.reset_tasks = max_tasks
 
-        self.all_test_tasks = [i for i in range(1000)]
+        self.all_test_tasks = [i for i in range(100)]
 
 
         self._last_sampled_task: Optional[Task] = None
@@ -225,6 +225,8 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
 
                             self.all_test_tasks += tasks
             random.shuffle(self.all_test_tasks)
+            self.max_tasks = self.reset_tasks = len(self.all_test_tasks)
+        elif self.sampler_mode == 'val':
             self.max_tasks = self.reset_tasks = len(self.all_test_tasks)
 
 
