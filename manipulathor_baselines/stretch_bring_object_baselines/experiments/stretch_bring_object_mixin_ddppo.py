@@ -20,7 +20,7 @@ class StretchBringObjectMixInPPOConfig(StretchBringObjectBaseConfig):
         num_mini_batch = 1
         update_repeats = 4
         num_steps = 128 #self.MAX_STEPS
-        save_interval = 500000  # from 50k
+        save_interval =  250000 # from 50k
         log_interval = 1000
         gamma = 0.99
         use_gae = True
