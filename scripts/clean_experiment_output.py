@@ -22,7 +22,6 @@ def rm_if_dir(path):
 def clean_dir(path, min_checkpoint_size, min_tb_size, delete=False, list_all=False):
     tb_path = join(path, "tb")
     ckpt_path = join(path, "checkpoints")
-    vis_path = join(path, "visualizations")
     cfg_path = join(path, "used_configs")
     experiments = [d for d in listdir(cfg_path) if isdir(join(cfg_path, d))]
 
@@ -48,7 +47,6 @@ def clean_dir(path, min_checkpoint_size, min_tb_size, delete=False, list_all=Fal
             if delete:
                 rm_if_dir(join(tb_path, experiment, seed))
                 rm_if_dir(join(ckpt_path, experiment, seed))
-                rm_if_dir(join(vis_path, experiment, seed))
                 rm_if_dir(join(cfg_path, experiment, seed))
 
 
