@@ -342,8 +342,8 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             self.task_info["action_successes"].append(True)
         else:
             action_dict = {"action": action_str}
-            self.env.step(action_dict)
-            self.last_action_success = bool(self.env.last_event)
+            sr = self.env.step(action_dict)
+            self.last_action_success = bool(sr.metadata["lastActionSuccess"])
 
             position = self.env.last_event.metadata["agent"]["position"]
             self.path.append(position)
