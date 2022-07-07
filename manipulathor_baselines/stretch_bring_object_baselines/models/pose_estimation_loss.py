@@ -16,7 +16,7 @@ class PoseEstimationLoss(AbstractActorCriticLoss):
         batch: ObservationType,
         actor_critic_output: ActorCriticOutput[CategoricalDistr]
     ) -> Tuple[torch.FloatTensor, Dict[str, float]]:
-        if 'pose_errors' not in actor_critic_output.extras:
+        if 'pose_errors' not in actor_critic_output.extras or len(actor_critic_output.extras['pose_errors']) == 0:
             return torch.tensor(0.0), {}
 
         positions = torch.stack([actor_critic_output.extras['pose_errors'][i]['position'] for i in range(len(actor_critic_output.extras['pose_errors']))])

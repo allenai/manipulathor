@@ -32,6 +32,8 @@ from allenact.embodiedai.mapping.mapping_utils.map_builders import BinnedPointCl
 
 from utils.model_utils import LinearActorHeadNoCategory
 
+from torchvision.models import resnet18
+
 class PoseEstimator(nn.Module):
     def __init__(self,
                  input_channels: int,
@@ -62,6 +64,52 @@ class PoseEstimator(nn.Module):
 
         # Hard codes elevation change to be zero
         out[:, :, 1] = 0.0
+        return out
+
+
+class PoseEstimationImage(nn.Module):
+    def __init__(self,
+                 output_channels: int = 4):
+        super().__init__()
+        input_channels = 6
+        #model = resnet18(pretrained=True)
+        #layers = list(model.children())[:-1]
+        #layers[0] = nn.Conv2d(input_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        #self.backbone = nn.Sequential(*layers)
+
+        num_features = 512
+        network_args = {'input_channels': input_channels,
+                        'layer_channels': [32, 64, 32],
+                        'kernel_sizes': [(8, 8), (4, 4), (3, 3)],
+                        'strides': [(4, 4), (2, 2), (1, 1)],
+                        'paddings': [(0, 0), (0, 0), (0, 0)],
+                        'dilations': [(1, 1), (1, 1), (1, 1)],
+                        'output_height': 24,
+                        'output_width': 24,
+                        'output_channels': num_features,
+                        'flatten': True,
+                        'output_relu': True}
+        self.backbone = make_cnn(**network_args)
+        self.linear = nn.Sequential(nn.Linear(512+4, 256),
+                                    nn.ReLU(),
+                                    nn.Linear(256, 128),
+                                    nn.ReLU(),
+                                    nn.Linear(128, output_channels))
+
+    def forward(self, observations, timestep, odom):
+        images = torch.cat([observations['rgb_lowres'][timestep],
+                            observations['rgb_lowres_prev_frame'][timestep]], dim=-1)
+        images = images.reshape(1, *images.shape)
+        #images = images.permute(0, 1, 4, 2, 3)
+        #images = images.reshape(-1, *images.shape[2:5])
+        #features = self.backbone(images)
+        features = compute_cnn_output(self.backbone, images)
+        features = features.reshape(features.shape[1], features.shape[2])
+        #features = features.reshape(*features.shape[:2])
+        features = torch.cat([features, odom.to(torch.float)], dim=1)
+        out = self.linear(features)
+        out[:, 1] = 0.0
+        out = out.unsqueeze(1)
         return out
 
 
@@ -102,8 +150,9 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         self.full_visual_encoder_arm = make_cnn(**network_args)
 
         if self._learn_pose:
-            self.pose_estimation = PoseEstimator(input_channels=2*self.map_channels,
-                                                 output_channels=4)
+            #self.pose_estimation = PoseEstimator(input_channels=2*self.map_channels,
+            #                                     output_channels=4)
+            self.pose_estimation = PoseEstimationImage()
 
         network_args = {'input_channels': self.map_channels, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder_map = make_cnn(**network_args)
@@ -207,7 +256,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         global_maps_reshaped = global_maps.reshape(-1, *global_maps.shape[2:]).permute(0, 3, 1, 2)
 
         affine_grid_world_to_ego = F.affine_grid(transform_world_to_ego, global_maps_reshaped.shape)
-        ego_maps = F.grid_sample(global_maps_reshaped, affine_grid_world_to_ego)
+        ego_maps = F.grid_sample(global_maps_reshaped, affine_grid_world_to_ego, align_corners=False)
         # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
         ego_maps = ego_maps.permute(0, 2, 3, 1).reshape(global_maps.shape)
         # print("egomaps", ego_maps.shape)
@@ -229,7 +278,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         prev_map_reshaped = prev_map.permute(0, 3, 1, 2)
 
         affine_grid_prev_to_curr = F.affine_grid(transform_prev_to_curr, prev_map_reshaped.shape)
-        prev_map_in_curr_frame = F.grid_sample(prev_map_reshaped, affine_grid_prev_to_curr)
+        prev_map_in_curr_frame = F.grid_sample(prev_map_reshaped, affine_grid_prev_to_curr, align_corners=False)
 
         prev_map_in_curr_frame = prev_map_in_curr_frame.permute(0, 2, 3, 1)
         return prev_map_in_curr_frame
@@ -258,16 +307,17 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             #     camera_xyz = camera['xyz_offset'][timestep][i]
             #     camera_rot = camera['rotation_offset'][timestep][i]
             # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
-            xyz_offset = camera['xyz_offset'][timestep].reshape(-1)
-            camera_xyz = position.clone().reshape(-1)
-            agent_rot = rotation.reshape([])
+            xyz_offset = camera['xyz_offset'][timestep][i].reshape(3)
+            camera_xyz = position[i].clone().reshape(3)
+            agent_rot = rotation[i].reshape([])
+
             camera_xyz[0] += xyz_offset[0] * torch.cos(torch.deg2rad(-agent_rot)) - xyz_offset[2] * torch.sin(torch.deg2rad(-agent_rot))
             camera_xyz[1] += xyz_offset[1]
             camera_xyz[2] += xyz_offset[0] * torch.sin(torch.deg2rad(-agent_rot)) + xyz_offset[2] * torch.cos(torch.deg2rad(-agent_rot))
             # camera_xyz = torch.tensor([cos_of_rot * camera_xyz[0] - sin_of_rot * camera_xyz[2],
             #                            camera_xyz[1],
             #                            sin_of_rot * camera_xyz[0] + cos_of_rot * camera_xyz[2]])
-            camera_rot = agent_rot + camera['rotation_offset'][timestep].reshape([])
+            camera_rot = agent_rot + camera['rotation_offset'][timestep][i].reshape([])
 
             world_points = camera_space_xyz_to_world_xyz(camera_space_xyzs=camera_space_xyz, 
                                                         camera_world_xyz=camera_xyz, 
@@ -281,6 +331,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                                                         map_size=self.map_size,
                                                         resolution_in_cm=self.map_resolution_cm,
                                                         flip_row_col=True)
+
             binned_updates.append(binned_map_update)
         binned_updates = torch.stack(binned_updates)
         return binned_updates
@@ -293,7 +344,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         batch_size: int,
     ) -> torch.FloatTensor:
 
-        map_update = torch.zeros(batch_size, self.map_size, self.map_size, self.map_channels)
+        map_update = torch.zeros(batch_size, self.map_size, self.map_size, self.map_channels, device=pose.device)
         for camera_name, frame, source_mask, destination_mask in \
                 zip(observations['odometry_emul']['camera_info'],
                     (observations['depth_lowres'], observations['depth_lowres_arm']),
@@ -351,62 +402,67 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         all_maps = [current_map]
         for timestep in range(observations['depth_lowres'].shape[0]):
             all_maps.append(all_maps[-1].clone() * masks[timestep].reshape(batch_size, 1, 1, 1))
-            prev_pose = prev_pose * masks[timestep]
+            prev_pose = prev_pose * masks[timestep].unsqueeze(-1)
             if self._learn_pose:
-
                 # Uses noisy pose to get estimate of previous map location in current frame
                 # odom_update = torch.cat([observations['odometry_emul']['agent_info']['relative_xyz'],
                 #                          observations['odometry_emul']['agent_info']['relative_rot'].unsqueeze(-1)], dim=-1)
-                sin_of_prev = torch.sin(torch.deg2rad(prev_pose[:, :, -1]))
-                cos_of_prev = torch.cos(torch.deg2rad(prev_pose[:, :, -1]))
+                sin_of_prev = torch.sin(torch.deg2rad(prev_pose[:, :, -1])).squeeze()
+                cos_of_prev = torch.cos(torch.deg2rad(prev_pose[:, :, -1])).squeeze()
                 relative_xyz = observations['odometry_emul']['agent_info']['noisy_relative_xyz'][timestep]
                 odom_update_xyz = torch.zeros_like(relative_xyz)
                 # if prev_pose.shape[0] > 2:
                 # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
-
                 odom_update_xyz[:, 0] = - cos_of_prev * relative_xyz[:, 0] + sin_of_prev * relative_xyz[:, 2]
                 odom_update_xyz[:, 2] = sin_of_prev * relative_xyz[:, 0] + cos_of_prev * relative_xyz[:, 2]
                 odom_update = torch.cat([odom_update_xyz,
                                          observations['odometry_emul']['agent_info']['noisy_relative_rot'][timestep].unsqueeze(-1)], dim=-1)
 
-                prev_pose = prev_pose + odom_update.unsqueeze(0)
-                prev_map_in_ego_with_error = self.transform_by_relative_pos(all_maps[-1], prev_pose)
+                if False:
+                    #from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+                    prev_pose = prev_pose + odom_update.unsqueeze(1)
+                    prev_map_in_ego_with_error = self.transform_by_relative_pos(all_maps[-1], prev_pose)
 
-                # generate map of current frame in egocentric view
-                egocentric_pose = torch.zeros_like(prev_pose)
-                # egocentric_pose = {'xyz': torch.zeros_like(observations['odometry_emul']['agent_info']['xyz']),
-                #                    'rotation': torch.zeros_like(observations['odometry_emul']['agent_info']['rotation'])}
-                current_map_in_ego = self.project_depth_to_map(observations, egocentric_pose, timestep, batch_size)
+                    # generate map of current frame in egocentric view
+                    egocentric_pose = torch.zeros_like(prev_pose)
+                    # egocentric_pose = {'xyz': torch.zeros_like(observations['odometry_emul']['agent_info']['xyz']),
+                    #                    'rotation': torch.zeros_like(observations['odometry_emul']['agent_info']['rotation'])}
+                    current_map_in_ego = self.project_depth_to_map(observations, egocentric_pose, timestep, batch_size)
 
-                # cv2.imwrite("/Users/karls/debug_images/map_{}_{}_prev.png".format(self.step_count, timestep), prev_map_in_ego_with_error[0, :, :, :3].detach().cpu().numpy()*255)
-                # cv2.imwrite("/Users/karls/debug_images/map_{}_{}_curr.png".format(self.step_count, timestep), current_map_in_ego[0, :, :, :3].detach().cpu().numpy()*255)
-                stacked_maps = torch.cat([prev_map_in_ego_with_error, current_map_in_ego], dim=-1)
+                    # cv2.imwrite("/Users/karls/debug_images/map_{}_{}_prev.png".format(self.step_count, timestep), prev_map_in_ego_with_error[0, :, :, :3].detach().cpu().numpy()*255)
+                    # cv2.imwrite("/Users/karls/debug_images/map_{}_{}_curr.png".format(self.step_count, timestep), current_map_in_ego[0, :, :, :3].detach().cpu().numpy()*255)
+                    stacked_maps = torch.cat([prev_map_in_ego_with_error, current_map_in_ego], dim=-1)
 
-                
-                pose_error = self.pose_estimation(stacked_maps)
-                pose = prev_pose + pose_error
+                    
+                    pose_update = self.pose_estimation(stacked_maps)
+                else:
+                    pose_update = self.pose_estimation(observations, timestep, odom_update)
+                pose = prev_pose + pose_update
+                position_error = observations['odometry_emul']['agent_info']['xyz'][timestep].unsqueeze(1) - pose[:, :, :3]
+                rotation_error = observations['odometry_emul']['agent_info']['rotation'][timestep].unsqueeze(1) - pose[:, :, -1]
 
-                position_error = observations['odometry_emul']['agent_info']['xyz'][timestep] - pose[:, :, :3]
-                rotation_error = observations['odometry_emul']['agent_info']['rotation'][timestep] - pose[:, :, -1]
-
-                odom_pos_error = observations['odometry_emul']['agent_info']['xyz'][timestep] - prev_pose[:, :, :3]
-                odom_rot_error = observations['odometry_emul']['agent_info']['rotation'][timestep] - prev_pose[:, :, -1]
+                odom_pos_error = observations['odometry_emul']['agent_info']['xyz'][timestep].unsqueeze(1) - prev_pose[:, :, :3]
+                odom_rot_error = observations['odometry_emul']['agent_info']['rotation'][timestep].unsqueeze(1) - prev_pose[:, :, -1]
+#                odom_rotations = odom_rot_error.clone()
+#                odom_rotations[torch.where(odom_rotations > 180)[0]] -= 360
+#                odom_rotations[torch.where(odom_rotations < -180)[0]] += 360
+#                if torch.max(torch.abs(odom_rotations)) > 15.0:
+#                    from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
                 pose_errors.append({'position': position_error, 'rotation': rotation_error, 'odom_pos': odom_pos_error, 'odom_rot': odom_rot_error})
                 # print("position error", torch.max(torch.abs(position_error)))
                 # print("rotation error", rotation_error)
                 if self.training:
                     # print("training with gt pose")
                     pose = torch.cat([observations['odometry_emul']['agent_info']['xyz'][timestep],
-                                      observations['odometry_emul']['agent_info']['rotation'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(0)
+                                      observations['odometry_emul']['agent_info']['rotation'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(1)
 
             else:
                 pose = torch.cat([observations['odometry_emul']['agent_info']['xyz'][timestep],
-                                  observations['odometry_emul']['agent_info']['rotation'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(0)
+                                  observations['odometry_emul']['agent_info']['rotation'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(1)
 
-            map_update = self.project_depth_to_map(observations, pose, timestep, batch_size)
+            map_update = self.project_depth_to_map(observations, pose.detach(), timestep, batch_size)
             all_maps[-1] += map_update
             all_maps[-1] = torch.clamp(all_maps[-1], min=0, max=1)
-
             prev_pose = pose
 
         
@@ -432,7 +488,6 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         ego_maps = self.transform_global_map_to_ego_map(all_maps, observations['odometry_emul']['agent_info'])
 
         self.step_count += 1
-
         
         pickup_bool = observations["pickedup_object"]
         after_pickup = pickup_bool == 1
@@ -498,6 +553,6 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
         memory = memory.set_tensor("map", all_maps[-1].reshape(memory.tensor("map").shape))
-        memory = memory.set_tensor("prev_pose", prev_pose)
+        memory = memory.set_tensor("prev_pose", prev_pose.detach().reshape(memory.tensor("prev_pose").shape))
 
         return actor_critic_output, memory

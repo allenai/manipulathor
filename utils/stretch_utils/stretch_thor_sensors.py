@@ -33,7 +33,21 @@ from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHO
 from utils.stretch_utils.stretch_sim2real_utils import kinect_reshape, intel_reshape
 from scripts.stretch_jupyter_helper import get_relative_stretch_current_arm_state
 
+class PrevFrameSensor(Sensor):
+    def __init__(self, sensor, uuid: str):
+        self.sensor = sensor
+        self.prev_obs = None
 
+        observation_space = sensor.observation_space
+        super().__init__(**prepare_locals_for_super(locals()))
+
+    def get_observation(self, env, task, *args, **kwargs):
+        obs = self.sensor.get_observation(env, task, *args, **kwargs)
+        if self.prev_obs is None or task.num_steps_taken() == 0:
+            self.prev_obs = obs
+        tmp = self.prev_obs
+        self.prev_obs = obs
+        return tmp
 
 
 class DepthSensorStretchIntel(
