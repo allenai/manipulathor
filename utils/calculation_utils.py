@@ -16,11 +16,14 @@ def position_distance(s1, s2):
 
 def calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, device, depth_frame):
     with torch.no_grad():
-        camera_xyz = (
-            torch.from_numpy(camera_xyz - min_xyz).float().to(device)
-        )
-
-        depth_frame = torch.from_numpy(depth_frame).to(device)
+        if isinstance(camera_xyz, np.ndarray):
+            camera_xyz = (
+                torch.from_numpy(camera_xyz - min_xyz).float().to(device)
+            )
+        else:
+            camera_xyz = camera_xyz - min_xyz
+        if isinstance(depth_frame, np.ndarray):
+            depth_frame = torch.from_numpy(depth_frame).to(device)
         depth_frame[depth_frame == -1] = np.NaN
         world_space_point_cloud = depth_frame_to_world_space_xyz(
             depth_frame=depth_frame,
@@ -52,7 +55,10 @@ def calc_world_xyz_from_agent_relative(object_xyz_list, agent_xyz, agent_rotatio
 
 def get_mid_point_of_object_from_depth_and_mask(mask, depth_frame_original, min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, device):
     mask = squeeze_bool_mask(mask)
-    depth_frame_masked = depth_frame_original.copy()
+    if isinstance(depth_frame_original, np.ndarray):
+        depth_frame_masked = depth_frame_original.copy()
+    else:
+        depth_frame_masked = depth_frame_original.clone()
     depth_frame_masked[~mask] = -1
     depth_frame_masked[depth_frame_masked == 0] = -1 # TODO: what is this for? missing values?
     world_space_point_cloud = calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, device, depth_frame_masked)

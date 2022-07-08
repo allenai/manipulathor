@@ -32,6 +32,8 @@ from allenact.embodiedai.mapping.mapping_utils.map_builders import BinnedPointCl
 
 from utils.model_utils import LinearActorHeadNoCategory
 
+from manipulathor_baselines.stretch_bring_object_baselines.models.pointnav_tracker import pointnav_update
+
 from torchvision.models import resnet18
 
 class PoseEstimator(nn.Module):
@@ -238,6 +240,14 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                     ("hidden", 4)
                 ),
                 torch.float32
+            ),
+            pointnav=(
+                (
+                    ("layer", 1),
+                    ("sampler", None),
+                    ("hidden", 4 * 3)
+                ),
+                torch.float32
             )
         )
 
@@ -396,10 +406,13 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         batch_size = memory.tensor("map").shape[1]
         # print("batch size", batch_size)
         current_map = memory.tensor("map").reshape(batch_size, self.map_size, self.map_size, self.map_channels)
-        # print("min max", torch.min(observations['depth_lowres']), torch.max(observations['depth_lowres']))
         prev_pose = memory.tensor("prev_pose").reshape(batch_size, 1, 4)
+
+        pointnav_memory = memory.tensor("pointnav").reshape(4, batch_size, 3)
         # Builds geocentric maps
         all_maps = [current_map]
+        all_pointnav_memory = []
+        all_pointnav_agent_frame_memory = []
         for timestep in range(observations['depth_lowres'].shape[0]):
             all_maps.append(all_maps[-1].clone() * masks[timestep].reshape(batch_size, 1, 1, 1))
             prev_pose = prev_pose * masks[timestep].unsqueeze(-1)
@@ -420,8 +433,8 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
 
                 if False:
                     #from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
-                    prev_pose = prev_pose + odom_update.unsqueeze(1)
-                    prev_map_in_ego_with_error = self.transform_by_relative_pos(all_maps[-1], prev_pose)
+                    prev_pose_with_odom = prev_pose + odom_update.unsqueeze(1)
+                    prev_map_in_ego_with_error = self.transform_by_relative_pos(all_maps[-1], prev_pose_with_odom)
 
                     # generate map of current frame in egocentric view
                     egocentric_pose = torch.zeros_like(prev_pose)
@@ -434,7 +447,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                     stacked_maps = torch.cat([prev_map_in_ego_with_error, current_map_in_ego], dim=-1)
 
                     
-                    pose_update = self.pose_estimation(stacked_maps)
+                    pose_update = self.pose_estimation(stacked_maps)  + odom_update.unsqueeze(1)
                 else:
                     pose_update = self.pose_estimation(observations, timestep, odom_update)
                 pose = prev_pose + pose_update
@@ -455,10 +468,57 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                     # print("training with gt pose")
                     pose = torch.cat([observations['odometry_emul']['agent_info']['xyz'][timestep],
                                       observations['odometry_emul']['agent_info']['rotation'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(1)
+                else:
+                    print("using learned pose!")
 
             else:
                 pose = torch.cat([observations['odometry_emul']['agent_info']['xyz'][timestep],
                                   observations['odometry_emul']['agent_info']['rotation'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(1)
+            
+            pointnav_memory = pointnav_memory.clone()
+            pointnav_agent_frame_memory = torch.zeros_like(pointnav_memory)
+            for i, target_and_camera in enumerate((('object_mask_source', 'camera'), 
+                                                ('object_mask_destination', 'camera'),
+                                                ('object_mask_kinect_source', 'camera_arm'),
+                                                ('object_mask_kinect_destination', 'camera_arm'))):
+                target, camera = target_and_camera
+                depth = 'depth_lowres_arm'
+                if camera == 'camera':
+                    depth = 'depth_lowres'
+                pointnav_memory[i] = pointnav_update(observations[depth][timestep],
+                                                observations[target][timestep],
+                                                masks[timestep],
+                                                pointnav_memory[i],
+                                                odom_update,
+                                                observations['odometry_emul']['camera_info'][camera],
+                                                timestep,
+                                                observations['odometry_emul']['agent_info'],
+                                                target)
+
+                estimate = pointnav_memory[i].reshape(3)
+                if torch.any(estimate < 3.99):
+                    from ithor_arm.arm_calculation_utils import convert_world_to_agent_coordinate
+                    agent_state = dict(position=dict(x=pose[0, 0, 0], y=pose[0, 0,1], z=pose[0,0,2], ), 
+                            rotation=dict(x=0, y=pose[0,0, 3], z=0))
+                    midpoint_position_rotation = dict(position=dict(x=estimate[0], y=estimate[1], z=estimate[2]), rotation=dict(x=0,y=0,z=0))
+                    midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
+                    distance_in_agent_coord = dict(x=midpoint_agent_coord['position']['x'], y=midpoint_agent_coord['position']['y'], z=midpoint_agent_coord['position']['z'])
+                    estimate = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
+                pointnav_agent_frame_memory[i] = estimate
+                # if target == 'object_mask_destination':
+                #     goal = 'point_nav_emul_destination'
+                # elif target == 'object_mask_source':
+                #     goal = 'point_nav_emul_source'
+                # elif target == 'object_mask_kinect_source':
+                #     goal = 'arm_point_nav_emul_source'
+                # else:
+                #     goal = 'arm_point_nav_emul_destination'
+                # if torch.any(estimate < 3.99) or torch.any(observations[goal][timestep] < 3.99):
+                #     print(goal, estimate, observations[goal][timestep])#observations[target][timestep].sum())#, pointnav_memory[i] - observations[goal][timestep])
+                #     # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+                    
+            all_pointnav_memory.append(pointnav_memory)
+            all_pointnav_agent_frame_memory.append(pointnav_agent_frame_memory)
 
             map_update = self.project_depth_to_map(observations, pose.detach(), timestep, batch_size)
             all_maps[-1] += map_update
@@ -506,19 +566,28 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
 
         encoding_map = compute_cnn_output(self.full_visual_encoder_map, ego_maps)
 
-        # From old model
-        agent_distance_to_obj_source = observations['point_nav_emul_source'].clone()
 
-        agent_distance_to_obj_destination = observations['point_nav_emul_destination'].clone()
+        # From old model
+        all_pointnav_agent_frame_memory = torch.stack(all_pointnav_agent_frame_memory)
+        sensor_pointnav = False
+        if sensor_pointnav:
+            agent_distance_to_obj_source = observations['point_nav_emul_source'].clone()
+            agent_distance_to_obj_destination = observations['point_nav_emul_destination'].clone()
+        else:
+            agent_distance_to_obj_source = all_pointnav_agent_frame_memory[:, 0]
+            agent_distance_to_obj_destination = all_pointnav_agent_frame_memory[:, 1]
         #TODO eventually change this and the following to only calculate embedding for the ones we want
         agent_distance_to_obj_embedding_source = self.body_pointnav_embedding(agent_distance_to_obj_source)
         agent_distance_to_obj_embedding_destination = self.body_pointnav_embedding(agent_distance_to_obj_destination)
         agent_distance_to_obj_embedding = agent_distance_to_obj_embedding_source
         agent_distance_to_obj_embedding[after_pickup] = agent_distance_to_obj_embedding_destination[after_pickup]
 
-
-        arm_distance_to_obj_source = observations['arm_point_nav_emul_source'].clone()
-        arm_distance_to_obj_destination = observations['arm_point_nav_emul_destination'].clone()
+        if sensor_pointnav:
+            arm_distance_to_obj_source = observations['arm_point_nav_emul_source'].clone()
+            arm_distance_to_obj_destination = observations['arm_point_nav_emul_destination'].clone()
+        else:
+            arm_distance_to_obj_source = all_pointnav_agent_frame_memory[:, 2]
+            arm_distance_to_obj_destination = all_pointnav_agent_frame_memory[:, 3]
         #TODO eventually change this and the following to only calculate embedding for the ones we want
         arm_distance_to_obj_embedding_source = self.arm_pointnav_embedding(arm_distance_to_obj_source)
         arm_distance_to_obj_embedding_destination = self.arm_pointnav_embedding(arm_distance_to_obj_destination)
@@ -544,7 +613,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
 
         actor_out_final = actor_out_pickup
         critic_out_final = critic_out_pickup
-
+        # actor_out_final[:,:,10] = 100# Rotate right small
         actor_out = CategoricalDistr(logits=actor_out_final)
 
         actor_critic_output = ActorCriticOutput(
@@ -555,4 +624,5 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         memory = memory.set_tensor("map", all_maps[-1].reshape(memory.tensor("map").shape))
         memory = memory.set_tensor("prev_pose", prev_pose.detach().reshape(memory.tensor("prev_pose").shape))
 
+        memory = memory.set_tensor("pointnav", pointnav_memory.reshape(memory.tensor("pointnav").shape))
         return actor_critic_output, memory
