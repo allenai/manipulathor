@@ -21,10 +21,11 @@ def calc_world_coordinates(min_xyz, camera_xyz, camera_rotation, camera_horizon,
                 torch.from_numpy(camera_xyz - min_xyz).float().to(device)
             )
         else:
-            camera_xyz = camera_xyz - min_xyz
+            camera_xyz = camera_xyz - torch.from_numpy(min_xyz).float().to(device)
         if isinstance(depth_frame, np.ndarray):
             depth_frame = torch.from_numpy(depth_frame).to(device)
         depth_frame[depth_frame == -1] = np.NaN
+
         world_space_point_cloud = depth_frame_to_world_space_xyz(
             depth_frame=depth_frame,
             camera_world_xyz=camera_xyz,

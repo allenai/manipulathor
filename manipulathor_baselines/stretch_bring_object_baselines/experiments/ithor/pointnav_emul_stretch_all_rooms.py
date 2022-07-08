@@ -88,6 +88,7 @@ class PointNavEmulStretchAllRooms(
     TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp
 
     NUM_PROCESSES = 30
+    NUM_PROCESSES = 24
 
 
     TRAIN_SCENES = KITCHEN_TRAIN + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN

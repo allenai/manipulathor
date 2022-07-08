@@ -46,11 +46,11 @@ def pointnav_update(
                                                            depth.reshape(224, 224),
                                                            np.zeros(3),
                                                            camera_info['xyz'][timestep][batch_index].reshape(3),
-                                                           camera_info['rotation'][timestep][batch_index].reshape(1),
+                                                           camera_info['rotation'][timestep][batch_index].reshape(1).item(),
                                                         #    camera_info['xyz_offset'][timestep].reshape(3),
                                                         #    camera_info['rotation_offset'][timestep].reshape(1),
-                                                           camera_info['horizon'][timestep][batch_index],
-                                                           camera_info['fov'][timestep][batch_index],
+                                                           camera_info['horizon'][timestep][batch_index].item(),
+                                                           camera_info['fov'][timestep][batch_index].item(),
                                                            depth.device)
 
     # mask = squeeze_bool_mask(image_mask).reshape(224, 224)
@@ -69,7 +69,8 @@ def pointnav_update(
     # middle_of_object = point_in_world.mean(dim=0)
     # print("estimate", estimate, middle_of_object, estimate-middle_of_object)
 
-    
+    if torch.any(torch.isnan(estimate)) or torch.any(torch.isinf(estimate)):
+        return prev_estimate
 
     # If the prev_estimate is uninitialized, use the current estimate
     if torch.all(prev_estimate > 3.99):
