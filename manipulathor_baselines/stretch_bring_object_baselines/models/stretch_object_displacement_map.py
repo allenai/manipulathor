@@ -485,26 +485,28 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                 depth = 'depth_lowres_arm'
                 if camera == 'camera':
                     depth = 'depth_lowres'
-                pointnav_memory[i] = pointnav_update(observations[depth][timestep],
-                                                observations[target][timestep],
-                                                masks[timestep],
-                                                pointnav_memory[i],
-                                                odom_update,
-                                                observations['odometry_emul']['camera_info'][camera],
-                                                timestep,
-                                                observations['odometry_emul']['agent_info'],
-                                                target)
+                for j in range(batch_size):
+                    pointnav_memory[i, j] = pointnav_update(observations[depth][timestep][j],
+                                                    observations[target][timestep][j],
+                                                    masks[timestep][j],
+                                                    pointnav_memory[i, j],
+                                                    odom_update[j],
+                                                    observations['odometry_emul']['camera_info'][camera],
+                                                    timestep,
+                                                    j,
+                                                    observations['odometry_emul']['agent_info'],
+                                                    target)
 
-                estimate = pointnav_memory[i].reshape(3)
-                if torch.any(estimate < 3.99):
-                    from ithor_arm.arm_calculation_utils import convert_world_to_agent_coordinate
-                    agent_state = dict(position=dict(x=pose[0, 0, 0], y=pose[0, 0,1], z=pose[0,0,2], ), 
-                            rotation=dict(x=0, y=pose[0,0, 3], z=0))
-                    midpoint_position_rotation = dict(position=dict(x=estimate[0], y=estimate[1], z=estimate[2]), rotation=dict(x=0,y=0,z=0))
-                    midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
-                    distance_in_agent_coord = dict(x=midpoint_agent_coord['position']['x'], y=midpoint_agent_coord['position']['y'], z=midpoint_agent_coord['position']['z'])
-                    estimate = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
-                pointnav_agent_frame_memory[i] = estimate
+                    estimate = pointnav_memory[i, j]
+                    if torch.any(estimate < 3.99):
+                        from ithor_arm.arm_calculation_utils import convert_world_to_agent_coordinate
+                        agent_state = dict(position=dict(x=pose[j, 0, 0], y=pose[j, 0,1], z=pose[j,0,2], ), 
+                                rotation=dict(x=0, y=pose[j,0, 3], z=0))
+                        midpoint_position_rotation = dict(position=dict(x=estimate[0], y=estimate[1], z=estimate[2]), rotation=dict(x=0,y=0,z=0))
+                        midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
+                        distance_in_agent_coord = dict(x=midpoint_agent_coord['position']['x'], y=midpoint_agent_coord['position']['y'], z=midpoint_agent_coord['position']['z'])
+                        estimate = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
+                    pointnav_agent_frame_memory[i, j] = estimate
                 # if target == 'object_mask_destination':
                 #     goal = 'point_nav_emul_destination'
                 # elif target == 'object_mask_source':

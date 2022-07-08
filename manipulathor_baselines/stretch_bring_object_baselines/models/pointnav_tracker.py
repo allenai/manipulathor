@@ -14,6 +14,7 @@ def pointnav_update(
     pose_update,
     camera_info,
     timestep,
+    batch_index,
     agent_pose,
     name
 ) -> torch.FloatTensor:
@@ -44,12 +45,12 @@ def pointnav_update(
     estimate = get_mid_point_of_object_from_depth_and_mask(image_mask.reshape(224, 224), 
                                                            depth.reshape(224, 224),
                                                            np.zeros(3),
-                                                           camera_info['xyz'][timestep].reshape(3),
-                                                           camera_info['rotation'][timestep].reshape(1),
+                                                           camera_info['xyz'][timestep][batch_index].reshape(3),
+                                                           camera_info['rotation'][timestep][batch_index].reshape(1),
                                                         #    camera_info['xyz_offset'][timestep].reshape(3),
                                                         #    camera_info['rotation_offset'][timestep].reshape(1),
-                                                           camera_info['horizon'][timestep],
-                                                           camera_info['fov'][timestep],
+                                                           camera_info['horizon'][timestep][batch_index],
+                                                           camera_info['fov'][timestep][batch_index],
                                                            depth.device)
 
     # mask = squeeze_bool_mask(image_mask).reshape(224, 224)
