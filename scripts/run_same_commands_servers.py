@@ -287,11 +287,11 @@ command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/Str
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
  --seed 10 --machine_id 0 -c ~/exp_StretchNeckedObjectNavTaskUpdateOrder-RGB-SingleCam-ProcTHOR-locobot-RoboTHOR-Test__stage_01__steps_000014017504.pt '
 
-command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/StretchObjectNavTaskSegmentationSuccessActionFail-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test/2022-07-06_21-19-19/exp_StretchObjectNavTaskSegmentationSuccessActionFail-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test__stage_02__steps_000052491920.pt ~/; \
+command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/StretchObjectNavTaskSegmentationSuccessActionFail-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test/2022-07-07_16-40-33/exp_StretchObjectNavTaskSegmentationSuccessActionFail-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test__stage_02__steps_000072781120.pt ~/; \
      ./manipulathor/scripts/kill-zombie.sh; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_distrib.py \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 -c ~/exp_StretchObjectNavTaskSegmentationSuccessActionFail-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test__stage_02__steps_000052491920.pt '
+ --seed 10 --machine_id 0 -c ~/exp_StretchObjectNavTaskSegmentationSuccessActionFail-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test__stage_02__steps_000072781120.pt '
 
 # command_aws1 = ' ./manipulathor/scripts/kill-zombie.sh; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_distrib.py \
 # --distributed_ip_and_port IP_ADR:6060 \

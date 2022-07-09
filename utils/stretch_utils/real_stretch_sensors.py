@@ -40,6 +40,8 @@ from utils.calculation_utils import calc_world_coordinates
 from utils.detection_translator_util import THOR2COCO
 from utils.noise_in_motion_util import squeeze_bool_mask
 
+from scipy.interpolate import UnivariateSpline
+
 # from utils.real_stretch_utils import get_binary_mask_of_arm, get_mid_point_of_object_from_depth_and_mask
 from utils.stretch_utils.stretch_constants import INTEL_RESIZED_H, INTEL_RESIZED_W, KINECT_REAL_W, KINECT_REAL_H, \
     MAX_INTEL_DEPTH, MIN_INTEL_DEPTH, MAX_KINECT_DEPTH, MIN_KINECT_DEPTH, INTEL_FOV_W, INTEL_FOV_H, KINECT_FOV_W, \
@@ -117,6 +119,22 @@ def normalize_real_kinect_image(frame,size=224):
     w,h = (int(current_size[0] * ratio), int(current_size[1] * ratio))
 
     frame = cv2.resize(frame,(h,w))
+
+    spl = UnivariateSpline([0, 64, 128, 192, 255], [0, 30, 80, 160, 255])
+    color_channel_decr = spl(range(256))
+
+    c_r, c_g, c_b = cv2.split(frame)
+    c_r = cv2.LUT(c_r, color_channel_decr).astype('uint8')
+    frame_mod = cv2.merge((c_r,c_g,c_b))
+    hsv=cv2.cvtColor(frame_mod,cv2.COLOR_RGB2HSV).astype('int64')
+    hsv[:,:,2] = hsv[:,:,2] + 25
+    hsv = np.clip(hsv,0,255).astype('uint8')
+    frame_bright = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
+
+    sidebyside=np.hstack((frame,frame_mod,frame_bright))
+    frame=frame_bright
+
+    # ForkedPdb().set_trace()
     if len(frame.shape) == 3:
         result = np.zeros((size, size, frame.shape[2]))
     elif len(frame.shape) == 2:
@@ -131,6 +149,14 @@ def normalize_real_kinect_image(frame,size=224):
         result[result < MIN_KINECT_DEPTH] = 0
     return result.astype(frame.dtype)
 
+
+""" 
+cv2.imshow('window2',cv2.cvtColor(sidebyside,cv2.COLOR_RGB2BGR))
+cv2.waitKey(0)
+cv2.imshow('window',cv2.cvtColor(hsv,cv2.COLOR_HSV2BGR))
+cv2.waitKey(0) 
+
+"""
 # class StretchDetectronObjectMask(Sensor):
 #     def __init__(self, type: str,noise, source_camera, uuid: str = "object_mask", **kwargs: Any):
 #         observation_space = gym.spaces.Box(
