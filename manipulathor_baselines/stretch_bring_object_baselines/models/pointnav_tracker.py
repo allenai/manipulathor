@@ -62,7 +62,7 @@ def pointnav_update(
                                                            depth.reshape(224, 224),
                                                            np.zeros(3),
                                                            camera_info['xyz_offset'][timestep][batch_index].reshape(3),
-                                                           camera_info['rotation_offset'][timestep][batch_index].reshape(1),
+                                                           camera_info['rotation_offset'][timestep][batch_index].reshape(1).item(),
                                                            camera_info['horizon'][timestep][batch_index].item(),
                                                            camera_info['fov'][timestep][batch_index].item(),
                                                            depth.device)
