@@ -417,21 +417,21 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             all_maps.append(all_maps[-1].clone() * masks[timestep].reshape(batch_size, 1, 1, 1))
             prev_pose = prev_pose * masks[timestep].unsqueeze(-1)
             if self._learn_pose:
-                # Uses noisy pose to get estimate of previous map location in current frame
-                # odom_update = torch.cat([observations['odometry_emul']['agent_info']['relative_xyz'],
-                #                          observations['odometry_emul']['agent_info']['relative_rot'].unsqueeze(-1)], dim=-1)
-                sin_of_prev = torch.sin(torch.deg2rad(prev_pose[:, :, -1])).squeeze()
-                cos_of_prev = torch.cos(torch.deg2rad(prev_pose[:, :, -1])).squeeze()
-                relative_xyz = observations['odometry_emul']['agent_info']['noisy_relative_xyz'][timestep]
-                odom_update_xyz = torch.zeros_like(relative_xyz)
-                # if prev_pose.shape[0] > 2:
-                # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
-                odom_update_xyz[:, 0] = - cos_of_prev * relative_xyz[:, 0] + sin_of_prev * relative_xyz[:, 2]
-                odom_update_xyz[:, 2] = sin_of_prev * relative_xyz[:, 0] + cos_of_prev * relative_xyz[:, 2]
-                odom_update = torch.cat([odom_update_xyz,
-                                         observations['odometry_emul']['agent_info']['noisy_relative_rot'][timestep].unsqueeze(-1)], dim=-1)
-
+                
+                
                 if False:
+                    # Uses noisy pose to get estimate of previous map location in current frame
+                    # odom_update = torch.cat([observations['odometry_emul']['agent_info']['relative_xyz'],
+                    #                          observations['odometry_emul']['agent_info']['relative_rot'].unsqueeze(-1)], dim=-1)
+                    sin_of_prev = torch.sin(torch.deg2rad(prev_pose[:, :, -1])).squeeze()
+                    cos_of_prev = torch.cos(torch.deg2rad(prev_pose[:, :, -1])).squeeze()
+                    relative_xyz = observations['odometry_emul']['agent_info']['noisy_relative_xyz'][timestep]
+                    odom_update_xyz = torch.zeros_like(relative_xyz)
+
+                    odom_update_xyz[:, 0] = - cos_of_prev * relative_xyz[:, 0] + sin_of_prev * relative_xyz[:, 2]
+                    odom_update_xyz[:, 2] = sin_of_prev * relative_xyz[:, 0] + cos_of_prev * relative_xyz[:, 2]
+                    odom_update = torch.cat([odom_update_xyz,
+                                            observations['odometry_emul']['agent_info']['noisy_relative_rot'][timestep].unsqueeze(-1)], dim=-1)
                     #from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
                     prev_pose_with_odom = prev_pose + odom_update.unsqueeze(1)
                     prev_map_in_ego_with_error = self.transform_by_relative_pos(all_maps[-1], prev_pose_with_odom)
@@ -449,8 +449,23 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                     
                     pose_update = self.pose_estimation(stacked_maps)  + odom_update.unsqueeze(1)
                 else:
+                    odom_update = torch.cat([observations['odometry_emul']['agent_info']['noisy_relative_xyz'][timestep],
+                                             observations['odometry_emul']['agent_info']['noisy_relative_rot'][timestep].unsqueeze(-1)], dim=-1)
                     pose_update = self.pose_estimation(observations, timestep, odom_update)
-                pose = prev_pose + pose_update
+
+
+                    sin_of_prev = torch.sin(torch.deg2rad(prev_pose[:, :, -1]))
+                    cos_of_prev = torch.cos(torch.deg2rad(prev_pose[:, :, -1]))
+                    
+                    pose_update_world_frame = torch.zeros_like(pose_update)
+                    # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+                    pose_update_world_frame[:, :, 0] = - cos_of_prev * pose_update[:, :, 0] + sin_of_prev * pose_update[:, :, 2]
+                    pose_update_world_frame[:, :, 2] = sin_of_prev * pose_update[:, :, 0] + cos_of_prev * pose_update[:, :, 2]
+                    pose_update_world_frame[:, :, 3] = pose_update[:, :, 3]
+                    
+                    
+                pose = prev_pose + pose_update_world_frame
+
                 position_error = observations['odometry_emul']['agent_info']['xyz'][timestep].unsqueeze(1) - pose[:, :, :3]
                 rotation_error = observations['odometry_emul']['agent_info']['rotation'][timestep].unsqueeze(1) - pose[:, :, -1]
 
@@ -466,47 +481,68 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                 # print("rotation error", rotation_error)
                 if self.training:
                     # print("training with gt pose")
+                    pose_update = torch.cat([observations['odometry_emul']['agent_info']['relative_xyz'][timestep],
+                                             observations['odometry_emul']['agent_info']['relative_rot'][timestep].unsqueeze(-1)], dim=-1)
                     pose = torch.cat([observations['odometry_emul']['agent_info']['xyz'][timestep],
                                       observations['odometry_emul']['agent_info']['rotation'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(1)
                 else:
                     print("using learned pose!")
 
             else:
+                pose_update = torch.cat([observations['odometry_emul']['agent_info']['relative_xyz'][timestep],
+                                             observations['odometry_emul']['agent_info']['relative_rot'][timestep].unsqueeze(-1)], dim=-1)
                 pose = torch.cat([observations['odometry_emul']['agent_info']['xyz'][timestep],
                                   observations['odometry_emul']['agent_info']['rotation'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(1)
             
             pointnav_memory = pointnav_memory.clone()
             pointnav_agent_frame_memory = torch.zeros_like(pointnav_memory)
+            pointnav_relative_memory = torch.zeros_like(pointnav_memory)
             for i, target_and_camera in enumerate((('object_mask_source', 'camera'), 
                                                 ('object_mask_destination', 'camera'),
-                                                ('object_mask_kinect_source', 'camera_arm'),
-                                                ('object_mask_kinect_destination', 'camera_arm'))):
+                                                 ('object_mask_kinect_source', 'camera_arm'),
+                                                 ('object_mask_kinect_destination', 'camera_arm')
+                                                )):
                 target, camera = target_and_camera
                 depth = 'depth_lowres_arm'
                 if camera == 'camera':
                     depth = 'depth_lowres'
                 for j in range(batch_size):
+                    # pointnav_memory[i, j] = pointnav_update(observations[depth][timestep][j],
+                    #                                 observations[target][timestep][j],
+                    #                                 masks[timestep][j],
+                    #                                 pointnav_memory[i, j],
+                    #                                 odom_update[j],
+                    #                                 observations['odometry_emul']['camera_info'][camera],
+                    #                                 timestep,
+                    #                                 j,
+                    #                                 observations['odometry_emul']['agent_info'],
+                    #                                 target, local=False)
                     pointnav_memory[i, j] = pointnav_update(observations[depth][timestep][j],
                                                     observations[target][timestep][j],
                                                     masks[timestep][j],
                                                     pointnav_memory[i, j],
-                                                    odom_update[j],
+                                                    pose_update[j],
                                                     observations['odometry_emul']['camera_info'][camera],
                                                     timestep,
                                                     j,
                                                     observations['odometry_emul']['agent_info'],
-                                                    target)
+                                                    target, local=True)
 
-                    estimate = pointnav_memory[i, j]
-                    if torch.any(estimate < 3.99):
-                        from ithor_arm.arm_calculation_utils import convert_world_to_agent_coordinate
-                        agent_state = dict(position=dict(x=pose[j, 0, 0], y=pose[j, 0,1], z=pose[j,0,2], ), 
-                                rotation=dict(x=0, y=pose[j,0, 3], z=0))
-                        midpoint_position_rotation = dict(position=dict(x=estimate[0], y=estimate[1], z=estimate[2]), rotation=dict(x=0,y=0,z=0))
-                        midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
-                        distance_in_agent_coord = dict(x=midpoint_agent_coord['position']['x'], y=midpoint_agent_coord['position']['y'], z=midpoint_agent_coord['position']['z'])
-                        estimate = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
-                    pointnav_agent_frame_memory[i, j] = estimate
+                    # estimate = pointnav_memory[i, j]
+                    # if True:#torch.any(estimate < 3.99):
+                    #     from ithor_arm.arm_calculation_utils import convert_world_to_agent_coordinate
+                    #     agent_state = dict(position=dict(x=pose[j, 0, 0], y=pose[j, 0,1], z=pose[j,0,2], ), 
+                    #             rotation=dict(x=0, y=pose[j,0, 3], z=0))
+                    #     midpoint_position_rotation = dict(position=dict(x=estimate[0], y=estimate[1], z=estimate[2]), rotation=dict(x=0,y=0,z=0))
+                    #     midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
+                    #     distance_in_agent_coord = dict(x=midpoint_agent_coord['position']['x'], y=midpoint_agent_coord['position']['y'], z=midpoint_agent_coord['position']['z'])
+                    #     estimate = torch.Tensor([distance_in_agent_coord['x'], distance_in_agent_coord['y'], distance_in_agent_coord['z']])
+                    # pointnav_agent_frame_memory[i, j] = estimate
+
+                    # # if torch.any(torch.abs(pointnav_memory[i+2, j] - pointnav_agent_frame_memory[i, j]) > 0.01):
+                    # if torch.any(estimate < 3.99) or torch.any(pointnav_memory[i+2, j] < 3.99):
+                    #     print(target, pointnav_memory[i+2, j], pointnav_agent_frame_memory[i, j])
+                    
                 # if target == 'object_mask_destination':
                 #     goal = 'point_nav_emul_destination'
                 # elif target == 'object_mask_source':
