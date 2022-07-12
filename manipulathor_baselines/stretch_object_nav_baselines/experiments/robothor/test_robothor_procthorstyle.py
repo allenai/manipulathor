@@ -57,9 +57,9 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2Ca
 
     def valid_task_sampler_args(self, **kwargs):
         out = self._get_sampler_args_for_scene_split(
-            houses=self.EVAL_TASKS["validation"],
+            houses=self.EVAL_TASKS["validation"].shuffle(),
             mode="eval",
-            max_tasks=5,
+            max_tasks=10,
             allow_flipping=False,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,  # ignored
             **kwargs,

@@ -76,6 +76,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.sampler_mode = kwargs["sampler_mode"]
         if self.sampler_mode != "train":
             self.rewards_config['shaping_weight'] = 0.0
+            self.rewards_config['exploration_reward'] = 0.0
 
         self.episode_index = 0
         self.houses = houses

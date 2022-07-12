@@ -343,6 +343,9 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         else:
             action_dict = {"action": action_str}
             sr = self.env.step(action_dict)
+            # RH NOTE: this is an important change from procthor because of how the noise model 
+            # is implemented. the env step return corresponds to the nominal/called 
+            # action, which may or may not be the last thing the controller did.
             self.last_action_success = bool(sr.metadata["lastActionSuccess"])
 
             position = self.env.last_event.metadata["agent"]["position"]
@@ -440,9 +443,6 @@ class StretchObjectNavTaskSegmentationSuccessActionFail(StretchObjectNavTaskSegm
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.recent_three_strikes = 0
-        self.reward_config['got_stuck_penalty'] = 0.0 # TODO this is hacky, should be in config
-        self.reward_config['failed_action_penalty'] = -0.5
-        # possible enhancement: add a "I'm stuck" action? 
     
     def _step(self, action: int) -> RLStepResult:
         sr = super()._step(action)
@@ -485,17 +485,54 @@ class StretchObjectNavTaskSegmentationSuccessActionFail(StretchObjectNavTaskSegm
         return float(reward)
 
 
-class ExploreWiseObjectNavTask(ObjectNavTask):
+
+class ExploreWiseObjectNavTask(StretchObjectNavTaskSegmentationSuccessActionFail):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         all_locations = [[k['x'], k['y'], k['z']] for k in (self.env.get_reachable_positions())]
         self.all_reachable_positions = torch.Tensor(all_locations)
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
         assert len(self.all_reachable_positions) > 0, 'no reachable positions to calculate reward'
+    
+    def calc_action_stat_metrics(self) -> Dict[str, Any]:
+        action_stat = {
+            "metric/action_stat/" + action_str: 0.0 for action_str in self._actions
+        }
+        action_success_stat = {
+            "metric/action_success/" + action_str: 0.0 for action_str in self._actions
+        }
+        action_success_stat["metric/action_success/total"] = 0.0
+
+        seq_len = len(self.task_info["taken_actions"])
+        for (action_name, action_success) in list(zip(
+                            self.task_info["taken_actions"],
+                            self.task_info["action_successes"])):
+            action_stat["metric/action_stat/" + action_name] += 1.0
+            action_success_stat[
+                "metric/action_success/{}".format(action_name)
+            ] += action_success
+            action_success_stat["metric/action_success/total"] += action_success
+
+        action_success_stat["metric/action_success/total"] /= seq_len
+
+        for action_name in self._actions:
+            action_success_stat[
+                "metric/" + "action_success/{}".format(action_name)
+            ] /= (action_stat["metric/action_stat/" + action_name] + 0.000001)
+            action_stat["metric/action_stat/" + action_name] /= seq_len
+
+        result = {**action_stat, **action_success_stat}
+        return result
 
     def judge(self) -> float:
         """Compute the reward after having taken a step."""
-        reward = self.reward_configs["step_penalty"]
+        reward = self.reward_config["step_penalty"]
+
+        # additional scaling step penalty, thresholds at half max steps at the failed action penalty
+        reward += -0.5 * (1.05)**(np.min([-(self.max_steps/2)+self.num_steps_taken(),0])) 
+
+        if not self.last_action_success:
+            reward += self.reward_config['failed_action_penalty']
 
         current_agent_location = self.env.get_agent_location()
         current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
@@ -509,8 +546,8 @@ class ExploreWiseObjectNavTask(ObjectNavTask):
         self.has_visited[location_index] = 1
 
         if visited_new_place:
-            reward += self.reward_configs["exploration_reward"]
-        
+            reward += self.reward_config["exploration_reward"]
+                
         reward += self.shaping()
 
         if self._took_end_action:
@@ -522,6 +559,14 @@ class ExploreWiseObjectNavTask(ObjectNavTask):
             reward += self.reward_config['reached_horizon_reward']
         self._rewards.append(float(reward))
         return float(reward)
+    
+    def metrics(self) -> Dict[str, Any]:
+        result = super(ExploreWiseObjectNavTask, self).metrics()
+
+        if self.is_done():
+            result['percent_room_visited'] = self.has_visited.mean().item()
+            result = {**result, **self.calc_action_stat_metrics()}
+        return result
         
 
 class RealStretchObjectNavTask(StretchObjectNavTask):
