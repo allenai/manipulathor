@@ -56,4 +56,4 @@ class PoseEstimationLoss(AbstractActorCriticLoss):
         odom_positions = torch.stack([actor_critic_output.extras['pose_errors'][i]['odom_pos'] for i in range(len(actor_critic_output.extras['pose_errors']))])
         odom_rotations = torch.stack([actor_critic_output.extras['pose_errors'][i]['odom_rot'] for i in range(len(actor_critic_output.extras['pose_errors']))])
 
-        return calc_pose_estimation_loss(positions, rotations)
+        return calc_pose_estimation_loss(positions, rotations, odom_positions, odom_rotations)
