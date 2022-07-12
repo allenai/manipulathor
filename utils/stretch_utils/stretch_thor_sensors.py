@@ -225,7 +225,7 @@ class AgentOdometryEmulSensor(Sensor):
             agent_xyz = np.array([metadata['agent']['position'][k] for k in ["x", "y", "z"]]) - self.initial_pos
             agent_rot = metadata["agent"]["rotation"]["y"] - self.initial_rot
             prev_pos = self.prev_pos
-            prev_rot = self.noisy_prev_rot
+            prev_rot = self.prev_rot
         agent_xyz_rot = np.array([cos_of_rot * agent_xyz[0] - sin_of_rot * agent_xyz[2],
                                    agent_xyz[1],
                                    sin_of_rot * agent_xyz[0] + cos_of_rot * agent_xyz[2]])
