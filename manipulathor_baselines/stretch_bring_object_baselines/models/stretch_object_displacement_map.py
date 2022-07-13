@@ -205,6 +205,12 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         self.camera_poses = []
         self.agent_poses = []
 
+        self.debug_image_save_freq = 100000
+        self.next_debug_image_save_step = 0
+
+        self.debug_image_save_freq_valid = 100
+        self.next_debug_image_save_step_valid = 0
+
     @property
     def recurrent_hidden_state_size(self) -> int:
         """The recurrent hidden state size of the model."""
@@ -479,14 +485,17 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                     odom_update = torch.cat([observations['odometry_emul']['agent_info']['noisy_relative_xyz'][timestep],
                                              observations['odometry_emul']['agent_info']['noisy_relative_rot'][timestep].unsqueeze(-1)], dim=-1)
                     pose_update = self.pose_estimation(observations, timestep, odom_update)
+                    
+                    # pose_update = torch.cat([observations['odometry_emul']['agent_info']['relative_xyz'][timestep],
+                    #                          observations['odometry_emul']['agent_info']['relative_rot'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(1)
 
-
-                    sin_of_prev = torch.sin(torch.deg2rad(prev_pose[:, :, -1]))
-                    cos_of_prev = torch.cos(torch.deg2rad(prev_pose[:, :, -1]))
+                    sin_of_prev = torch.sin(torch.deg2rad(-prev_pose[:, :, -1]))
+                    cos_of_prev = torch.cos(torch.deg2rad(-prev_pose[:, :, -1]))
                     
                     pose_update_world_frame = torch.zeros_like(pose_update)
                     # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
-                    pose_update_world_frame[:, :, 0] = - cos_of_prev * pose_update[:, :, 0] + sin_of_prev * pose_update[:, :, 2]
+                    # pose_update_world_frame[:, :, 0] = - cos_of_prev * pose_update[:, :, 0] + sin_of_prev * pose_update[:, :, 2]
+                    pose_update_world_frame[:, :, 0] = cos_of_prev * pose_update[:, :, 0] - sin_of_prev * pose_update[:, :, 2] # Left handed coordinate frame
                     pose_update_world_frame[:, :, 2] = sin_of_prev * pose_update[:, :, 0] + cos_of_prev * pose_update[:, :, 2]
                     pose_update_world_frame[:, :, 3] = pose_update[:, :, 3]
                     
@@ -502,14 +511,20 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
 #                odom_rotations[torch.where(odom_rotations > 180)[0]] -= 360
 #                odom_rotations[torch.where(odom_rotations < -180)[0]] += 360
 #                if torch.max(torch.abs(odom_rotations)) > 15.0:
-#                    from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+                update_pos_error = observations['odometry_emul']['agent_info']['relative_xyz'][timestep].unsqueeze(1) - pose_update[:, :, :3]
+                update_rot_error = observations['odometry_emul']['agent_info']['relative_rot'][timestep].unsqueeze(1) - pose_update[:, :, -1]
+                # print("pos diff", update_pos_error - position_error)
+                # print("rot diff", update_rot_error - rotation_error)
+                # if torch.max(torch.abs(update_pos_error - position_error)) > 10**-5 or torch.max(torch.abs(update_rot_error - rotation_error)) > 10**-5:
+                    
+                #     from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
                 pose_errors.append({'position': position_error, 'rotation': rotation_error, 'odom_pos': odom_pos_error, 'odom_rot': odom_rot_error})
                 # print("position error", torch.max(torch.abs(position_error)))
                 # print("rotation error", rotation_error)
                 if self.training:
                     # print("training with gt pose")
                     pose_update = torch.cat([observations['odometry_emul']['agent_info']['relative_xyz'][timestep],
-                                             observations['odometry_emul']['agent_info']['relative_rot'][timestep].unsqueeze(-1)], dim=-1)
+                                             observations['odometry_emul']['agent_info']['relative_rot'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(1)
                     pose = torch.cat([observations['odometry_emul']['agent_info']['xyz'][timestep],
                                       observations['odometry_emul']['agent_info']['rotation'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(1)
                 else:
@@ -517,7 +532,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
 
             else:
                 pose_update = torch.cat([observations['odometry_emul']['agent_info']['relative_xyz'][timestep],
-                                             observations['odometry_emul']['agent_info']['relative_rot'][timestep].unsqueeze(-1)], dim=-1)
+                                             observations['odometry_emul']['agent_info']['relative_rot'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(1)
                 pose = torch.cat([observations['odometry_emul']['agent_info']['xyz'][timestep],
                                   observations['odometry_emul']['agent_info']['rotation'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(1)
             
@@ -596,16 +611,23 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         all_maps = all_maps[1:]
         all_maps = torch.stack(all_maps)
 
-        
-        # if all_maps.shape[0] > 1:
-        #     # for i in range(all_maps.shape[0]):
-        #     #     cv2.imwrite("/Users/karls/debug_images/train_all_map_{}_{}.png".format(self.step_count, i), all_maps[i, 0].detach().cpu().numpy())
-        #     # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
-        #     pass
-        # else:
-        #     for i in range(all_maps.shape[1]):
-        #         cv2.imwrite("/Users/karls/debug_images/act_all_map_batch{}_{}.png".format(i, self.step_count), 
-        #                     all_maps[-1, i, :, :, :3].detach().cpu().numpy()*256)
+
+        if (self.step_count > self.next_debug_image_save_step and self.training) or \
+            (self.step_count > self.next_debug_image_save_step_valid and not self.training):
+            mode = "train" if self.training else "valid"
+            print("saving debug images", mode)
+            if all_maps.shape[0] > 1:
+                for i in range(all_maps.shape[0]):
+                    cv2.imwrite("../debug_images/{}_all_map_step{}_batch{}.png".format(mode, self.step_count, i), all_maps[i, 0].detach().cpu().numpy())
+                # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+            else:
+                for i in range(all_maps.shape[1]):
+                    cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}.png".format(mode, self.step_count, i), 
+                                all_maps[-1, i, :, :, :3].detach().cpu().numpy()*256)
+            if self.training:
+                self.next_debug_image_save_step = self.step_count + self.debug_image_save_freq
+            else:
+                self.next_debug_image_save_step_valid = self.step_count + self.debug_image_save_freq_valid
            
         
         

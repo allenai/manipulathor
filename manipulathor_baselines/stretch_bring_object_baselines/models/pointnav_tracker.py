@@ -29,14 +29,14 @@ def pointnav_update(
 
     # Transform prev estimate to be in current agent frame
     if local:
-        cos_of_pose = torch.cos(torch.deg2rad(-pose_update[-1]))
-        sin_of_pose = torch.sin(torch.deg2rad(-pose_update[-1]))
+        cos_of_pose = torch.cos(torch.deg2rad(-pose_update[0, -1]))
+        sin_of_pose = torch.sin(torch.deg2rad(-pose_update[0, -1]))
         new_prev_estimate = prev_estimate.clone()
         new_prev_estimate[0] = cos_of_pose * prev_estimate[0] + sin_of_pose * prev_estimate[2]
         new_prev_estimate[2] = -sin_of_pose * prev_estimate[0] + cos_of_pose* prev_estimate[2]
         prev_estimate = new_prev_estimate
         # print("pose_update", pose_update)
-        prev_estimate -= pose_update[:3]
+        prev_estimate -= pose_update[0, :3]
 
     # If the object is not seen, keep using the prev estimate
     if image_mask.sum() == 0:
