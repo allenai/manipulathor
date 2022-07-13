@@ -305,45 +305,72 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         position = pose[:, :, :3]
         rotation = pose[:, :, -1]
         binned_updates = []
-        for i in range(frame.shape[0]):
-            if torch.sum(mask[i]) == 0:
-                binned_updates.append(torch.zeros(*frame[i].shape, len(self.bins)+1, device=frame.device))
-                continue
-
-            camera_space_xyz = depth_frame_to_camera_space_xyz(frame[i], mask[i], fov=camera['fov'][timestep][i])
-            # camera_xyz = camera['xyz'][timestep][i]
-            # camera_rot = camera['rotation'][timestep][i]
-            # if egocentric:
-            #     camera_xyz = camera['xyz_offset'][timestep][i]
-            #     camera_rot = camera['rotation_offset'][timestep][i]
-            # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
-            xyz_offset = camera['xyz_offset'][timestep][i].reshape(3)
-            camera_xyz = position[i].clone().reshape(3)
-            agent_rot = rotation[i].reshape([])
-
-            camera_xyz[0] += xyz_offset[0] * torch.cos(torch.deg2rad(-agent_rot)) - xyz_offset[2] * torch.sin(torch.deg2rad(-agent_rot))
-            camera_xyz[1] += xyz_offset[1]
-            camera_xyz[2] += xyz_offset[0] * torch.sin(torch.deg2rad(-agent_rot)) + xyz_offset[2] * torch.cos(torch.deg2rad(-agent_rot))
-            # camera_xyz = torch.tensor([cos_of_rot * camera_xyz[0] - sin_of_rot * camera_xyz[2],
-            #                            camera_xyz[1],
-            #                            sin_of_rot * camera_xyz[0] + cos_of_rot * camera_xyz[2]])
-            camera_rot = agent_rot + camera['rotation_offset'][timestep][i].reshape([])
-
-            world_points = camera_space_xyz_to_world_xyz(camera_space_xyzs=camera_space_xyz, 
+        from utils.batched_transformation_utils import depth_frame_to_camera_space_xyz_batched, camera_space_xyz_to_world_xyz_batched, project_point_cloud_to_map_batched
+        binned_camera_space_xyz = depth_frame_to_camera_space_xyz_batched(frame, mask, fov=camera['fov'][timestep])
+        xyz_offset = camera['xyz_offset'][timestep].reshape(position.shape)
+        
+        camera_xyz = position.clone()
+        agent_rot = rotation.clone()
+        camera_xyz[:, :, 0] += xyz_offset[:, :, 0] * torch.cos(torch.deg2rad(-agent_rot)) - xyz_offset[:, :, 2] * torch.sin(torch.deg2rad(-agent_rot))
+        camera_xyz[:, :, 1] += xyz_offset[:, :, 1]
+        camera_xyz[:, :, 2] += xyz_offset[:, :, 0] * torch.sin(torch.deg2rad(-agent_rot)) + xyz_offset[:, :, 2] * torch.cos(torch.deg2rad(-agent_rot))
+        camera_rot = agent_rot + camera['rotation_offset'][timestep].unsqueeze(1)
+        world_points = camera_space_xyz_to_world_xyz_batched(camera_space_xyzs=binned_camera_space_xyz, 
                                                         camera_world_xyz=camera_xyz, 
-                                                        rotation=camera_rot.cpu(), 
-                                                        horizon=camera['horizon'][timestep][i].cpu())
-            world_points = world_points.permute(1, 0).unsqueeze(0).to(frame.device)
-            world_points_plus_min = world_points + self.min_xyz.to(frame.device)
-            binned_map_update = project_point_cloud_to_map(xyz_points = world_points_plus_min,
+                                                        rotation=camera_rot, 
+                                                        horizon=camera['horizon'][timestep])
+        world_points = world_points.permute(0, 2, 1)
+        world_points_plus_min = world_points + self.min_xyz.to(frame.device)
+        binned_map_update_batched = project_point_cloud_to_map_batched(xyz_points = world_points_plus_min,
                                                         bin_axis="y",
                                                         bins=self.bins,
                                                         map_size=self.map_size,
                                                         resolution_in_cm=self.map_resolution_cm,
                                                         flip_row_col=True)
+        # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+        binned_updates = binned_map_update_batched
+        # for i in range(frame.shape[0]):
+        #     if torch.sum(mask[i]) == 0:
+        #         binned_updates.append(torch.zeros(*frame[i].shape, len(self.bins)+1, device=frame.device))
+        #         continue
 
-            binned_updates.append(binned_map_update)
-        binned_updates = torch.stack(binned_updates)
+        #     camera_space_xyz = depth_frame_to_camera_space_xyz(frame[i], mask[i], fov=camera['fov'][timestep][i])
+            
+        #     # camera_xyz = camera['xyz'][timestep][i]
+        #     # camera_rot = camera['rotation'][timestep][i]
+        #     # if egocentric:
+        #     #     camera_xyz = camera['xyz_offset'][timestep][i]
+        #     #     camera_rot = camera['rotation_offset'][timestep][i]
+        #     # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+        #     xyz_offset = camera['xyz_offset'][timestep][i].reshape(3)
+        #     camera_xyz = position[i].clone().reshape(3)
+        #     agent_rot = rotation[i].reshape([])
+
+        #     camera_xyz[0] += xyz_offset[0] * torch.cos(torch.deg2rad(-agent_rot)) - xyz_offset[2] * torch.sin(torch.deg2rad(-agent_rot))
+        #     camera_xyz[1] += xyz_offset[1]
+        #     camera_xyz[2] += xyz_offset[0] * torch.sin(torch.deg2rad(-agent_rot)) + xyz_offset[2] * torch.cos(torch.deg2rad(-agent_rot))
+        #     # camera_xyz = torch.tensor([cos_of_rot * camera_xyz[0] - sin_of_rot * camera_xyz[2],
+        #     #                            camera_xyz[1],
+        #     #                            sin_of_rot * camera_xyz[0] + cos_of_rot * camera_xyz[2]])
+        #     camera_rot = agent_rot + camera['rotation_offset'][timestep][i].reshape([])
+
+            
+
+        #     world_points = camera_space_xyz_to_world_xyz(camera_space_xyzs=camera_space_xyz, 
+        #                                                 camera_world_xyz=camera_xyz, 
+        #                                                 rotation=camera_rot.cpu(), 
+        #                                                 horizon=camera['horizon'][timestep][i].cpu())
+        #     world_points = world_points.permute(1, 0).unsqueeze(0)
+        #     world_points_plus_min = world_points + self.min_xyz.to(frame.device)
+
+        #     binned_map_update = project_point_cloud_to_map(xyz_points = world_points_plus_min,
+        #                                                 bin_axis="y",
+        #                                                 bins=self.bins,
+        #                                                 map_size=self.map_size,
+        #                                                 resolution_in_cm=self.map_resolution_cm,
+        #                                                 flip_row_col=True)
+        #     binned_updates.append(binned_map_update)
+        # binned_updates = torch.stack(binned_updates)
         return binned_updates
 
     def project_depth_to_map(
