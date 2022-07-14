@@ -33,86 +33,42 @@ from allenact.embodiedai.mapping.mapping_utils.map_builders import BinnedPointCl
 from utils.model_utils import LinearActorHeadNoCategory
 
 from manipulathor_baselines.stretch_bring_object_baselines.models.pointnav_tracker import pointnav_update
+from manipulathor_baselines.stretch_bring_object_baselines.models.pose_estimation_model import PoseEstimationImage
 
 from torchvision.models import resnet18
 
-class PoseEstimator(nn.Module):
-    def __init__(self,
-                 input_channels: int,
-                 output_channels: int = 4,
-                 num_features: int = 512):
-        super().__init__()
-        network_args = {'input_channels': input_channels,
-                        'layer_channels': [32, 64, 32],
-                        'kernel_sizes': [(8, 8), (4, 4), (3, 3)],
-                        'strides': [(4, 4), (2, 2), (1, 1)],
-                        'paddings': [(0, 0), (0, 0), (0, 0)],
-                        'dilations': [(1, 1), (1, 1), (1, 1)],
-                        'output_height': 24,
-                        'output_width': 24,
-                        'output_channels': num_features,
-                        'flatten': True,
-                        'output_relu': True}
-        self.backbone = make_cnn(**network_args)
-        self.linear = nn.Linear(num_features, output_channels)
-        nn.init.constant_(self.linear.weight, 0.0)
-        nn.init.constant_(self.linear.bias, 0.0)
+# class PoseEstimator(nn.Module):
+#     def __init__(self,
+#                  input_channels: int,
+#                  output_channels: int = 4,
+#                  num_features: int = 512):
+#         super().__init__()
+#         network_args = {'input_channels': input_channels,
+#                         'layer_channels': [32, 64, 32],
+#                         'kernel_sizes': [(8, 8), (4, 4), (3, 3)],
+#                         'strides': [(4, 4), (2, 2), (1, 1)],
+#                         'paddings': [(0, 0), (0, 0), (0, 0)],
+#                         'dilations': [(1, 1), (1, 1), (1, 1)],
+#                         'output_height': 24,
+#                         'output_width': 24,
+#                         'output_channels': num_features,
+#                         'flatten': True,
+#                         'output_relu': True}
+#         self.backbone = make_cnn(**network_args)
+#         self.linear = nn.Linear(num_features, output_channels)
+#         nn.init.constant_(self.linear.weight, 0.0)
+#         nn.init.constant_(self.linear.bias, 0.0)
     
-    def forward(self,
-                x: torch.FloatTensor) -> torch.FloatTensor:
-        x = x.reshape(1, *x.shape)
-        features = compute_cnn_output(self.backbone, x)
-        out = self.linear(features)
+#     def forward(self,
+#                 x: torch.FloatTensor) -> torch.FloatTensor:
+#         x = x.reshape(1, *x.shape)
+#         features = compute_cnn_output(self.backbone, x)
+#         out = self.linear(features)
 
-        # Hard codes elevation change to be zero
-        out[:, :, 1] = 0.0
-        return out
+#         # Hard codes elevation change to be zero
+#         out[:, :, 1] = 0.0
+#         return out
 
-
-class PoseEstimationImage(nn.Module):
-    def __init__(self,
-                 output_channels: int = 4):
-        super().__init__()
-        input_channels = 6
-        #model = resnet18(pretrained=True)
-        #layers = list(model.children())[:-1]
-        #layers[0] = nn.Conv2d(input_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-        #self.backbone = nn.Sequential(*layers)
-
-        num_features = 512
-        network_args = {'input_channels': input_channels,
-                        'layer_channels': [32, 64, 32],
-                        'kernel_sizes': [(8, 8), (4, 4), (3, 3)],
-                        'strides': [(4, 4), (2, 2), (1, 1)],
-                        'paddings': [(0, 0), (0, 0), (0, 0)],
-                        'dilations': [(1, 1), (1, 1), (1, 1)],
-                        'output_height': 24,
-                        'output_width': 24,
-                        'output_channels': num_features,
-                        'flatten': True,
-                        'output_relu': True}
-        self.backbone = make_cnn(**network_args)
-        self.linear = nn.Sequential(nn.Linear(512+4, 256),
-                                    nn.ReLU(),
-                                    nn.Linear(256, 128),
-                                    nn.ReLU(),
-                                    nn.Linear(128, output_channels))
-
-    def forward(self, observations, timestep, odom):
-        images = torch.cat([observations['rgb_lowres'][timestep],
-                            observations['rgb_lowres_prev_frame'][timestep]], dim=-1)
-        images = images.reshape(1, *images.shape)
-        #images = images.permute(0, 1, 4, 2, 3)
-        #images = images.reshape(-1, *images.shape[2:5])
-        #features = self.backbone(images)
-        features = compute_cnn_output(self.backbone, images)
-        features = features.reshape(features.shape[1], features.shape[2])
-        #features = features.reshape(*features.shape[:2])
-        features = torch.cat([features, odom.to(torch.float)], dim=1)
-        out = self.linear(features)
-        out[:, 1] = 0.0
-        out = out.unsqueeze(1)
-        return out
 
 
 class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
@@ -155,6 +111,17 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             #self.pose_estimation = PoseEstimator(input_channels=2*self.map_channels,
             #                                     output_channels=4)
             self.pose_estimation = PoseEstimationImage()
+            # self.pose_estimation.load_state_dict(torch.load('../test_resnet_depth_arm/weights_step_95000.pth', map_location=torch.device('cpu')))
+            # self.pose_estimation.eval()
+            # from manipulathor_baselines.stretch_bring_object_baselines.models.pose_estimation_model import OfflineVisualOdometryDataset
+            # ds = OfflineVisualOdometryDataset("../odom_dataset")
+            # data_loader = torch.utils.data.DataLoader(ds, batch_size=20, shuffle=False, num_workers=0)
+            # batch = next(iter(data_loader))
+            # for k in batch:
+            #     if 'rgb' in k or 'depth' in k:
+            #         batch[k] = batch[k].view(1, *batch[k].shape)
+            # out = self.pose_estimation(batch, 0, batch['odom'])
+            # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
 
         network_args = {'input_channels': self.map_channels, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder_map = make_cnn(**network_args)
@@ -485,9 +452,13 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                     odom_update = torch.cat([observations['odometry_emul']['agent_info']['noisy_relative_xyz'][timestep],
                                              observations['odometry_emul']['agent_info']['noisy_relative_rot'][timestep].unsqueeze(-1)], dim=-1)
                     pose_update = self.pose_estimation(observations, timestep, odom_update)
-                    
-                    # pose_update = torch.cat([observations['odometry_emul']['agent_info']['relative_xyz'][timestep],
-                    #                          observations['odometry_emul']['agent_info']['relative_rot'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(1)
+
+                    pose_update_gt = torch.cat([observations['odometry_emul']['agent_info']['relative_xyz'][timestep],
+                                             observations['odometry_emul']['agent_info']['relative_rot'][timestep].unsqueeze(-1)], dim=-1).unsqueeze(1)
+                    if not self.training:
+                        print("diff", (pose_update - pose_update_gt), pose_update.dtype, pose_update_gt.dtype)
+                        print("pred", pose_update)
+                        print("gt", pose_update_gt)
 
                     sin_of_prev = torch.sin(torch.deg2rad(-prev_pose[:, :, -1]))
                     cos_of_prev = torch.cos(torch.deg2rad(-prev_pose[:, :, -1]))
@@ -513,12 +484,18 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
 #                if torch.max(torch.abs(odom_rotations)) > 15.0:
                 update_pos_error = observations['odometry_emul']['agent_info']['relative_xyz'][timestep].unsqueeze(1) - pose_update[:, :, :3]
                 update_rot_error = observations['odometry_emul']['agent_info']['relative_rot'][timestep].unsqueeze(1) - pose_update[:, :, -1]
-                # print("pos diff", update_pos_error - position_error)
-                # print("rot diff", update_rot_error - rotation_error)
-                # if torch.max(torch.abs(update_pos_error - position_error)) > 10**-5 or torch.max(torch.abs(update_rot_error - rotation_error)) > 10**-5:
-                    
-                #     from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
-                pose_errors.append({'position': position_error, 'rotation': rotation_error, 'odom_pos': odom_pos_error, 'odom_rot': odom_rot_error})
+                # if observations['depth_lowres'].shape[0] > 5:
+                #     from manipulathor_baselines.stretch_bring_object_baselines.models.pose_estimation_loss import calc_pose_estimation_loss
+                    # loss_abs, metrics_abs = calc_pose_estimation_loss(position_error, rotation_error, odom_pos_error, odom_rot_error)
+                    # loss_rel, metrics_rel = calc_pose_estimation_loss(update_pos_error, update_rot_error, odom_pos_error, odom_rot_error)
+                    # if abs(metrics_abs['unnormalized_rot_error'] - metrics_rel['unnormalized_rot_error']) > 0.001:
+                    #     from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+                    # print("pos diff", update_pos_error - position_error)
+                    # print("rot diff", update_rot_error - rotation_error)
+                    # if torch.max(torch.abs(update_pos_error - position_error)) > 10**-5 or torch.max(torch.abs(update_rot_error - rotation_error)) > 10**-5:
+                    #     from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+                # pose_errors.append({'position': position_error, 'rotation': rotation_error, 'odom_pos': odom_pos_error, 'odom_rot': odom_rot_error})
+                pose_errors.append({'position': update_pos_error, 'rotation': update_rot_error, 'odom_pos': odom_pos_error, 'odom_rot': odom_rot_error})
                 # print("position error", torch.max(torch.abs(position_error)))
                 # print("rotation error", rotation_error)
                 if self.training:
@@ -617,9 +594,10 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             mode = "train" if self.training else "valid"
             print("saving debug images", mode)
             if all_maps.shape[0] > 1:
-                for i in range(all_maps.shape[0]):
-                    cv2.imwrite("../debug_images/{}_all_map_step{}_batch{}.png".format(mode, self.step_count, i), all_maps[i, 0].detach().cpu().numpy())
-                # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+                pass
+                # for i in range(all_maps.shape[0]):
+                #     cv2.imwrite("../debug_images/{}_all_map_step{}_batch{}.png".format(mode, self.step_count, i), all_maps[i, 0].detach().cpu().numpy())
+                # # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
             else:
                 for i in range(all_maps.shape[1]):
                     cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}.png".format(mode, self.step_count, i), 

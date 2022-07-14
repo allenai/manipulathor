@@ -68,15 +68,40 @@ class PointNavEmulStretchAllRoomsNoisyMotionWithMap(
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
+        PrevFrameSensor(
+            DepthSensorStretchIntel(height=desired_screen_size,
+                                width=desired_screen_size,
+                                use_normalization=False,
+                                uuid="depth_lowres_prev",),
+            uuid="depth_lowres_prev_frame"
+        ),
         DepthSensorStretchIntel(height=desired_screen_size,
                                 width=desired_screen_size,
                                 use_normalization=False,
                                 uuid="depth_lowres",),
+        PrevFrameSensor(
+            RGBSensorStretchKinect(
+                height=desired_screen_size,
+                width=desired_screen_size,
+                use_resnet_normalization=True,
+                uuid="rgb_lowres_arm_prev",
+            ),
+            uuid="rgb_lowres_arm_prev_frame",
+        ),
         RGBSensorStretchKinect(
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=True,
             uuid="rgb_lowres_arm",
+        ),
+        PrevFrameSensor(
+            DepthSensorStretchKinect(
+                height=desired_screen_size,
+                width=desired_screen_size,
+                use_normalization=False,
+                uuid="depth_lowres_arm_prev",
+            ),
+            uuid="depth_lowres_arm_prev_frame",
         ),
         DepthSensorStretchKinect(
             height=desired_screen_size,
