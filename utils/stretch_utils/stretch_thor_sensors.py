@@ -208,7 +208,7 @@ class AgentOdometryEmulSensor(Sensor):
         self.noise = noise
         assert self.noise == 0
 
-        self.initial_pos = np.zeros(3)
+        self.initial_pos = np.zeros(3, dtype=np.float32)
         self.initial_rot = 0.0
 
         super().__init__(**prepare_locals_for_super(locals()))
@@ -217,18 +217,18 @@ class AgentOdometryEmulSensor(Sensor):
         sin_of_rot = np.sin(np.deg2rad(self.initial_rot))
         cos_of_rot = np.cos(np.deg2rad(self.initial_rot))
         if noisy_pose:
-            agent_xyz = np.array([env.nominal_agent_location[k] for k in ["x", "y", "z"]]) - self.initial_pos
+            agent_xyz = np.array([env.nominal_agent_location[k] for k in ["x", "y", "z"]], dtype=np.float32) - self.initial_pos
             agent_rot = env.nominal_agent_location['rotation'] - self.initial_rot
             prev_pos = self.noisy_prev_pos
             prev_rot = self.noisy_prev_rot
         else:
-            agent_xyz = np.array([metadata['agent']['position'][k] for k in ["x", "y", "z"]]) - self.initial_pos
+            agent_xyz = np.array([metadata['agent']['position'][k] for k in ["x", "y", "z"]], dtype=np.float32) - self.initial_pos
             agent_rot = metadata["agent"]["rotation"]["y"] - self.initial_rot
             prev_pos = self.prev_pos
             prev_rot = self.prev_rot
         agent_xyz_rot = np.array([cos_of_rot * agent_xyz[0] - sin_of_rot * agent_xyz[2],
                                    agent_xyz[1],
-                                   sin_of_rot * agent_xyz[0] + cos_of_rot * agent_xyz[2]])
+                                   sin_of_rot * agent_xyz[0] + cos_of_rot * agent_xyz[2]], dtype=np.float32)
 
 
         relative_rot = (agent_rot - prev_rot) % 360
@@ -240,7 +240,7 @@ class AgentOdometryEmulSensor(Sensor):
         sin_of_prev = np.sin(np.deg2rad(prev_rot))
         relative_pos = np.array([cos_of_prev * relative_pos[0] - sin_of_prev * relative_pos[2],
                                 relative_pos[1],
-                                sin_of_prev * relative_pos[0] + cos_of_prev * relative_pos[2] ])
+                                sin_of_prev * relative_pos[0] + cos_of_prev * relative_pos[2] ], dtype=np.float32)
         if noisy_pose:
             self.noisy_prev_pos = agent_xyz_rot
             self.noisy_prev_rot = agent_rot
@@ -260,12 +260,12 @@ class AgentOdometryEmulSensor(Sensor):
         # if task.num_steps_taken() == 0:
         if metadata['lastAction'] == 'GetReachablePositions':
             self.initial_rot = metadata["agent"]["rotation"]["y"]
-            self.initial_pos = np.array([metadata['agent']['position'][k] for k in ["x", "y", "z"]])
+            self.initial_pos = np.array([metadata['agent']['position'][k] for k in ["x", "y", "z"]], dtype=np.float32)
 
             self.prev_rot = 0.0
-            self.prev_pos = np.array([0.0 for k in ["x", "y", "z"]])
+            self.prev_pos = np.array([0.0 for k in ["x", "y", "z"]], dtype=np.float32)
             self.noisy_prev_rot = 0.0
-            self.noisy_prev_pos = np.array([0.0 for k in ["x", "y", "z"]])
+            self.noisy_prev_pos = np.array([0.0 for k in ["x", "y", "z"]], dtype=np.float32)
 
             sin_of_neg_rot = np.sin(np.deg2rad(-self.initial_rot))
             cos_of_neg_rot = np.cos(np.deg2rad(-self.initial_rot))
@@ -273,14 +273,14 @@ class AgentOdometryEmulSensor(Sensor):
             self.camera_offsets = dict()
             self.camera_offsets['camera'] = dict(
                 rotation=0.0,
-                xyz=np.array([metadata["cameraPosition"][k] for k in ["x", "y", "z"]]) - self.initial_pos,
+                xyz=np.array([metadata["cameraPosition"][k] for k in ["x", "y", "z"]], dtype=np.float32) - self.initial_pos,
                 horizon=metadata["agent"]["cameraHorizon"],
                 fov=metadata['fov']
             )
             arm_metadata = copy.deepcopy(env.controller.last_event.metadata['thirdPartyCameras'][0])
             self.camera_offsets['camera_arm'] = dict(
                 rotation = arm_metadata['rotation']['y'] - self.initial_rot,
-                xyz = np.array([arm_metadata["position"][k] for k in ["x", "y", "z"]]) - self.initial_pos,
+                xyz = np.array([arm_metadata["position"][k] for k in ["x", "y", "z"]], dtype=np.float32) - self.initial_pos,
                 horizon=arm_metadata['rotation']['x'],
                 fov=arm_metadata['fieldOfView']
             )

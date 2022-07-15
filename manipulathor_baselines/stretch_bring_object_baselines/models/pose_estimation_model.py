@@ -74,10 +74,10 @@ class PoseEstimationImage(nn.Module):
                             observations['rgb_lowres_prev_frame'][timestep],
                             observations['depth_lowres_prev_frame'][timestep]], dim=-1)
         
-        images_arm = torch.cat([observations['rgb_arm_lowres'][timestep],
-                            observations['depth_arm_lowres'][timestep],
-                            observations['rgb_arm_lowres_prev_frame'][timestep],
-                            observations['depth_arm_lowres_prev_frame'][timestep]], dim=-1)
+        images_arm = torch.cat([observations['rgb_lowres_arm'][timestep],
+                            observations['depth_lowres_arm'][timestep],
+                            observations['rgb_lowres_arm_prev_frame'][timestep],
+                            observations['depth_lowres_arm_prev_frame'][timestep]], dim=-1)
 
         features = self.encode_images(images, self.backbone)
         features_arm = self.encode_images(images_arm, self.backbone)
@@ -125,7 +125,6 @@ class OfflineVisualOdometryDataset(Dataset):
 
     def __getitem__(self, idx):
         pair = self.pairs[idx]
-
         odom = pair['noisy_translation'].copy()
         odom.append(pair['noisy_rotation'])
         odom = np.array(odom)
@@ -142,13 +141,13 @@ class OfflineVisualOdometryDataset(Dataset):
             im = imageio.imread(join(self.path, 'rgb_episode{:05d}_step{:05d}.jpg'.format(episode, index)))
             data['rgb_lowres'+name] = self.normalize_image(im)
             im_arm = imageio.imread(join(self.path,'rgb_arm_episode{:05d}_step{:05d}.jpg'.format(episode, index)))
-            data['rgb_arm_lowres'+name] = self.normalize_image(im_arm)
+            data['rgb_lowres_arm'+name] = self.normalize_image(im_arm)
 
 
             depth = imageio.imread(join(self.path, 'depth_episode{:05d}_step{:05d}.png'.format(episode, index)))
             data['depth_lowres'+name] = self.convert_uint16_depth_to_metric(depth)
             depth_arm = imageio.imread(join(self.path, 'depth_arm_episode{:05d}_step{:05d}.png'.format(episode, index)))
-            data['depth_arm_lowres'+name] = self.convert_uint16_depth_to_metric(depth_arm)
+            data['depth_lowres_arm'+name] = self.convert_uint16_depth_to_metric(depth_arm)
 
         
         return data
@@ -177,7 +176,8 @@ def train():
     batch_size = 128
     num_epochs = 100
     lr = 10**-3
-    save_freq = 1000
+    val_freq = 2000
+    save_freq = 10000
     tb_freq = 10
     out_path = "experiment_output/tb/pose_estimation"
     name = "test_resnet_depth_arm"
@@ -218,7 +218,7 @@ def train():
                 for k in metrics:
                     writer.add_scalar("train-losses/pose_loss/"+k, metrics[k], step)
 
-            if step % save_freq == 0:
+            if step % val_freq == 0:
                 print("losses", metrics)
                 model.eval()
                 valid_data_loader = torch.utils.data.DataLoader(valid_dataset, 
@@ -243,8 +243,9 @@ def train():
                 print("valid", all_metrics)
 
                 model.train()
-                torch.save(model.state_dict(), join(out_path, 'weights_step_{:02d}.pth'.format(step)))
-    torch.save(model.state_dict(), join(out_path, 'weights_step_{:02d}.pth'.format(step)))
+            if step % save_freq == 0:
+                torch.save(model.state_dict(), join(out_path, 'weights_step_{:08d}.pth'.format(step)))
+    torch.save(model.state_dict(), join(out_path, 'weights_step_{:08d}.pth'.format(step)))
 
 
 if __name__ == '__main__':
