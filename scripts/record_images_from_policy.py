@@ -42,6 +42,7 @@ def record_images_from_policy(args):
     config.ENV_ARGS['motion_noise_args']['multiplier_sigmas'] = [0.01,0.01,0.01,0.01,0.01,0.01,0.01]
     config.ENV_ARGS['motion_noise_args']['effect_scale'] = .25
 
+    mode = "val" if args.valid else "train"
 
     task_sampler = PointNavEmulStretchAllRooms.make_sampler_fn(scenes=config.TRAIN_SCENES,
                                                             sensors=config.SENSORS,
@@ -49,13 +50,16 @@ def record_images_from_policy(args):
                                                             env_args=config.ENV_ARGS,
                                                             action_space=gym.spaces.Discrete(len(config.TASK_TYPE.class_action_names())),
                                                             rewards_config=config.REWARD_CONFIG,
-                                                            sampler_mode='train',
+                                                            sampler_mode=mode,
                                                             cap_training=config.CAP_TRAINING)
     task_sampler.visualizers = []
 
+    pairs_name = "pairs.json" if args.start_index == 0 else "pairs_{}.json".format(args.start_index)
+
     action_results = {}
     dataset = []
-    for episode in tqdm(range(args.episodes_to_save)):
+    for episode_index in tqdm(range(args.episodes_to_save)):
+        episode = episode_index + args.start_index
         task = task_sampler.next_task()
 
         index = 0
@@ -92,7 +96,8 @@ def record_images_from_policy(args):
             dataset.append(pair)
 
             index += 1
-        with open(join(args.out_path, 'pairs.json'), 'w') as f:
+
+        with open(join(args.out_path, pairs_name), 'w') as f:
             json.dump(dataset, f, indent=4)
 
         # for k in action_results:
@@ -108,8 +113,9 @@ def record_images_from_policy(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("model_path", type=str)
     parser.add_argument("out_path", type=str)
+    parser.add_argument("--valid", dest="valid", action="store_true")
+    parser.add_argument("--start_index", type=int, default=0)
     parser.add_argument("--episodes_to_save", type=int, default=10)
     args = parser.parse_args()
 
