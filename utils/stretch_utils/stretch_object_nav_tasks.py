@@ -229,6 +229,38 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             if obj["visible"] and obj["objectType"] == self.task_info["object_type"]
             and self.dist_to_target_func() < self.task_info['success_distance'] 
         )
+    
+    def calc_action_stat_metrics(self) -> Dict[str, Any]:
+        action_stat = {
+            "metric/action_stat/" + action_str: 0.0 for action_str in self._actions
+        }
+        action_success_stat = {
+            "metric/action_success/" + action_str: 0.0 for action_str in self._actions
+        }
+        action_success_stat["metric/action_success/total"] = 0.0
+
+        seq_len = len(self.task_info["taken_actions"])
+
+        for (action_name, action_success) in list(zip(
+                            self.task_info["taken_actions"],
+                            self.task_info["action_successes"])):
+            action_stat["metric/action_stat/" + action_name] += 1.0
+
+            action_success_stat[
+                "metric/action_success/{}".format(action_name)
+            ] += action_success
+            action_success_stat["metric/action_success/total"] += action_success
+
+        action_success_stat["metric/action_success/total"] /= seq_len
+
+        for action_name in self._actions:
+            action_success_stat[
+                "metric/" + "action_success/{}".format(action_name)
+            ] /= (action_stat["metric/action_stat/" + action_name] + 0.000001)
+            action_stat["metric/action_stat/" + action_name] /= seq_len
+
+        result = {**action_stat, **action_success_stat}
+        return result
 
     def shaping(self) -> float:
         if self.reward_config['shaping_weight'] == 0.0:
@@ -307,6 +339,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         if self.is_done():
             result={} # placeholder for future
             metrics = super().metrics()
+            metrics = {**metrics, **self.calc_action_stat_metrics()}
             metrics["dist_to_target"] = self.dist_to_target_func()
             metrics["total_reward"] = np.sum(self._rewards)
             metrics["spl"] = spl_metric(
@@ -493,43 +526,13 @@ class ExploreWiseObjectNavTask(StretchObjectNavTaskSegmentationSuccessActionFail
         self.all_reachable_positions = torch.Tensor(all_locations)
         self.has_visited = torch.zeros((len(self.all_reachable_positions), 1))
         assert len(self.all_reachable_positions) > 0, 'no reachable positions to calculate reward'
-    
-    def calc_action_stat_metrics(self) -> Dict[str, Any]:
-        action_stat = {
-            "metric/action_stat/" + action_str: 0.0 for action_str in self._actions
-        }
-        action_success_stat = {
-            "metric/action_success/" + action_str: 0.0 for action_str in self._actions
-        }
-        action_success_stat["metric/action_success/total"] = 0.0
-
-        seq_len = len(self.task_info["taken_actions"])
-        for (action_name, action_success) in list(zip(
-                            self.task_info["taken_actions"],
-                            self.task_info["action_successes"])):
-            action_stat["metric/action_stat/" + action_name] += 1.0
-            action_success_stat[
-                "metric/action_success/{}".format(action_name)
-            ] += action_success
-            action_success_stat["metric/action_success/total"] += action_success
-
-        action_success_stat["metric/action_success/total"] /= seq_len
-
-        for action_name in self._actions:
-            action_success_stat[
-                "metric/" + "action_success/{}".format(action_name)
-            ] /= (action_stat["metric/action_stat/" + action_name] + 0.000001)
-            action_stat["metric/action_stat/" + action_name] /= seq_len
-
-        result = {**action_stat, **action_success_stat}
-        return result
 
     def judge(self) -> float:
         """Compute the reward after having taken a step."""
         reward = self.reward_config["step_penalty"]
 
         # additional scaling step penalty, thresholds at half max steps at the failed action penalty
-        reward += -0.5 * (1.05)**(np.min([-(self.max_steps/2)+self.num_steps_taken(),0])) 
+        reward += -0.2 * (1.1)**(np.min([-(self.max_steps/2)+self.num_steps_taken(),0])) 
 
         if not self.last_action_success:
             reward += self.reward_config['failed_action_penalty']
@@ -565,7 +568,7 @@ class ExploreWiseObjectNavTask(StretchObjectNavTaskSegmentationSuccessActionFail
 
         if self.is_done():
             result['percent_room_visited'] = self.has_visited.mean().item()
-            result = {**result, **self.calc_action_stat_metrics()}
+            result['new_locations_visited'] = self.has_visited.sum().item()
         return result
         
 

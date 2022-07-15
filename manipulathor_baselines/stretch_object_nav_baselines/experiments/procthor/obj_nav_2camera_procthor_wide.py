@@ -27,8 +27,8 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
         OBJECT_TYPES=yaml.safe_load(f)
     
     # TASK_TYPE = StretchObjectNavTaskSegmentationSuccess
-    TASK_TYPE = StretchObjectNavTaskSegmentationSuccessActionFail
-    # TASK_TYPE = ExploreWiseObjectNavTask
+    # TASK_TYPE = StretchObjectNavTaskSegmentationSuccessActionFail
+    TASK_TYPE = ExploreWiseObjectNavTask
 
     SENSORS = [
         RGBSensorThor(
@@ -84,8 +84,8 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
                 self.WHICH_AGENT == 'stretch' # this only works for stretch
                 and self.ENV_ARGS['allow_flipping'] == False # not with 2-camera
         )
-        # self.REWARD_CONFIG['shaping_weight'] = 0.0
-        self.REWARD_CONFIG['exploration_reward'] = 0.1
+        self.REWARD_CONFIG['shaping_weight'] = 0.0
+        self.REWARD_CONFIG['exploration_reward'] = 0.05
         self.REWARD_CONFIG['got_stuck_penalty'] = 0.0
         self.REWARD_CONFIG['failed_action_penalty'] = -0.5
 
