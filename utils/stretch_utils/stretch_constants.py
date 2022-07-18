@@ -16,6 +16,7 @@ INTEL_CAMERA_WIDTH, INTEL_CAMERA_HEIGHT = 224,224 # TODO this is too small 320,3
 STRETCH_MANIPULATHOR_COMMIT_ID = '09b6ccf74558395a231927dee8be3b8c83b52ef7' #bigger fov
 # PROCTHOR_COMMIT_ID = '0eddca46783a788bfce69b146c496d931c981ae4'
 PROCTHOR_COMMIT_ID = '996a369b5484c7037d3737906be81b84a52473a0' #after the arm destroy bug
+REAL_STRETCH_SERVER = "stretch2.corp.ai2"
 
 STRETCH_ENV_ARGS = dict(
     gridSize=0.25,
@@ -81,7 +82,8 @@ MOVE_WRIST_M_SMALL = 'MoveWristMSmall'
 
 ADITIONAL_ARM_ARGS = {
     "disableRendering": True,
-    "returnToStart": True,
+    # "returnToStart": True,
+    "returnToStart": False,#TODO NOW
     "speed": 1,
 }
 

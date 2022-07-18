@@ -53,7 +53,8 @@ class PointNavEmulStretchProcTHOR(
     source_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=only_close_big_masks)
     destination_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=only_close_big_masks)
     depth_sensor_kinect = KinectRawDepthSensor()
-
+    ForkedPdb().set_trace()
+    #TODO if you want to use this make sure you actually set the horizon of first person camera correctly
 
     SENSORS = [
         RGBSensorStretchIntel(

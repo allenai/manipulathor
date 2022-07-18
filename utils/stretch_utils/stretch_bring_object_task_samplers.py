@@ -101,6 +101,7 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
         self.TASK_TYPE = task_type
         self.rewards_config = rewards_config
         self.environment_type = env_args['environment_type']
+        self.first_camera_horizon = kwargs['first_camera_horizon']
         del env_args['environment_type']
         assert issubclass(self.environment_type, StretchManipulaTHOREnvironment) # check that the env is a child of stretch?
         self.env_args = env_args
@@ -305,12 +306,12 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
                     y=agent_state["rotation"]["y"],
                     z=agent_state["rotation"]["z"],
                 ),
-                horizon=agent_state["cameraHorizon"],
+                # horizon=agent_state["cameraHorizon"],
+                horizon = self.first_camera_horizon,
             )
         )
-
         if not event.metadata['lastActionSuccess']:
-            print('ERROR: Teleport failed')
+            print('ERROR: Teleport failed') #TODO NOW if this fails the horizon thing wont work
 
 
         should_visualize_goal_start = [

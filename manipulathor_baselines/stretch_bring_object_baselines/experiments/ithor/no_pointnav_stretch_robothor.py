@@ -12,6 +12,8 @@ from manipulathor_baselines.stretch_bring_object_baselines.experiments.stretch_b
     StretchBringObjectMixInPPOConfig
 from manipulathor_baselines.stretch_bring_object_baselines.experiments.stretch_bring_object_mixin_simplegru import \
     StretchBringObjectMixInSimpleGRUConfig
+from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_no_pointnav_model import \
+    StretchNoPointNavModel
 from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_pointnav_emul_model import StretchPointNavEmulModel
 from manipulathor_baselines.stretch_bring_object_baselines.models.stretch_real_pointnav_model import StretchRealPointNavModel
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -31,7 +33,7 @@ from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, Dept
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
-class PointNavEmulStretchRoboTHOR(
+class NoPointNavStretchRoboTHOR(
     StretchBringObjectiThorBaseConfig,
     StretchBringObjectMixInPPOConfig,
     StretchBringObjectMixInSimpleGRUConfig,
@@ -44,11 +46,9 @@ class PointNavEmulStretchRoboTHOR(
 
     source_mask_sensor_intel = IntelNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True)
     destination_mask_sensor_intel = IntelNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True)
-    depth_sensor_intel = IntelRawDepthSensor()
 
     source_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True)
     destination_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True)
-    depth_sensor_kinect = KinectRawDepthSensor()
 
 
     SENSORS = [
@@ -72,23 +72,23 @@ class PointNavEmulStretchRoboTHOR(
             uuid="depth_lowres_arm",
         ),
         StretchPickedUpObjSensor(),
-        AgentBodyPointNavEmulSensor(type='source', mask_sensor=source_mask_sensor_intel, depth_sensor=depth_sensor_intel),
-        AgentBodyPointNavEmulSensor(type='destination', mask_sensor=destination_mask_sensor_intel, depth_sensor=depth_sensor_intel),
-        ArmPointNavEmulSensor(type='source', mask_sensor=source_mask_sensor_kinect, depth_sensor=depth_sensor_kinect),
-        ArmPointNavEmulSensor(type='destination', mask_sensor=destination_mask_sensor_kinect, depth_sensor=depth_sensor_kinect),
         source_mask_sensor_intel,
         destination_mask_sensor_intel,
         source_mask_sensor_kinect,
         destination_mask_sensor_kinect,
 
     ]
-
+    #TODO NOW this is not tilted do we want to train with tilted?
+    #TODO NOW also maybe we should increase max steps?
     MAX_STEPS = 200
 
     TASK_SAMPLER = StretchDiverseBringObjectTaskSampler
-    TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp #
+    TASK_TYPE = StretchExploreWiseRewardTask
+    ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
+    # ENVIRONMENT_TYPE = StretchManipulaTHOREnvironmentwFullFOV
 
     NUM_PROCESSES = 30
+
 
     TRAIN_SCENES = ROBOTHOR_TRAIN
     TEST_SCENES = ROBOTHOR_VAL
@@ -96,18 +96,9 @@ class PointNavEmulStretchRoboTHOR(
 
 
     random.shuffle(TRAIN_SCENES)
-    ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
 
+    random.shuffle(TEST_SCENES)
 
-
-
-    # if platform.system() == "Darwin": TODO remove
-    #     random.shuffle(KITCHEN_TRAIN)
-    #     random.shuffle(LIVING_ROOM_TRAIN)
-    #     random.shuffle(BEDROOM_TRAIN)
-    #     random.shuffle(BATHROOM_TRAIN)
-    #     random.shuffle(ROBOTHOR_TRAIN)
-    #     TRAIN_SCENES = KITCHEN_TRAIN[:10] + LIVING_ROOM_TRAIN[:10]  + BEDROOM_TRAIN[:10]  + BATHROOM_TRAIN[:10]  + ROBOTHOR_TRAIN[:10]
 
     def __init__(self):
         super().__init__()
@@ -116,42 +107,13 @@ class PointNavEmulStretchRoboTHOR(
         # self.ENV_ARGS = STRETCH_ENV_ARGS
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
-        self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE
         self.ENV_ARGS['renderInstanceSegmentation'] = True
-
-    def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchRoboTHOR, self).test_task_sampler_args(**kwargs)
-        if platform.system() == "Darwin":
-            pass
-        else:
-            for sensor_type in sampler_args['sensors']:
-                if isinstance(sensor_type, AgentBodyPointNavEmulSensor):
-                    sensor_type.device = torch.device(kwargs["devices"][0])
-
-            for sensor_type in sampler_args['sensors']:
-                if isinstance(sensor_type, ArmPointNavEmulSensor):
-                    sensor_type.device = torch.device(kwargs["devices"][0])
-
-        return sampler_args
-
-    def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchRoboTHOR, self).train_task_sampler_args(**kwargs)
-        if platform.system() == "Darwin":
-            pass
-        else:
-
-            for sensor_type in sampler_args['sensors']:
-                if isinstance(sensor_type, AgentBodyPointNavEmulSensor):
-                    sensor_type.device = torch.device(kwargs["devices"][0])
-            for sensor_type in sampler_args['sensors']:
-                if isinstance(sensor_type, ArmPointNavEmulSensor):
-                    sensor_type.device = torch.device(kwargs["devices"][0])
-        return sampler_args
+        self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE
 
 
     @classmethod
     def create_model(cls, **kwargs) -> nn.Module:
-        return StretchPointNavEmulModel(
+        return StretchNoPointNavModel(
             action_space=gym.spaces.Discrete(
                 len(cls.TASK_TYPE.class_action_names())
             ),

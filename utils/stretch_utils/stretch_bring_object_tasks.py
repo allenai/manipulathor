@@ -309,6 +309,7 @@ class StretchExploreWiseRewardTask(AbstractStretchBringObjectTask):
             self.last_action_manual
         except Exception:
             self.last_action_manual = 'm'
+
         action = self.last_action_manual
         event_before_pass = copy.deepcopy(self.env.controller.last_event)
         self.env.controller.step('Pass')
@@ -332,18 +333,15 @@ class StretchExploreWiseRewardTask(AbstractStretchBringObjectTask):
 
         print('source_object_type',source_object_type,'goal_object_type', goal_object_type)
         print(self.task_info['source_object_id'], self.task_info['goal_object_id'], 'pickup', self.object_picked_up)
-        if False:
-            save_quick_frame(self.env.controller, '/Users/kianae/Desktop/current_frame.png', top_view=True)
+        if True:
+            now = datetime.datetime.now()
+            time_to_write = now.strftime("%m_%d_%Y_%H_%M_%S_%f")
+            save_quick_frame(self.env.controller, f'/Users/kianae/Desktop/current_frame{time_to_write}.png', top_view=True)
         if event_before_pass.metadata['lastActionSuccess'] is False:
             print(event_before_pass)
 
 
-
-        #TODO remove this
-        if self.env.get_object_by_id(source_receptacle[0])['visible']:
-            raise Exception('what?')
-        else:
-            action = 'c'
+        ForkedPdb().set_trace()
 
 
         self.last_action_manual = action

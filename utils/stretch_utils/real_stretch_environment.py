@@ -19,7 +19,7 @@ import ai2thor.robot_controller
 from utils.stretch_utils.real_stretch_sensors import normalize_real_kinect_image, normalize_real_intel_image
 from utils.stretch_utils.stretch_constants import MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, \
     MOVE_WRIST_P, MOVE_WRIST_M, GRASP_O, GRASP_C, MOVE_AHEAD, MOVE_BACK, ROTATE_RIGHT, ROTATE_LEFT, MOVE_WRIST_P_SMALL, \
-    MOVE_WRIST_M_SMALL, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL
+    MOVE_WRIST_M_SMALL, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL, REAL_STRETCH_SERVER
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 
 
@@ -39,7 +39,7 @@ class StretchRealEnvironment(StretchManipulaTHOREnvironment):
 
 
     def create_controller(self):
-        controller = ai2thor.robot_controller.Controller(host="stretch2.corp.ai2", port=9000, width=1280, height=720)
+        controller = ai2thor.robot_controller.Controller(host=REAL_STRETCH_SERVER, port=9000, width=1280, height=720)
         return controller
 
     def start(

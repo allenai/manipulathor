@@ -22,7 +22,8 @@ from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDivers
 from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask, \
     StretchExploreWiseRewardTaskOnlyPickUp, StretchObjectNavTask
 from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, STRETCH_MANIPULATHOR_COMMIT_ID, INTEL_CAMERA_WIDTH
-from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
+from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment, \
+    StretchManipulaTHOREnvironmentwNoisyFailedActions
 from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, \
     RGBSensorStretchKinect, DepthSensorStretchKinect, AgentBodyPointNavSensor, AgentBodyPointNavEmulSensor, \
     RGBSensorStretchKinectZero, \
@@ -31,7 +32,7 @@ from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, Dept
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
-class PointNavEmulStretchRoboTHOR(
+class PointNavEmulStretchRoboTHORwRealisticFails(
     StretchBringObjectiThorBaseConfig,
     StretchBringObjectMixInPPOConfig,
     StretchBringObjectMixInSimpleGRUConfig,
@@ -96,18 +97,9 @@ class PointNavEmulStretchRoboTHOR(
 
 
     random.shuffle(TRAIN_SCENES)
-    ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
+    ENVIRONMENT_TYPE = StretchManipulaTHOREnvironmentwNoisyFailedActions
 
 
-
-
-    # if platform.system() == "Darwin": TODO remove
-    #     random.shuffle(KITCHEN_TRAIN)
-    #     random.shuffle(LIVING_ROOM_TRAIN)
-    #     random.shuffle(BEDROOM_TRAIN)
-    #     random.shuffle(BATHROOM_TRAIN)
-    #     random.shuffle(ROBOTHOR_TRAIN)
-    #     TRAIN_SCENES = KITCHEN_TRAIN[:10] + LIVING_ROOM_TRAIN[:10]  + BEDROOM_TRAIN[:10]  + BATHROOM_TRAIN[:10]  + ROBOTHOR_TRAIN[:10]
 
     def __init__(self):
         super().__init__()
@@ -120,7 +112,7 @@ class PointNavEmulStretchRoboTHOR(
         self.ENV_ARGS['renderInstanceSegmentation'] = True
 
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchRoboTHOR, self).test_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchRoboTHORwRealisticFails, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -135,7 +127,7 @@ class PointNavEmulStretchRoboTHOR(
         return sampler_args
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchRoboTHOR, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchRoboTHORwRealisticFails, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:

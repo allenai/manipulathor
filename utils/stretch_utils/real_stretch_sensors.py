@@ -86,7 +86,7 @@ class RealDepthSensorStretchKinect(
         return (depth)
 
 def normalize_real_intel_image(image,final_size=224):
-    image = cv2.rotate(image, cv2.cv2.ROTATE_90_CLOCKWISE)
+    image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
     # if len(image.shape) == 3:
     #     image = image[:,:,::-1]
     #     image = cv2.flip(image,1)
@@ -165,11 +165,7 @@ class StretchDetectronObjectMask(Sensor):
             info_to_search = 'source_object_id'
         elif self.type == 'destination':
             info_to_search = 'goal_object_id'
-            #TODO remove
-            mask = torch.zeros((224,224,1))
-            return mask
-
-        if True: #TODO NOW
+            #TODO NOW remove
             mask = torch.zeros((224,224,1))
             return mask
 
@@ -357,7 +353,7 @@ class RealKinectArmPointNavEmulSensor(Sensor):
             self, env: IThorEnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
         #TODO remove
-        if self.type == 'destination' or True: #TODO NOW
+        if self.type == 'destination':
             return self.dummy_answer
         mask = (self.mask_sensor.get_observation(env, task, *args, **kwargs)) #TODO this is called multiple times?
         depth_frame_original = self.depth_sensor.get_observation(env, task, *args, **kwargs).squeeze(-1)
@@ -478,7 +474,7 @@ class RealIntelAgentBodyPointNavEmulSensor(Sensor):
         if mask.sum() != 0:
             depth_frame_original = self.depth_sensor.get_observation(env, task, *args, **kwargs).squeeze(-1)
             middle_of_object = get_mid_point_of_object_from_depth_and_mask(mask, depth_frame_original, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
-            if not torch.any(torch.isnan(middle_of_object) + torch.isinf(middle_of_object)): #TODO NOW double check
+            if not (torch.any(torch.isnan(middle_of_object) + torch.isinf(middle_of_object))): #TODO NOW double check
                 self.pointnav_history_aggr.append((middle_of_object.cpu(), 1, task.num_steps_taken()))
 
             # result = middle_of_object.cpu()

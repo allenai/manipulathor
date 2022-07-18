@@ -107,7 +107,9 @@ class RealPointNavEmulStretchAllRooms(
     TASK_SAMPLER = RealStretchDiverseBringObjectTaskSampler
     TASK_TYPE = RealStretchExploreWiseRewardTask
 
-    NUM_PROCESSES = 20
+    NUM_PROCESSES = 1
+    NUMBER_OF_TEST_PROCESS = 1
+
 
 
     TRAIN_SCENES = ['RealRobothor']
@@ -116,6 +118,8 @@ class RealPointNavEmulStretchAllRooms(
 
 
     random.shuffle(TRAIN_SCENES)
+
+    VISUALIZE = True
 
 
 

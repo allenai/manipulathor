@@ -2,6 +2,7 @@
 
 import copy
 import datetime
+import random
 import typing
 import warnings
 from typing import Dict, Union, Optional
@@ -326,7 +327,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                 'action': 'Pass'
             } # we have to change the last action success if the pik up fails, we do that in the task now
 
-        elif action in [MOVE_AHEAD, MOVE_BACK, ROTATE_LEFT, ROTATE_RIGHT]:
+        elif action in [MOVE_AHEAD, MOVE_BACK, ROTATE_LEFT, ROTATE_RIGHT, ROTATE_LEFT_SMALL,ROTATE_RIGHT_SMALL ]:
             copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
             action_dict = {**action_dict, **copy_aditions}
             if action == MOVE_AHEAD:
@@ -342,6 +343,13 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             elif action == ROTATE_LEFT:
                 action_dict["action"] = "RotateAgent"
                 action_dict["degrees"] = -AGENT_ROTATION_DEG
+
+            elif action == ROTATE_LEFT_SMALL:
+                action_dict["action"] = "RotateAgent"
+                action_dict["degrees"] = -AGENT_ROTATION_DEG / 5
+            elif action == ROTATE_RIGHT_SMALL:
+                action_dict["action"] = "RotateAgent"
+                action_dict["degrees"] = AGENT_ROTATION_DEG / 5
         elif action in [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,]:
             base_position = get_relative_stretch_current_arm_state(self.controller)
             change_value = ARM_MOVE_CONSTANT
@@ -355,7 +363,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                 base_position['z'] -= change_value
             action_dict = dict(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**ADITIONAL_ARM_ARGS)
         elif action in [MOVE_WRIST_P,MOVE_WRIST_M,]:
-            if action == MOVE_WRIST_P:
+            if action == MOVE_WRIST_P: #TODO these don't have additional arm args
                 action_dict = dict(action='RotateWristRelative', yaw=-WRIST_ROTATION)
             elif action == MOVE_WRIST_M:
                 action_dict = dict(action='RotateWristRelative', yaw=WRIST_ROTATION)
@@ -363,12 +371,6 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             action_dict = dict(action='RotateWristRelative', yaw=-WRIST_ROTATION / 5)
         elif action == MOVE_WRIST_M_SMALL:
             action_dict = dict(action='RotateWristRelative', yaw=WRIST_ROTATION / 5)
-        elif action == ROTATE_LEFT_SMALL:
-            action_dict["action"] = "RotateAgent"
-            action_dict["degrees"] = -AGENT_ROTATION_DEG / 5
-        elif action == ROTATE_RIGHT_SMALL:
-            action_dict["action"] = "RotateAgent"
-            action_dict["degrees"] = AGENT_ROTATION_DEG / 5
 
 
         sr = self.controller.step(action_dict)
@@ -385,3 +387,20 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             self.last_event.frame = last_frame
 
         return sr
+
+class StretchManipulaTHOREnvironmentwNoisyFailedActions(StretchManipulaTHOREnvironment):
+    def step(
+        self, action_dict: Dict[str, Union[str, int, float]]
+    ) -> ai2thor.server.Event:
+        """Take a step in the ai2thor environment."""
+        res = super(StretchManipulaTHOREnvironmentwNoisyFailedActions, self).step(action_dict)
+
+        action = typing.cast(str, action_dict["action"])
+        if action in [MOVE_AHEAD, MOVE_BACK, ROTATE_LEFT, ROTATE_RIGHT, ROTATE_RIGHT_SMALL, ROTATE_LEFT_SMALL] and res.metadata['lastActionSuccess'] is False:#TODO should we add arms?
+            #TODO are these good values?
+            random_move = random.uniform(-0.03, 0.03)
+            random_rotation = random.uniform(-2,2)
+            self.controller.step(dict(action='MoveAgent', ahead=random_move,**ADITIONAL_ARM_ARGS))
+            self.controller.step(dict(action='RotateAgent', degrees=random_rotation,**ADITIONAL_ARM_ARGS))
+
+        return res

@@ -51,6 +51,8 @@ class StretchBringObjectThorBaseConfig(StretchBringObjectBaseConfig, ABC):
     VAL_SCENES: str = None
     TEST_SCENES: str = None
 
+    FIRST_CAMERA_HORIZON = 0
+
     OBJECT_TYPES: Optional[Sequence[str]] = None
     VALID_SAMPLES_IN_SCENE = 1
     TEST_SAMPLES_IN_SCENE = 1
@@ -136,6 +138,7 @@ class StretchBringObjectThorBaseConfig(StretchBringObjectBaseConfig, ABC):
         kwargs["objects"] = cls.OBJECT_TYPES
         kwargs["task_type"] = cls.TASK_TYPE
         kwargs["exp_name"] = exp_name_w_time
+        kwargs['first_camera_horizon'] = cls.FIRST_CAMERA_HORIZON
         return cls.TASK_SAMPLER(**kwargs)
 
     @staticmethod

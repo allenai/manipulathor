@@ -92,6 +92,7 @@ def hacky_visualization(observations, object_mask=None, base_directory_to_right_
 
             # viz_vector_dist = fig2data(fig)
             list_of_visualizations.append(viz_vector_dist)
+        list_of_visualizations = [x.cpu() for x in list_of_visualizations]
         combined = torch.cat(list_of_visualizations, dim=1)
         directory_to_write_images = os.path.join('experiment_output/visualizations_masks', base_directory_to_right_images)
         os.makedirs(directory_to_write_images, exist_ok=True)
