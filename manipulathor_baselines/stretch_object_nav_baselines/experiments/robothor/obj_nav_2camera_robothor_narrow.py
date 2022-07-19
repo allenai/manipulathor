@@ -9,6 +9,9 @@ from manipulathor_baselines.stretch_object_nav_baselines.experiments.ithor.obj_n
      ithorObjectNavClipResnet50RGBOnly2CameraWideFOV
 from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
 
+from utils.stretch_utils.stretch_object_nav_tasks import \
+    StretchObjectNavTaskSegmentationSuccess, StretchObjectNavTaskSegmentationSuccessActionFail, ExploreWiseObjectNavTask
+
 from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJECTS, ROBOTHOR_TRAIN, ROBOTHOR_VAL
 
 
@@ -30,47 +33,50 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
     random.shuffle(TRAIN_SCENES)
     random.shuffle(TEST_SCENES)
 
-    SENSORS = [
-        RGBSensorStretchIntel(
-            height=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-            width=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-            use_resnet_normalization=True,
-            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-            uuid="rgb_lowres",
-        ),
-        RGBSensorStretchKinect(
-            height=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-            width=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-            use_resnet_normalization=True,
-            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-            uuid="rgb_lowres_arm",
-        ),
-        GoalObjectTypeThorSensor(
-            object_types=OBJECT_TYPES,
-        ),
-    ]
+    # SENSORS = [
+    #     RGBSensorStretchIntel(
+    #         height=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+    #         width=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+    #         use_resnet_normalization=True,
+    #         mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+    #         stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
+    #         uuid="rgb_lowres",
+    #     ),
+    #     RGBSensorStretchKinect(
+    #         height=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+    #         width=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+    #         use_resnet_normalization=True,
+    #         mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+    #         stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
+    #         uuid="rgb_lowres_arm",
+    #     ),
+    #     GoalObjectTypeThorSensor(
+    #         object_types=OBJECT_TYPES,
+    #     ),
+    # ]
 
-    if platform.system() == "Darwin":
-        SENSORS += [
-            RGBSensorStretchKinect(
-                height=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-                width=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-                use_resnet_normalization=True,
-                mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-                stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-                uuid="rgb_lowres_arm_only_viz",
-            ),
-            RGBSensorStretchIntel(
-                height=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-                width=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-                use_resnet_normalization=True,
-                mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-                stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-                uuid="rgb_lowres_only_viz",
-            ),
-        ]
+    TASK_TYPE = ExploreWiseObjectNavTask
+    MAX_STEPS = 200
+
+    # if platform.system() == "Darwin":
+    #     SENSORS += [
+    #         RGBSensorStretchKinect(
+    #             height=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+    #             width=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+    #             use_resnet_normalization=True,
+    #             mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+    #             stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
+    #             uuid="rgb_lowres_arm_only_viz",
+    #         ),
+    #         RGBSensorStretchIntel(
+    #             height=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+    #             width=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+    #             use_resnet_normalization=True,
+    #             mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+    #             stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
+    #             uuid="rgb_lowres_only_viz",
+    #         ),
+    #     ]
 
 
     

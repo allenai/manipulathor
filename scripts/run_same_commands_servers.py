@@ -287,11 +287,11 @@ command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/Str
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
  --seed 10 --machine_id 0 -c ~/exp_StretchNeckedObjectNavTaskUpdateOrder-RGB-SingleCam-ProcTHOR-locobot-RoboTHOR-Test__stage_01__steps_000014017504.pt '
 
-command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/StretchObjectNavTaskSegmentationSuccessActionFail-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test/2022-07-14_17-36-17/exp_StretchObjectNavTaskSegmentationSuccessActionFail-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test__stage_02__steps_000198561968.pt ~/; \
+command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ExploreWiseObjectNavTask-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test/2022-07-18_15-49-34/exp_ExploreWiseObjectNavTask-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test__stage_02__steps_000273645744.pt ~/; \
      ./manipulathor/scripts/kill-zombie.sh; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_distrib.py \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 -c ~/exp_StretchObjectNavTaskSegmentationSuccessActionFail-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test__stage_02__steps_000198561968.pt '
+ --seed 10 --machine_id 0 -c ~/exp_ExploreWiseObjectNavTask-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test__stage_02__steps_000273645744.pt '
 
 # command_aws1 = ' ./manipulathor/scripts/kill-zombie.sh; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_distrib.py \
 # --distributed_ip_and_port IP_ADR:6060 \
@@ -314,7 +314,7 @@ command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/Str
 server_sets = {
     'aws1':{
         'servers':[f'aws{i}' for i in range(1,5)],
-        'ip_adr': '18.237.24.199',
+        'ip_adr': '52.13.80.54',
         'command': command_aws1,
     },
     'aws5':  {

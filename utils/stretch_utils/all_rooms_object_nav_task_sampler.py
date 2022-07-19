@@ -279,6 +279,13 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
             # if not event_transport_init_obj.metadata['lastActionSuccess']:
                 # print('scene', scene_name, 'init', init_object['object_id'])
                 # print('ERROR: one of transfers fail', 'init', event_transport_init_obj.metadata['errorMessage'])
+
+            if random.random() < 0.8:
+                # self.env.controller.step(action="RandomizeMaterials", raise_for_failure=True)
+                self.env.controller.step(action="RandomizeLighting", synchronized=True, raise_for_failure=True)
+            # else:
+                # self.env.controller.step(action="ResetMaterials", raise_for_failure=True)
+
         else:
             #Object is already at the location it should be
             target_obj_type = data_point['target_obj_type']

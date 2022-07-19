@@ -370,6 +370,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
 
         if random.random() < self.env_args['p_randomize_material']:
             self.env.controller.step(action="RandomizeMaterials", raise_for_failure=True)
+            self.env.controller.step(action="RandomizeLighting", synchronized=True, raise_for_failure=True)
         else:
             self.env.controller.step(action="ResetMaterials", raise_for_failure=True)
 
