@@ -320,18 +320,63 @@ class AgentOdometryEmulSensor(Sensor):
             camera_xyz_rot = np.array([cos_of_rot * camera_xyz[0] - sin_of_rot * camera_xyz[2],
                                        camera_xyz[1],
                                        sin_of_rot * camera_xyz[0] + cos_of_rot * camera_xyz[2]])
-            
+            # camera_xyz_rot2 = np.array([metadata["cameraPosition"][k] for k in ["x", "y", "z"]], dtype=np.float32) - self.initial_pos
+            # camera_rot2 = metadata["agent"]["rotation"]["y"]
             camera_rot = agent_rot + self.camera_offsets[camera]['rotation']
 
             rot_offset = np.array([cos_of_rot * xyz_offset[0] - sin_of_rot * xyz_offset[2],
                                        xyz_offset[1],
                                        sin_of_rot * xyz_offset[0] + cos_of_rot * xyz_offset[2]])
+            sin_of_cam_rot = np.sin(np.deg2rad(90+camera_rot))
+            cos_of_cam_rot = np.cos(np.deg2rad(90+camera_rot))
+            # sin_of_cam_rot = np.sin(np.deg2rad(camera_rot))
+            # cos_of_cam_rot = np.cos(np.deg2rad(camera_rot))
+
+            sin_of_horizon = np.sin(np.deg2rad(-self.camera_offsets[camera]['horizon']))
+            cos_of_horizon = np.cos(np.deg2rad(-self.camera_offsets[camera]['horizon']))
+            # translation = np.array([[1.0, 0.0, 0.0, (camera_xyz_rot[0])],
+            #                         [0.0, 1.0, 0.0, (camera_xyz_rot[1])],
+            #                         [0.0, 0.0, 1.0, -(camera_xyz_rot[2])],
+            #                         [0.0, 0.0, 0.0, 1.0]])
+            translation = np.array([[1.0, 0.0, 0.0, (camera_xyz_rot[2])],
+                                    [0.0, 1.0, 0.0, (camera_xyz_rot[1])],
+                                    [0.0, 0.0, 1.0, (camera_xyz_rot[0])],
+                                    [0.0, 0.0, 0.0, 1.0]])
+            
+            # rotation = np.array([[1.0, 0.0, 0.0, 0.0],
+            #                     [0.0, 1.0, 0.0, 0.0],
+            #                     [0.0, 0.0, 1.0, 0.0],
+            #                     [0.0, 0.0, 0.0, 1.0]])
+            rotation = np.array([[cos_of_cam_rot, 0.0, -sin_of_cam_rot, 0.0],
+                                 [0.0, 1.0, 0.0, 0.0],
+                                 [sin_of_cam_rot, 0.0, cos_of_cam_rot, 0.0],
+                                 [0.0, 0.0, 0.0, 1.0]])
+            horizon = np.array([[1, 0, 0, 0.0],
+                                [0, cos_of_horizon, sin_of_horizon, 0.0],
+                                [0, -sin_of_horizon, cos_of_horizon, 0.0],
+                                [0.0, 0.0, 0.0, 1.0]])
+
+            # horizon = np.array([[1.0, 0.0, 0.0, 0.0],
+            #                     [0.0, 1.0, 0.0, 0.0],
+            #                     [0.0, 0.0, 1.0, 0.0],
+            #                     [0.0, 0.0, 0.0, 1.0]])
+            # rotation = horizon
+
+            transform = translation @ horizon @ rotation
+
+            # to_isdf_frame = np.array([[1.0, 0.0, 0.0, 0.0],
+            #                           [0.0, -1.0, 0.0, 0.0],
+            #                           [0.0, 0.0, 1.0, 0.0],
+            #                           [0.0, 0.0, 0.0, 1.0]])
+            # transform = to_isdf_frame @ transform
+
             camera_info[camera] = dict(xyz=camera_xyz_rot,
                                        rotation=camera_rot,
                                        xyz_offset=rot_offset,
                                        rotation_offset=self.camera_offsets[camera]['rotation'],
                                        horizon=self.camera_offsets[camera]['horizon'],
-                                       fov=self.camera_offsets[camera]['fov'])
+                                       fov=self.camera_offsets[camera]['fov'],
+                                       gt_transform=transform)
 
 
         
