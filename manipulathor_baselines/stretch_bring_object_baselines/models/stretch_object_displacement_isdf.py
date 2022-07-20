@@ -137,7 +137,7 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
 
         self.device = None
         self.sdf_trainers = []
-
+        self.config_file = "/home/karls/iSDF/isdf/train/configs/thor_live.json"
 
         self.train()
 
@@ -176,11 +176,12 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
             chkpt_load_file=None,
             incremental=True,
         )
+        print("created new map")
         return sdf_map
 
     def format_frame_data(self, observations, timestep):
         data = FrameData(
-            frame_id=timestep,
+            frame_id=torch.tensor([timestep]),
             im_batch=observations['rgb_lowres'],
             depth_batch=observations['depth_lowres'],
             T_WC_batch=torch.linalg.inv(observations['odometry_emul']['camera_info']['camera']['gt_transform'])
@@ -196,9 +197,10 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         for timestep in range(num_timesteps):
             batch_outputs = []
             for batch in range(num_batches):
+                print("batch, {}/{} mask".format(batch, num_batches), masks[timestep][batch])
                 if batch > len(self.sdf_trainers) - 1:
                     self.sdf_trainers.append(self.init_new_map())
-                if masks[timestep][batch] == 0:
+                elif masks[timestep][batch] == 0:
                     print("resetting map")
                     self.sdf_trainers[batch] = self.init_new_map()
                 
@@ -216,7 +218,7 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
 
                 output = self.sdf_trainers.compute_slices()
                 batch_outputs.append(output)
-                print("batch", batch)
+                print("batch", batch, num_batches)
             batch_outputs = torch.stack(batch_outputs)
             all_outputs.append(batch_outputs)
         all_outputs = torch.stack(all_outputs)
