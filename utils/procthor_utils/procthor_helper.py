@@ -63,7 +63,7 @@ def distance_to_object_id(
     def path_from_point_to_object_id(
         point: Dict[str, float], object_id: str, allowed_error: float
     ) -> Optional[List[Dict[str, float]]]:
-        event = env.step(
+        event = env.controller.step(
             action="GetShortestPath",
             objectId=object_id,
             position=point,
@@ -109,7 +109,7 @@ def distance_to_object_id(
             else:
                 break
         if d < 0:
-            get_logger().warning(
+            get_logger().debug(
                 f"In house {house_name}, could not find a path from {position} to {object_id}"
                 f" with {allowed_error} error tolerance. Returning a distance of -1."
             )

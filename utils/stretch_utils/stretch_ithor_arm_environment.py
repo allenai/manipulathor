@@ -14,6 +14,8 @@ from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 from torch.distributions.utils import lazy_property
 
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
+from ithor_arm.ithor_arm_noise_models import NoiseInMotionHabitatFlavor, NoiseInMotionSimple1DNormal
+
 from utils.stretch_utils.stretch_constants import (
     ADITIONAL_ARM_ARGS,
     PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_BACK, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_WRIST_P, MOVE_WRIST_M, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL,
@@ -111,6 +113,20 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
         self._always_return_visible_range = False
         self.simplify_physics = simplify_physics
 
+        if 'motion_noise_type' in env_args.keys():
+            if env_args['motion_noise_type'] == 'habitat':
+                self.noise_model = NoiseInMotionHabitatFlavor(**env_args['motion_noise_args'])
+            elif env_args['motion_noise_type'] == 'simple1d':
+                self.noise_model = NoiseInMotionSimple1DNormal(**env_args['motion_noise_args'])
+            else:
+                print('Unrecognized motion noise model type')
+                ForkedPdb().set_trace()
+        else:
+            self.noise_model = NoiseInMotionHabitatFlavor(effect_scale=0.0) # un-noise model
+
+        self.ahead_nominal = AGENT_MOVEMENT_CONSTANT
+        self.rotate_nominal = AGENT_ROTATION_DEG
+
         # self.start(None)
 
 
@@ -120,6 +136,8 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
 
         self.MEMORY_SIZE = 5
         # self.memory_frames = []
+
+        self.list_of_actions_so_far = []
 
 
         if "quality" not in self.env_args:
@@ -185,46 +203,55 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             scene_name = self.controller.last_event.metadata["sceneName"]
         # self.reset_init_params()#**kwargs) removing this fixes one of the crashing problem
 
-        # to solve the crash issue
-        # why do we still have this crashing problem?
-        try:
-            reset_environment_and_additional_commands(self.controller, scene_name)
-        except Exception as e:
-            print("RESETTING THE SCENE,", scene_name, 'because of', str(e))
-            self.controller = self.create_controller()
-            reset_environment_and_additional_commands(self.controller, scene_name)
+        if self.env_args['agentMode'] is not 'stretch':
+            self.controller.reset(scene_name)
+        elif scene_name=='Procedural':
+            self.controller.reset()
+        else:
 
-        if self.object_open_speed != 1.0:
-            self.controller.step(
-                {"action": "ChangeOpenSpeed", "x": self.object_open_speed}
-            )
+            # to solve the crash issue
+            # why do we still have this crashing problem?
+            try:
+                reset_environment_and_additional_commands(self.controller, scene_name)
+            except Exception as e:
+                print("RESETTING THE SCENE,", scene_name, 'because of', str(e))
+                self.controller = self.create_controller()
+                reset_environment_and_additional_commands(self.controller, scene_name)
 
-        self._initially_reachable_points = None
-        self._initially_reachable_points_set = None
-        self.controller.step({"action": "GetReachablePositions"})
-        if not self.controller.last_event.metadata["lastActionSuccess"]:
-            warnings.warn(
-                "Error when getting reachable points: {}".format(
-                    self.controller.last_event.metadata["errorMessage"]
+            if self.object_open_speed != 1.0:
+                self.controller.step(
+                    {"action": "ChangeOpenSpeed", "x": self.object_open_speed}
                 )
-            )
-        self._initially_reachable_points = self.last_action_return
+
+            self._initially_reachable_points = None
+            self._initially_reachable_points_set = None
+            self.controller.step({"action": "GetReachablePositions"})
+            if not self.controller.last_event.metadata["lastActionSuccess"]:
+                warnings.warn(
+                    "Error when getting reachable points: {}".format(
+                        self.controller.last_event.metadata["errorMessage"]
+                    )
+                )
+            self._initially_reachable_points = self.last_action_return
 
         self.list_of_actions_so_far = []
+
+        self.noise_model.reset_noise_model()
+        self.nominal_agent_location = self.get_agent_location()
 
 
     def check_controller_version(self, controller=None):
         controller_to_check = controller
         if controller_to_check is None:
             controller_to_check = self.controller
-        if STRETCH_MANIPULATHOR_COMMIT_ID is not None:
-            assert (
-                self.env_args['commit_id'] in controller_to_check._build.url
-            ), "Build number is not right, {} vs {}, use  pip3 install -e git+https://github.com/allenai/ai2thor.git@{}#egg=ai2thor".format(
-                controller_to_check._build.url,
-                STRETCH_MANIPULATHOR_COMMIT_ID,
-                STRETCH_MANIPULATHOR_COMMIT_ID,
-            )
+        # if STRETCH_MANIPULATHOR_COMMIT_ID is not None:
+        #     assert (
+        #         self.env_args['commit_id'] in controller_to_check._build.url
+        #     ), "Build number is not right, {} vs {}, use  pip3 install -e git+https://github.com/allenai/ai2thor.git@{}#egg=ai2thor".format(
+        #         controller_to_check._build.url,
+        #         STRETCH_MANIPULATHOR_COMMIT_ID,
+        #         STRETCH_MANIPULATHOR_COMMIT_ID,
+        #     )
 
     def create_controller(self):
         assert 'commit_id' in self.env_args
@@ -292,6 +319,42 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
         object_list = event.metadata["arm"]["pickupableObjects"]
 
         return object_list
+    
+    def update_nominal_location(self, action_dict):
+        # location = {
+        #     "x": metadata["agent"]["position"]["x"],
+        #     "y": metadata["agent"]["position"]["y"],
+        #     "z": metadata["agent"]["position"]["z"],
+        #     "rotation": metadata["agent"]["rotation"]["y"],
+        #     "horizon": metadata["agent"]["cameraHorizon"],
+        #     "standing": metadata.get("isStanding", metadata["agent"].get("isStanding")),
+        # }
+
+        curr_loc = self.nominal_agent_location
+        new_loc = copy.deepcopy(curr_loc)
+
+        if action_dict['action'] is 'RotateLeft':
+            new_loc["rotation"] = (new_loc["rotation"] - self.rotate_nominal) % 360
+        if action_dict['action'] is 'RotateLeftSmall':
+            new_loc["rotation"] = (new_loc["rotation"] - self.rotate_nominal/5) % 360
+        if action_dict['action'] is 'RotateRight':
+            new_loc["rotation"] = (new_loc["rotation"] + self.rotate_nominal) % 360
+        elif action_dict['action'] is 'RotateRightSmall':
+            new_loc["rotation"] = (new_loc["rotation"] + self.rotate_nominal/5) % 360
+        elif action_dict['action'] is 'MoveAhead':
+            new_loc["x"] += self.ahead_nominal * np.sin(new_loc["rotation"] * np.pi / 180)
+            new_loc["z"] += self.ahead_nominal * np.cos(new_loc["rotation"] * np.pi / 180)
+        elif action_dict['action'] is 'MoveBack':
+            new_loc["x"] -= self.ahead_nominal * np.sin(new_loc["rotation"] * np.pi / 180)
+            new_loc["z"] -= self.ahead_nominal * np.cos(new_loc["rotation"] * np.pi / 180)
+        elif action_dict['action'] is 'TeleportFull':
+            new_loc["x"] = action_dict['x']
+            new_loc["y"] = action_dict['y']
+            new_loc["z"] = action_dict['z']
+            new_loc["rotation"] = action_dict['rotation']['y']
+            new_loc["horizon"] = action_dict['horizon']
+
+        self.nominal_agent_location = new_loc
 
     def step(
         self, action_dict: Dict[str, Union[str, int, float]]
@@ -299,6 +362,20 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
         """Take a step in the ai2thor environment."""
 
         action = typing.cast(str, action_dict["action"])
+        original_action_dict = copy.deepcopy(action_dict)
+
+        if self.env_args['agentMode']=='locobot' or self.env_args['agentMode']=='default':
+            sr = self.controller.step(action_dict)
+            self.list_of_actions_so_far.append(action_dict)
+
+            if self._verbose:
+                print(self.controller.last_event)
+
+            if self.restrict_to_initially_reachable_points:
+                self._snap_agent_to_initially_reachable()
+            
+            return sr
+
 
         skip_render = "renderImage" in action_dict and not action_dict["renderImage"]
         last_frame: Optional[np.ndarray] = None
@@ -329,23 +406,87 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             action_dict = {
                 'action': 'Pass'
             } # we have to change the last action success if the pik up fails, we do that in the task now
-
-        elif action in [MOVE_AHEAD, MOVE_BACK, ROTATE_LEFT, ROTATE_RIGHT]:
+                
+        elif action in [MOVE_AHEAD, MOVE_BACK, ROTATE_RIGHT, ROTATE_LEFT, ROTATE_RIGHT_SMALL, ROTATE_LEFT_SMALL]:
             copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
-            action_dict = {**action_dict, **copy_aditions}
-            if action == MOVE_AHEAD:
-                action_dict["action"] = "MoveAgent"
-                action_dict["ahead"] = AGENT_MOVEMENT_CONSTANT
-            elif action == MOVE_BACK:
-                action_dict["action"] = "MoveAgent"
-                action_dict["ahead"] = -AGENT_MOVEMENT_CONSTANT
-            elif action == ROTATE_RIGHT:
-                action_dict["action"] = "RotateAgent"
-                action_dict["degrees"] = AGENT_ROTATION_DEG
 
-            elif action == ROTATE_LEFT:
+            # RH: order matters, nominal action happens last
+            action_dict = {**action_dict, **copy_aditions}
+            # ForkedPdb().set_trace()
+            if action in [MOVE_AHEAD]:
+                noise = self.noise_model.get_ahead_drift(self.ahead_nominal)
+
                 action_dict["action"] = "RotateAgent"
-                action_dict["degrees"] = -AGENT_ROTATION_DEG
+                action_dict["degrees"] = noise[2]
+                sr = self.controller.step(action_dict)
+
+                action_dict = {**copy_aditions}
+                action_dict["action"] = "MoveAgent"
+                action_dict["ahead"] = noise[0] + self.ahead_nominal
+                action_dict["right"] = noise[1]
+
+            elif action in [MOVE_BACK]:
+                noise = self.noise_model.get_ahead_drift(self.ahead_nominal)
+                # TODO revisit - make sense to sample the same for ahead and back? 
+                # inclination is effect matters less than currently unmodeled hysteresis effects
+
+                action_dict["action"] = "RotateAgent"
+                action_dict["degrees"] = noise[2]
+                sr = self.controller.step(action_dict)
+
+                action_dict = {**copy_aditions}
+                action_dict["action"] = "MoveAgent"
+                action_dict["ahead"] = noise[0] - self.ahead_nominal
+                action_dict["right"] = noise[1]
+
+
+            elif action in [ROTATE_RIGHT]:
+                noise = self.noise_model.get_rotate_drift()
+                action_dict["action"] = "MoveAgent"
+                action_dict["ahead"] = noise[0]
+                action_dict["right"] = noise[1]
+                sr = self.controller.step(action_dict)
+
+                action_dict = {**copy_aditions}
+                action_dict["action"] = "RotateAgent"
+                action_dict["degrees"] = noise[2] + self.rotate_nominal
+
+            elif action in [ROTATE_LEFT]:
+                noise = self.noise_model.get_rotate_drift()
+                action_dict["action"] = "MoveAgent"
+                action_dict["ahead"] = noise[0]
+                action_dict["right"] = noise[1]
+                sr = self.controller.step(action_dict)
+
+                action_dict = {**copy_aditions}
+                action_dict["action"] = "RotateAgent"
+                action_dict["degrees"] = noise[2] - self.rotate_nominal
+            
+            elif action in [ROTATE_RIGHT_SMALL]:
+                # RH: lesser scaling noise is deliberate. Small actions are harder to be accurate
+                noise = self.noise_model.get_rotate_drift()
+                action_dict["action"] = "MoveAgent"
+                action_dict["ahead"] = noise[0]/2
+                action_dict["right"] = noise[1]/2
+                sr = self.controller.step(action_dict)
+
+                action_dict = {**copy_aditions}
+                action_dict["action"] = "RotateAgent"
+                action_dict["degrees"] = noise[2]/2 + self.rotate_nominal / 5
+
+            elif action in [ROTATE_LEFT_SMALL]:
+                # RH: lesser scaling noise is deliberate. Small actions are harder to be accurate
+                noise = self.noise_model.get_rotate_drift()
+                action_dict["action"] = "MoveAgent"
+                action_dict["ahead"] = noise[0]/2
+                action_dict["right"] = noise[1]/2
+                sr = self.controller.step(action_dict)
+
+                action_dict = {**copy_aditions}
+                action_dict["action"] = "RotateAgent"
+                action_dict["degrees"] = noise[2]/2 - self.rotate_nominal / 5
+
+
         elif action in [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,]:
             base_position = get_relative_stretch_current_arm_state(self.controller)
             change_value = ARM_MOVE_CONSTANT
@@ -367,16 +508,15 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             action_dict = dict(action='RotateWristRelative', yaw=-WRIST_ROTATION / 5)
         elif action == MOVE_WRIST_M_SMALL:
             action_dict = dict(action='RotateWristRelative', yaw=WRIST_ROTATION / 5)
-        elif action == ROTATE_LEFT_SMALL:
-            action_dict["action"] = "RotateAgent"
-            action_dict["degrees"] = -AGENT_ROTATION_DEG / 5
-        elif action == ROTATE_RIGHT_SMALL:
-            action_dict["action"] = "RotateAgent"
-            action_dict["degrees"] = AGENT_ROTATION_DEG / 5
 
 
-        sr = self.controller.step(action_dict)
+        sr_nominal = self.controller.step(action_dict)
         self.list_of_actions_so_far.append(action_dict)
+
+        # RH: Nominal location only updates for successful actions. Note that that drift 
+        # action might succeed even if the "main" action fails
+        if sr_nominal.metadata["lastActionSuccess"]:
+            self.update_nominal_location(original_action_dict)
 
         if self._verbose:
             print(self.controller.last_event)
@@ -388,4 +528,18 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             assert last_frame is not None
             self.last_event.frame = last_frame
 
-        return sr
+        if not sr_nominal.metadata["lastActionSuccess"] and action in [MOVE_AHEAD, MOVE_BACK, ROTATE_RIGHT, ROTATE_LEFT, ROTATE_RIGHT_SMALL, ROTATE_LEFT_SMALL]:
+            # if the action fails, sample the noise model for a turn 
+            # does this mess up metadata? and is this reasonable? what action failure modes happen in sim vs real?
+            noise = self.noise_model.get_rotate_drift()
+            action_dict = {**copy.deepcopy(ADITIONAL_ARM_ARGS)}
+            action_dict["action"] = "MoveAgent"
+            action_dict["ahead"] = noise[0]
+            action_dict["right"] = noise[1]
+            sr = self.controller.step(action_dict)
+            action_dict = {**copy.deepcopy(ADITIONAL_ARM_ARGS)}
+            action_dict["action"] = "RotateAgent"
+            action_dict["degrees"] = noise[2]
+            sr = self.controller.step(action_dict)
+
+        return sr_nominal

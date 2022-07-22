@@ -267,11 +267,41 @@ command_aws1 = 'scp 18.237.24.199:~/manipulathor/experiment_output/checkpoints/O
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 --extra_tag armpointnav_with_ProcTHOR_RGBonly_after_fix_clip '
 
-command_aws5 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_nav_2camera_procthor_wide_distrib \
+# command_aws5 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_nav_2camera_procthor_wide_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag prcthor_obj_nav '
+
+# command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOVDistrib/finetune_robothor/2022-05-27_21-00-03/exp_RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOVDistrib_finetune_robothor__stage_02__steps_000160201650.pt ~/; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch/experiments/ithor/kiana_obj_nav_2camera_procthor_wide_distrib \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag kiana_objnav_outside_room_wide -c ~/exp_ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVDistrib_prcthor_obj_nav__stage_02__steps_000100123710.pt '
+
+# command_aws5 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_distrib.py \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0'
+
+command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/StretchNeckedObjectNavTaskUpdateOrder-RGB-SingleCam-ProcTHOR-locobot-RoboTHOR-Test/2022-06-08_21-59-41/exp_StretchNeckedObjectNavTaskUpdateOrder-RGB-SingleCam-ProcTHOR-locobot-RoboTHOR-Test__stage_01__steps_000014017504.pt  ~/; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_distrib.py \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag prcthor_obj_nav '
+ --seed 10 --machine_id 0 -c ~/exp_StretchNeckedObjectNavTaskUpdateOrder-RGB-SingleCam-ProcTHOR-locobot-RoboTHOR-Test__stage_01__steps_000014017504.pt '
 
+command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ExploreWiseObjectNavTask-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test/2022-07-18_15-49-34/exp_ExploreWiseObjectNavTask-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test__stage_02__steps_000273645744.pt ~/; \
+     ./manipulathor/scripts/kill-zombie.sh; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_distrib.py \
+--distributed_ip_and_port IP_ADR:6060 \
+ --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+ --seed 10 --machine_id 0 -c ~/exp_ExploreWiseObjectNavTask-RGB-2Camera-ProcTHOR-stretch-RoboTHOR-Test__stage_02__steps_000273645744.pt '
+
+# command_aws1 = ' ./manipulathor/scripts/kill-zombie.sh; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_distrib.py \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 '
+
+# command_aws1 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_distrib.py \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0'
 
 # command = command_aws5
 # command = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_bring_object_baselines/experiments/ithor/no_pointnav_stretch_all_rooms_distrib \
@@ -284,7 +314,7 @@ command_aws5 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export
 server_sets = {
     'aws1':{
         'servers':[f'aws{i}' for i in range(1,5)],
-        'ip_adr': '18.237.24.199',
+        'ip_adr': '52.13.80.54',
         'command': command_aws1,
     },
     'aws5':  {
@@ -309,6 +339,7 @@ def parse_args():
     args.command  = server['command']
     args.command = args.command.replace('IP_ADR', ip_adr)
     args.command = args.command.replace('NUM_MACHINES', str(len(args.servers)))
+    args.command = args.command.replace('MAIN_SERVER', ip_adr) 
     return args
 
 def main(args):

@@ -1,10 +1,17 @@
+from ast import For
+from dis import dis
+from email.encoders import encode_noop
 import random
-from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Literal
 
+import signal
+import time
+
 import gym
+from importlib_metadata import Lookup
 import numpy as np
+from sklearn.metrics import recall_score
 import torch
 from allenact.base_abstractions.misc import RLStepResult
 from allenact.base_abstractions.sensor import Sensor
@@ -25,9 +32,12 @@ from utils.stretch_utils.stretch_constants import (
     ROTATE_LEFT_SMALL
 )
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
-# from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 
 from manipulathor_utils.debugger_util import ForkedPdb
+from datetime import datetime
+
+def handler(signum, frame):
+    raise Exception("Controller call took too long")
 
 class ObjectNavTask(Task[ManipulaTHOREnvironment]):
     _actions = (
@@ -86,6 +96,8 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             self.dist_to_target_func = self.min_geo_distance_to_target
         elif distance_type == "l2":
             self.dist_to_target_func = self.min_l2_distance_to_target
+        elif distance_type == "real_world":
+            self.dist_to_target_func = self.dummy_distance_to_target # maybe placeholder here for estimation later
         else:
             raise NotImplementedError
 
@@ -123,7 +135,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         if min_dist == float("inf"):
             get_logger().error(
                 f"No target object {self.task_info['object_type']} found"
-                f" in house {self.task_info['house_name']}."
+                f" in house {self.task_info['scene_name']}."
             )
             return -1.0
         return min_dist
@@ -139,7 +151,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                 env=self.env,
                 distance_cache=self.distance_cache,
                 object_id=object_id,
-                house_name=self.task_info["house_name"],
+                house_name=self.task_info["scene_name"],
             )
             if (min_dist is None and geo_dist >= 0) or (
                 geo_dist >= 0 and geo_dist < min_dist
@@ -149,6 +161,8 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             return -1.0
         return min_dist
     
+    def dummy_distance_to_target(self) -> float:
+        return float("inf")
     
     def start_visualize(self):
         for visualizer in self.visualizers:
@@ -213,7 +227,40 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             obj
             for obj in self.env.last_event.metadata["objects"]
             if obj["visible"] and obj["objectType"] == self.task_info["object_type"]
+            and self.dist_to_target_func() < self.task_info['success_distance'] 
         )
+    
+    def calc_action_stat_metrics(self) -> Dict[str, Any]:
+        action_stat = {
+            "metric/action_stat/" + action_str: 0.0 for action_str in self._actions
+        }
+        action_success_stat = {
+            "metric/action_success/" + action_str: 0.0 for action_str in self._actions
+        }
+        action_success_stat["metric/action_success/total"] = 0.0
+
+        seq_len = len(self.task_info["taken_actions"])
+
+        for (action_name, action_success) in list(zip(
+                            self.task_info["taken_actions"],
+                            self.task_info["action_successes"])):
+            action_stat["metric/action_stat/" + action_name] += 1.0
+
+            action_success_stat[
+                "metric/action_success/{}".format(action_name)
+            ] += action_success
+            action_success_stat["metric/action_success/total"] += action_success
+
+        action_success_stat["metric/action_success/total"] /= seq_len
+
+        for action_name in self._actions:
+            action_success_stat[
+                "metric/" + "action_success/{}".format(action_name)
+            ] /= (action_stat["metric/action_stat/" + action_name] + 0.000001)
+            action_stat["metric/action_stat/" + action_name] /= seq_len
+
+        result = {**action_stat, **action_success_stat}
+        return result
 
     def shaping(self) -> float:
         if self.reward_config['shaping_weight'] == 0.0:
@@ -235,7 +282,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                 max_reward_mag = position_dist(p0, p1, ignore_y=True)
 
             if (
-                self.reward_config.positive_only_reward
+                self.reward_config['positive_only_reward']
                 and cur_distance is not None
                 and cur_distance > 0.5
             ):
@@ -251,7 +298,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                     min(reward, max_reward_mag),
                     -max_reward_mag,
                 )
-                * self.reward_config.shaping_weight
+                * self.reward_config['shaping_weight']
             )
     
     def get_observations(self, **kwargs) -> Any:
@@ -292,6 +339,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         if self.is_done():
             result={} # placeholder for future
             metrics = super().metrics()
+            metrics = {**metrics, **self.calc_action_stat_metrics()}
             metrics["dist_to_target"] = self.dist_to_target_func()
             metrics["total_reward"] = np.sum(self._rewards)
             metrics["spl"] = spl_metric(
@@ -327,8 +375,11 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             self.task_info["action_successes"].append(True)
         else:
             action_dict = {"action": action_str}
-            self.env.step(action_dict)
-            self.last_action_success = bool(self.env.last_event)
+            sr = self.env.step(action_dict)
+            # RH NOTE: this is an important change from procthor because of how the noise model 
+            # is implemented. the env step return corresponds to the nominal/called 
+            # action, which may or may not be the last thing the controller did.
+            self.last_action_success = bool(sr.metadata["lastActionSuccess"])
 
             position = self.env.last_event.metadata["agent"]["position"]
             self.path.append(position)
@@ -390,7 +441,85 @@ class StretchObjectNavTask(ObjectNavTask):
         DONE,
     )
 
-class ExploreWiseObjectNavTask(ObjectNavTask):
+class StretchNeckedObjectNavTask(ObjectNavTask):
+    _actions = (
+        MOVE_AHEAD,
+        # MOVE_BACK,
+        ROTATE_RIGHT,
+        ROTATE_LEFT,
+        "LookUp",
+        "LookDown",
+        DONE,
+    )
+
+class StretchNeckedObjectNavTaskUpdateOrder(ObjectNavTask):
+    # for evaluating weights from Matt
+    _actions = (
+        MOVE_AHEAD,
+        ROTATE_LEFT,
+        ROTATE_RIGHT,
+        DONE,
+        "LookUp",
+        "LookDown"
+    )
+
+class StretchObjectNavTaskSegmentationSuccess(StretchObjectNavTask):
+    def _is_goal_in_range(self) -> bool:
+        all_kinect_masks = self.env.controller.last_event.third_party_instance_masks[0]
+        for object_id in self.task_info["target_object_ids"]:
+            if object_id in all_kinect_masks and self.dist_to_target_func() < self.task_info['success_distance']:
+                return True
+        
+        return False
+
+class StretchObjectNavTaskSegmentationSuccessActionFail(StretchObjectNavTaskSegmentationSuccess):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.recent_three_strikes = 0
+    
+    def _step(self, action: int) -> RLStepResult:
+        sr = super()._step(action)
+
+        if self.last_action_success or self._took_end_action:
+            self.recent_three_strikes = 0
+            return sr
+        elif self.recent_three_strikes < 2:
+            self.recent_three_strikes += 1
+            return sr
+        else:
+            # print('Task ended for repeated action failure')
+            # ForkedPdb().set_trace()
+            self._took_end_action = True
+            step_result = RLStepResult(
+                observation=sr.observation,
+                reward=sr.reward - self.reward_config['got_stuck_penalty'],
+                done=self.is_done(),
+                info={"last_action_success": self.last_action_success, "action": action},
+            )
+            return step_result
+    
+    def judge(self) -> float:
+        """Judge the last event."""
+        reward = self.reward_config['step_penalty']
+        if not self.last_action_success:
+            reward += self.reward_config['failed_action_penalty']
+
+        reward += self.shaping()
+
+        if self._took_end_action:
+            if self._success:
+                reward += self.reward_config['goal_success_reward']
+            else:
+                reward += self.reward_config['failed_stop_reward']
+        elif self.num_steps_taken() + 1 >= self.max_steps:
+            reward += self.reward_config['reached_horizon_reward']
+
+        self._rewards.append(float(reward))
+        return float(reward)
+
+
+
+class ExploreWiseObjectNavTask(StretchObjectNavTaskSegmentationSuccessActionFail):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         all_locations = [[k['x'], k['y'], k['z']] for k in (self.env.get_reachable_positions())]
@@ -400,7 +529,13 @@ class ExploreWiseObjectNavTask(ObjectNavTask):
 
     def judge(self) -> float:
         """Compute the reward after having taken a step."""
-        reward = self.reward_configs["step_penalty"]
+        reward = self.reward_config["step_penalty"]
+
+        # additional scaling step penalty, thresholds at half max steps at the failed action penalty
+        reward += -0.2 * (1.1)**(np.min([-(self.max_steps/2)+self.num_steps_taken(),0])) 
+
+        if not self.last_action_success:
+            reward += self.reward_config['failed_action_penalty']
 
         current_agent_location = self.env.get_agent_location()
         current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
@@ -414,8 +549,8 @@ class ExploreWiseObjectNavTask(ObjectNavTask):
         self.has_visited[location_index] = 1
 
         if visited_new_place:
-            reward += self.reward_configs["exploration_reward"]
-        
+            reward += self.reward_config["exploration_reward"]
+                
         reward += self.shaping()
 
         if self._took_end_action:
@@ -427,9 +562,77 @@ class ExploreWiseObjectNavTask(ObjectNavTask):
             reward += self.reward_config['reached_horizon_reward']
         self._rewards.append(float(reward))
         return float(reward)
+    
+    def metrics(self) -> Dict[str, Any]:
+        result = super(ExploreWiseObjectNavTask, self).metrics()
+
+        if self.is_done():
+            result['percent_room_visited'] = self.has_visited.mean().item()
+            result['new_locations_visited'] = self.has_visited.sum().item()
+        return result
         
 
+class RealStretchObjectNavTask(StretchObjectNavTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.start_time = datetime.now()
+        self.last_time = None
+        signal.signal(signal.SIGALRM, handler)
+    
+    def _step(self, action: int) -> RLStepResult:
 
+        action_str = self.class_action_names()[action]
+        print('Model Said', action_str, ' as action ', str(self.num_steps_taken()))
+
+        self.manual_action = False
+
+        # add/remove/adjust to allow graceful exit from auto-battlebots
+        end_ep_early = False
+        if self.num_steps_taken() % 10 == 0:
+            print('verify continue? set end_ep_early=True to gracefully fail out')
+            ForkedPdb().set_trace()
+
+        self._last_action_str = action_str
+        action_dict = {"action": action_str}
+        signal.alarm(8) # second timeout - catch missed server connection. THIS IS NOT THREAD SAFE
+        try:
+            self.env.step(action_dict)
+        except:
+            print('Controller call took too long, continue to try again or set end_ep_early to fail out instead')
+            ForkedPdb().set_trace()
+            self.env.step(action_dict)
+        
+        signal.alarm(0)
+
+        if action_str == "Done" or end_ep_early:
+            self._took_end_action = True
+            dt_total = (datetime.now() - self.start_time).total_seconds()/60
+            print('I think I found a ', self.task_info['object_type'], ' after ', str(dt_total), ' minutes.' )
+            print('Was I correct? Set self._success in trace. Default false.')            
+            ForkedPdb().set_trace()
+
+        if self.last_time is not None:
+            dt = (datetime.now() - self.last_time).total_seconds()
+            print('FPS: ', str(1/dt))
+        self.last_time = datetime.now()
+
+        self.last_action_success = self.env.last_action_success
+
+        last_action_name = self._last_action_str
+        self.visualize(last_action_name)
+
+        step_result = RLStepResult(
+            observation=self.get_observations(),
+            reward=self.judge(),
+            done=self.is_done(),
+            info={"last_action_success": self.last_action_success},
+        )
+        return step_result
+    
+    def judge(self) -> float:
+        """Compute the reward after having taken a step."""
+        reward = 0
+        return reward
 
 
 

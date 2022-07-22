@@ -1,6 +1,6 @@
 import torch
 
-from manipulathor_baselines.procthor_baselines.experiments.ithor.obj_nav_2camera_procthor_wide import \
+from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_2camera_procthor_wide import \
     ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV
 
 

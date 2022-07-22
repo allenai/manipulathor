@@ -25,12 +25,13 @@ from ithor_arm.arm_calculation_utils import (
 # from ithor_arm.ithor_arm_environment import StretchManipulaTHOREnvironment
 # from ithor_arm.ithor_arm_sensors import DepthSensorThor
 # from ithor_arm.near_deadline_sensors import calc_world_coordinates
-from utils.calculation_utils import calc_world_coordinates
+from utils.calculation_utils import calc_world_coordinates, calc_world_xyz_from_agent_relative, get_mid_point_of_object_from_depth_and_mask
 
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.noise_in_motion_util import squeeze_bool_mask
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 from utils.stretch_utils.stretch_sim2real_utils import kinect_reshape, intel_reshape
+from scripts.stretch_jupyter_helper import get_relative_stretch_current_arm_state
 
 
 
@@ -427,6 +428,227 @@ class ArmPointNavEmulSensor(Sensor):
             #     print('pred_distance_in_agent_coord', pred_distance_in_agent_coord, pred_distance_in_agent_coord.norm())
 
             return agent_centric_middle_of_object
+
+
+
+class AgentBodyPointNavEmulSensorDeadReckoning(Sensor):
+
+    def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, uuid: str = "point_nav_emul", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        self.mask_sensor = mask_sensor
+        self.depth_sensor = depth_sensor
+        uuid = '{}_{}'.format(uuid, type)
+
+        self.min_xyz = np.zeros((3))
+        self.dummy_answer = torch.zeros(3)
+        self.dummy_answer[:] = 4 # is this good enough?
+        self.device = torch.device("cpu")
+
+        super().__init__(**prepare_locals_for_super(locals()))
+
+
+    def get_relative_nominal_locations(self,env):
+        if len(env.controller.last_event.metadata['thirdPartyCameras']) != 1:
+            print('Warning multiple cameras')
+
+        true_base = env.get_agent_location()
+        true_base = copy.deepcopy(dict(position=dict(x=true_base['x'], y=true_base['y'],z=true_base['z']), 
+                                          rotation=dict(x=0,y=true_base['rotation'], z=0)))
+
+        nominal_base = env.nominal_agent_location
+        nominal_base_xyz = np.array([nominal_base['x'],nominal_base['y'],nominal_base['z']])
+        nominal_base = copy.deepcopy(dict(position=dict(x=nominal_base['x'], y=nominal_base['y'],z=nominal_base['z']), 
+                                          rotation=dict(x=0,y=nominal_base['rotation'], z=0)))
+
+        m = copy.deepcopy(env.controller.last_event.metadata)
+
+        wrist = env.get_absolute_hand_state()
+        relative_wrist = convert_world_to_agent_coordinate(wrist,true_base)
+
+        camera1 = m["cameraPosition"]
+        camera1 = dict(position=dict(x=camera1['x'], y=camera1['y'],z=camera1['z']), rotation=dict(x=0,y=0, z=0))
+        relative_camera_1 = convert_world_to_agent_coordinate(camera1,true_base)
+
+        camera2 = m['thirdPartyCameras'][0]
+        relative_camera_2 = convert_world_to_agent_coordinate(camera2,true_base)
+
+        relative_list = [relative_wrist,relative_camera_1,relative_camera_2]
+        nominal_list = calc_world_xyz_from_agent_relative(relative_list,nominal_base_xyz,nominal_base['rotation']['y'],self.device)
+
+        return dict(agent=nominal_base, wrist=nominal_list[0],camera1=nominal_list[1],camera2=nominal_list[2])
+
+    def get_agent_belief_state(self,env):
+        fov = env.controller.last_event.metadata['fov'] # assumption: real one is fine here
+        real_agent_state = env.get_agent_location()
+        nominal_positions = self.get_relative_nominal_locations(env)
+
+        belief_camera_horizon = env.controller.last_event.metadata["agent"]["cameraHorizon"] # assumption: real one is fine here
+        belief_camera_xyz = np.array([nominal_positions['camera1']['position'][k] for k in ['x','y','z']])
+        belief_camera_rotation = (nominal_positions['agent']['rotation']['y']) % 360
+
+        real_camera_xyz = np.array([real_agent_state[k] for k in ['x','y','z']])
+
+        self.belief_prev_location.append(belief_camera_xyz)
+        self.real_prev_location.append(real_camera_xyz)
+        arm_state = nominal_positions['wrist']# get_relative_stretch_current_arm_state(env.controller)
+        
+        return fov, belief_camera_horizon, belief_camera_xyz, belief_camera_rotation, arm_state
+
+    def get_observation(
+            self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+
+        mask = self.mask_sensor.get_observation(env, task, *args, **kwargs)
+        depth_frame = self.depth_sensor.get_observation(env, task, *args, **kwargs)
+        if task.num_steps_taken() == 0:
+            self.pointnav_history_aggr = []
+            self.real_prev_location = []
+            self.belief_prev_location = []
+
+        fov, camera_horizon, camera_xyz, camera_rotation, arm_state = self.get_agent_belief_state(env)
+
+        if mask.sum() != 0:
+            midpoint_agent_coord = get_mid_point_of_object_from_depth_and_mask(mask, depth_frame, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
+            self.pointnav_history_aggr.append((midpoint_agent_coord.cpu(), 1, task.num_steps_taken()))
+
+        return self.history_aggregation(camera_xyz, camera_rotation, task.num_steps_taken())
+    
+    def history_aggregation(self, camera_xyz, camera_rotation, current_step_number):
+        if len(self.pointnav_history_aggr) == 0:
+            return self.dummy_answer
+        else:
+            weights = [1. / (current_step_number + 1 - num_steps) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
+            total_weights = sum(weights)
+            total_sum = [mid * (1. / (current_step_number + 1 - num_steps)) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
+            total_sum = sum(total_sum)
+            midpoint = total_sum / total_weights
+            agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
+            midpoint_position_rotation = dict(position=dict(x=midpoint[0], y=midpoint[1], z=midpoint[2]), rotation=dict(x=0,y=0,z=0))
+            midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
+            midpoint_agent_coord = torch.Tensor([midpoint_agent_coord['position'][k] for k in ['x','y','z']])
+
+            return midpoint_agent_coord.cpu()
+
+
+class ArmPointNavEmulSensorDeadReckoning(Sensor):
+
+    def __init__(self, type: str, mask_sensor:Sensor, depth_sensor:Sensor, uuid: str = "arm_point_nav_emul", **kwargs: Any):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(1,), dtype=np.float32
+        )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.type = type
+        self.mask_sensor = mask_sensor
+        self.depth_sensor = depth_sensor
+        uuid = '{}_{}'.format(uuid, type)
+
+        self.min_xyz = np.zeros((3))
+
+        self.dummy_answer = torch.zeros(3)
+        self.dummy_answer[:] = 4 # is this good enough?
+        self.device = torch.device("cpu")
+        super().__init__(**prepare_locals_for_super(locals()))
+    
+    def get_relative_nominal_locations(self,env):
+        if len(env.controller.last_event.metadata['thirdPartyCameras']) != 1:
+            print('Warning multiple cameras')
+
+        true_base = env.get_agent_location()
+        true_base = copy.deepcopy(dict(position=dict(x=true_base['x'], y=true_base['y'],z=true_base['z']), 
+                                          rotation=dict(x=0,y=true_base['rotation'], z=0)))
+
+        nominal_base = env.nominal_agent_location
+        nominal_base_xyz = np.array([nominal_base['x'],nominal_base['y'],nominal_base['z']])
+        nominal_base = copy.deepcopy(dict(position=dict(x=nominal_base['x'], y=nominal_base['y'],z=nominal_base['z']), 
+                                          rotation=dict(x=0,y=nominal_base['rotation'], z=0)))
+
+        m = copy.deepcopy(env.controller.last_event.metadata)
+
+        wrist = env.get_absolute_hand_state()
+        relative_wrist = convert_world_to_agent_coordinate(wrist,true_base)
+
+        camera1 = m["cameraPosition"]
+        camera1 = dict(position=dict(x=camera1['x'], y=camera1['y'],z=camera1['z']), rotation=dict(x=0,y=0, z=0))
+        relative_camera_1 = convert_world_to_agent_coordinate(camera1,true_base)
+
+        camera2 = m['thirdPartyCameras'][0]
+        relative_camera_2 = convert_world_to_agent_coordinate(camera2,true_base)
+
+        relative_list = [relative_wrist,relative_camera_1,relative_camera_2]
+        nominal_list = calc_world_xyz_from_agent_relative(relative_list,nominal_base_xyz,nominal_base['rotation']['y'],self.device)
+
+        return dict(agent=nominal_base, wrist=nominal_list[0],camera1=nominal_list[1],camera2=nominal_list[2])
+
+    def get_agent_belief_state(self,env):
+        real_agent_state = env.get_agent_location()
+        nominal_positions = self.get_relative_nominal_locations(env)
+
+
+        belief_camera_xyz = np.array([nominal_positions['camera2']['position'][k] for k in ['x','y','z']])
+        belief_camera_rotation = (nominal_positions['agent']['rotation']['y'] + 90) % 360
+
+        real_camera_xyz = np.array([real_agent_state[k] for k in ['x','y','z']])
+
+        metadata = copy.deepcopy(env.controller.last_event.metadata['thirdPartyCameras'][0])
+        belief_camera_horizon = metadata['rotation']['x'] # assumption: real one is fine here
+        fov = metadata['fieldOfView'] # assumption: real one is fine here
+        assert abs(metadata['rotation']['z'] - 0) < 0.1 #TODO: why
+
+        self.belief_prev_location.append(belief_camera_xyz)
+        self.real_prev_location.append(real_camera_xyz)
+        arm_state = nominal_positions['wrist']# get_relative_stretch_current_arm_state(env.controller)
+        
+        return fov, belief_camera_horizon, belief_camera_xyz, belief_camera_rotation, arm_state
+
+    def get_observation(
+            self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+
+        mask = self.mask_sensor.get_observation(env, task, *args, **kwargs)
+        depth_frame = self.depth_sensor.get_observation(env, task, *args, **kwargs)
+
+        # catch rare NaN error where tiny mask is lost in 0 missing values
+        squeeze_mask = squeeze_bool_mask(mask)
+        depth_frame_masked = depth_frame.copy()
+        depth_frame_masked[~squeeze_mask] = -1
+        depth_frame_masked[depth_frame_masked == 0] = -1 
+        
+        if task.num_steps_taken() == 0:
+            self.pointnav_history_aggr = []
+            self.real_prev_location = []
+            self.belief_prev_location = []
+
+        fov, camera_horizon, camera_xyz, camera_rotation, arm_state = self.get_agent_belief_state(env)
+
+        if depth_frame_masked[depth_frame_masked>0].sum() != 0:
+            midpoint_agent_coord = get_mid_point_of_object_from_depth_and_mask(mask, depth_frame, self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device)
+            self.pointnav_history_aggr.append((midpoint_agent_coord.cpu(), 1, task.num_steps_taken()))
+
+        return self.history_aggregation(camera_xyz, camera_rotation, arm_state, task.num_steps_taken())
+    
+    def history_aggregation(self, camera_xyz, camera_rotation, arm_world_coord, current_step_number):
+        if len(self.pointnav_history_aggr) == 0:
+            return self.dummy_answer
+        else:
+            weights = [1. / (current_step_number + 1 - num_steps) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
+            total_weights = sum(weights)
+            total_sum = [mid * (1. / (current_step_number + 1 - num_steps)) for mid,num_pixels,num_steps in self.pointnav_history_aggr]
+            total_sum = sum(total_sum)
+            midpoint = total_sum / total_weights
+            agent_state = dict(position=dict(x=camera_xyz[0], y=camera_xyz[1], z=camera_xyz[2], ), rotation=dict(x=0, y=camera_rotation, z=0))
+            midpoint_position_rotation = dict(position=dict(x=midpoint[0], y=midpoint[1], z=midpoint[2]), rotation=dict(x=0,y=0,z=0))
+            midpoint_agent_coord = convert_world_to_agent_coordinate(midpoint_position_rotation, agent_state)
+            midpoint_agent_coord = torch.Tensor([midpoint_agent_coord['position'][k] for k in ['x','y','z']])
+
+            arm_agent_coord = convert_world_to_agent_coordinate(arm_world_coord, agent_state)
+            arm_state_agent_coord = torch.Tensor([arm_agent_coord['position'][k] for k in ['x','y','z']])
+
+            distance_in_agent_coord = midpoint_agent_coord - arm_state_agent_coord
+
+            return distance_in_agent_coord.cpu()
+
 
 # TODO we have to rewrite the noisy movement experiment ones?
 # class AgentGTLocationSensor(Sensor):

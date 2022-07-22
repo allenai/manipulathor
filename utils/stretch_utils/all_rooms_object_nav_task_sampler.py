@@ -18,7 +18,13 @@ from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.dataset_generation.find_categories_to_use import ROBOTHOR_TRAIN, KITCHEN_TRAIN, KITCHEN_TEST, KITCHEN_VAL
 from utils.manipulathor_data_loader_utils import get_random_query_image, get_random_query_feature_from_img_adr
 from scripts.stretch_jupyter_helper import get_reachable_positions, transport_wrapper
+from utils.stretch_utils.stretch_object_nav_tasks import ObjectNavTask
 from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
+
+from utils.stretch_utils.real_stretch_environment import StretchRealEnvironment
+from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
+
+
 
 
 class AllRoomsObjectNavTaskSampler(TaskSampler):
@@ -136,7 +142,8 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
         self.reset()
         self.visualizers = visualizers
         self.sampler_mode = kwargs["sampler_mode"]
-        self.cap_training = kwargs["cap_training"]
+
+        self.success_distance = 1.0
 
         possible_initial_locations = (
             "datasets/apnd-dataset/valid_agent_initial_locations.json"
@@ -272,6 +279,13 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
             # if not event_transport_init_obj.metadata['lastActionSuccess']:
                 # print('scene', scene_name, 'init', init_object['object_id'])
                 # print('ERROR: one of transfers fail', 'init', event_transport_init_obj.metadata['errorMessage'])
+
+            if random.random() < 0.8:
+                # self.env.controller.step(action="RandomizeMaterials", raise_for_failure=True)
+                self.env.controller.step(action="RandomizeLighting", synchronized=True, raise_for_failure=True)
+            # else:
+                # self.env.controller.step(action="ResetMaterials", raise_for_failure=True)
+
         else:
             #Object is already at the location it should be
             target_obj_type = data_point['target_obj_type']
@@ -289,7 +303,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
 
             init_object = get_full_object_info(self.env, target_obj_type)
 
-        agent_state["cameraHorizon"] = 0 # 0 for stretch, 20 for other manipulathor agent
+        agent_state["cameraHorizon"] = self.env_args['horizon_init'] # 0 for stretch, 20 for other manipulathor agent
         event = this_controller.step(
             dict(
                 action="TeleportFull",
@@ -323,7 +337,8 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
             'mode': self.env_args['agentMode'],
             'house_name': scene_name,
             'scene_name': scene_name,
-            'mirrored': False #self.env_args['allow_flipping'] and random.random() > 0.5, # not including for non-procthor
+            'mirrored': False, #self.env_args['allow_flipping'] and random.random() > 0.5, # not including for non-procthor
+            'success_distance': self.success_distance
         }
 
 
@@ -340,6 +355,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
             reward_config=self.rewards_config,
             distance_type=self.distance_type,
             distance_cache=self.distance_cache,
+            additional_visualize=False # not implemented for non-procthor
         )
 
         return self._last_sampled_task
@@ -391,7 +407,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
                 "name": "agent",
                 "position": dict(x=agent_pose['x'], y=agent_pose['y'], z=agent_pose['z']),
                 "rotation": dict(x=0, y=agent_pose['rotation'], z=0),
-                "cameraHorizon": agent_pose['horizon'],
+                "cameraHorizon": self.env_args['horizon_init'], #agent_pose['horizon'],
                 "isStanding": True,
             }
 
@@ -408,7 +424,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
                 "name": "agent",
                 "position": dict(x=agent_pose['x'], y=agent_pose['y'], z=agent_pose['z']),
                 "rotation": dict(x=0, y=agent_pose['rotation'], z=0),
-                "cameraHorizon": agent_pose['horizon'],
+                "cameraHorizon": self.env_args['horizon_init'], #agent_pose['horizon'],
                 "isStanding": True,
             }
 
@@ -418,3 +434,106 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
 
         return data_point
 
+
+class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
+
+    def _create_environment(self, **kwargs) -> ManipulaTHOREnvironment:
+        env = StretchRealEnvironment(
+            make_agents_visible=False,
+            object_open_speed=0.05,
+            env_args=self.env_args,
+        )
+        return env
+    
+    def __init__(self, **kwargs) -> None:
+
+        super().__init__(**kwargs)
+
+        self.all_possible_points = {}
+
+        # This can be done more elegantly from datasets/objects/robothor_habitat2022.yaml and exclude toilet
+        self.possible_real_objects = [
+            {'object_id': 'AlarmClock|1|1|1', 'object_type':"AlarmClock"},
+            {'object_id': 'Apple|1|1|1', 'object_type':"Apple"},
+            {'object_id': 'BaseballBat|1|1|1', 'object_type':"BaseballBat"},
+            {'object_id': 'BasketBall|1|1|1', 'object_type':"BasketBall"},
+            {'object_id': 'Bed|1|1|1', 'object_type':"Bed"},
+            {'object_id': 'Bowl|1|1|1', 'object_type':"Bowl"},
+            {'object_id': 'Chair|1|1|1', 'object_type':"Chair"},
+            {'object_id': 'GarbageCan|1|1|1', 'object_type':"GarbageCan"},
+            {'object_id': 'HousePlant|1|1|1', 'object_type':"HousePlant"},
+            {'object_id': 'Laptop|1|1|1', 'object_type':"Laptop"},
+            {'object_id': 'Mug|1|1|1', 'object_type':"Mug"},
+            {'object_id': 'Sofa|1|1|1', 'object_type':"Sofa"},
+            {'object_id': 'SprayBottle|1|1|1', 'object_type':"SprayBottle"},
+            {'object_id': 'Television|1|1|1', 'object_type':"Television"},
+            {'object_id': 'Vase|1|1|1', 'object_type':"Vase"}
+        ]
+
+        self.preset_easyish_tasks = [
+            {'object_id': 'Apple|1|1|1', 'object_type':"Apple"},
+            {'object_id': 'BaseballBat|1|1|1', 'object_type':"BaseballBat"},
+            {'object_id': 'BasketBall|1|1|1', 'object_type':"BasketBall"},
+            {'object_id': 'Bowl|1|1|1', 'object_type':"Bowl"},
+            {'object_id': 'Chair|1|1|1', 'object_type':"Chair"},
+            {'object_id': 'HousePlant|1|1|1', 'object_type':"HousePlant"},
+            {'object_id': 'Mug|1|1|1', 'object_type':"Mug"},
+            {'object_id': 'SprayBottle|1|1|1', 'object_type':"SprayBottle"},
+            {'object_id': 'Television|1|1|1', 'object_type':"Television"},
+            {'object_id': 'Vase|1|1|1', 'object_type':"Vase"}
+        ]
+
+        self.real_object_index = 0
+
+        if self.sampler_mode == "test":
+            self.max_tasks = self.reset_tasks = 200
+
+    def next_task(
+            self, force_advance_scene: bool = False
+    ) -> Optional[ObjectNavTask]:
+
+        if self.max_tasks is not None and self.max_tasks <= 0:
+            return None
+
+        if self.sampler_mode != "train" and self.length <= 0:
+            return None
+
+        if self.env is None:
+            self.env = self._create_environment()
+        self.env.reset(scene_name='RealRobothor')
+        
+        # skip_object = True
+        # while skip_object:
+        #     target_object = random.choice(self.possible_real_objects)
+        #     print('I am now seeking a', target_object['object_type'], '. Accept by setting skip_object=False')
+        #     ForkedPdb().set_trace()
+        
+        target_object = self.preset_easyish_tasks[self.real_object_index]
+        print('I am now seeking a', target_object['object_type'], '. Continue when ready.')
+        ForkedPdb().set_trace()
+
+        task_info = {
+            'target_object_ids': [target_object['object_id']],
+            'object_type': target_object['object_type'],
+            'starting_pose': {},
+            'mode': self.env_args['agentMode'],
+            'house_name': 'RealRobothor',
+            'scene_name': 'RealRobothor',
+            'mirrored': False # yeah no
+        }
+
+        self._last_sampled_task = self.TASK_TYPE(
+            env=self.env,
+            sensors=self.sensors,
+            task_info=task_info,
+            max_steps=self.max_steps,
+            action_space=self._action_space,
+            visualizers=self.visualizers,
+            reward_config=self.rewards_config,
+            distance_type="real_world",
+            distance_cache=self.distance_cache,
+            additional_visualize=False # not implemented for non-procthor
+        )
+        self.real_object_index = self.real_object_index + 1
+
+        return self._last_sampled_task
