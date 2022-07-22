@@ -68,6 +68,7 @@ class DepthSensorStretchIntel(
         # check_validity(depth, env.controller,scene_number=task.task_info['scene_name']) TODO remove
         # return intel_reshape(depth)
         return env.intel_depth
+        # return env.intel_depth_no_reshape
 
 
 class DepthSensorStretchKinect(
@@ -152,6 +153,7 @@ class RGBSensorStretchIntel(
         rgb = (env.controller.last_event.frame.copy())
 
         return intel_reshape(rgb)#cv2.resize(rgb, (224,224))
+        # return env.intel_frame_no_reshape
 
 # class NoisyObjectMaskStretch(NoisyObjectMask): TODO double check correctness of this
 #
@@ -327,8 +329,8 @@ class AgentOdometryEmulSensor(Sensor):
             rot_offset = np.array([cos_of_rot * xyz_offset[0] - sin_of_rot * xyz_offset[2],
                                        xyz_offset[1],
                                        sin_of_rot * xyz_offset[0] + cos_of_rot * xyz_offset[2]])
-            sin_of_cam_rot = np.sin(np.deg2rad(90+camera_rot))
-            cos_of_cam_rot = np.cos(np.deg2rad(90+camera_rot))
+            sin_of_cam_rot = np.sin(np.deg2rad(camera_rot))
+            cos_of_cam_rot = np.cos(np.deg2rad(camera_rot))
             # sin_of_cam_rot = np.sin(np.deg2rad(camera_rot))
             # cos_of_cam_rot = np.cos(np.deg2rad(camera_rot))
 
@@ -338,11 +340,11 @@ class AgentOdometryEmulSensor(Sensor):
             #                         [0.0, 1.0, 0.0, (camera_xyz_rot[1])],
             #                         [0.0, 0.0, 1.0, -(camera_xyz_rot[2])],
             #                         [0.0, 0.0, 0.0, 1.0]])
-            translation = np.array([[1.0, 0.0, 0.0, (camera_xyz_rot[2])],
+            translation = np.array([[1.0, 0.0, 0.0, -(camera_xyz_rot[0])],
                                     [0.0, 1.0, 0.0, (camera_xyz_rot[1])],
-                                    [0.0, 0.0, 1.0, (camera_xyz_rot[0])],
+                                    [0.0, 0.0, 1.0, -(camera_xyz_rot[2])],
                                     [0.0, 0.0, 0.0, 1.0]])
-            
+            # print((camera_xyz_rot[1]), self.initial_pos[1])
             # rotation = np.array([[1.0, 0.0, 0.0, 0.0],
             #                     [0.0, 1.0, 0.0, 0.0],
             #                     [0.0, 0.0, 1.0, 0.0],
@@ -362,14 +364,14 @@ class AgentOdometryEmulSensor(Sensor):
             #                     [0.0, 0.0, 0.0, 1.0]])
             # rotation = horizon
 
-            transform = translation @ horizon @ rotation
-
+            # transform = translation @ horizon @ rotation
+            transform = horizon @ rotation @ translation
             # to_isdf_frame = np.array([[1.0, 0.0, 0.0, 0.0],
             #                           [0.0, -1.0, 0.0, 0.0],
-            #                           [0.0, 0.0, 1.0, 0.0],
+            #                           [0.0, 0.0, -1.0, 0.0],
             #                           [0.0, 0.0, 0.0, 1.0]])
             # transform = to_isdf_frame @ transform
-
+            transform = transform.astype(np.float32)
             camera_info[camera] = dict(xyz=camera_xyz_rot,
                                        rotation=camera_rot,
                                        xyz_offset=rot_offset,
