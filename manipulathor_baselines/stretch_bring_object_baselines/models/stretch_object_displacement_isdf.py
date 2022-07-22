@@ -23,6 +23,7 @@ from allenact.utils.model_utils import make_cnn, compute_cnn_output
 from gym.spaces.dict import Dict as SpaceDict
 from torch import nn
 
+import isdf
 from isdf.modules import trainer
 from isdf.datasets.data_util import FrameData
 
@@ -96,7 +97,18 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
                         'output_relu': True}
         self.full_visual_encoder_arm = make_cnn(**network_args)
 
-        self.map_embedding = make_cnn(**network_args)
+        network_args = {'input_channels': 18,
+                        'layer_channels': [32, 64, 32],
+                        'kernel_sizes': [(8, 8), (4, 4), (3, 3)],
+                        'strides': [(4, 4), (2, 2), (1, 1)],
+                        'paddings': [(0, 0), (0, 0), (0, 0)],
+                        'dilations': [(1, 1), (1, 1), (1, 1)],
+                        'output_height': 24,
+                        'output_width': 24,
+                        'output_channels': 512,
+                        'flatten': True,
+                        'output_relu': True}
+        self.map_encoder = make_cnn(**network_args)
 
         # self.detection_model = ConditionalDetectionModel()
         self.body_pointnav_embedding = nn.Sequential(
@@ -113,7 +125,7 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
             nn.LeakyReLU(),
             nn.Linear(128, 512),
         )
-        num_rnn_inputs = 4
+        num_rnn_inputs = 5
         if use_odom_pose:
             self.odom_pose_embedding = nn.Sequential(
                 nn.Linear(3, 32),
@@ -122,7 +134,7 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
                 nn.LeakyReLU(),
                 nn.Linear(128, 512),
             )
-            num_rnn_inputs = 5
+            num_rnn_inputs += 1
 
         self.state_encoder = RNNStateEncoder(
             512 * num_rnn_inputs, #TODO this might be too big, maybe combine visual encodings and pointnav encodings first
@@ -138,6 +150,33 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         self.device = None
         self.sdf_trainers = []
         self.config_file = "/home/karls/iSDF/isdf/train/configs/thor_live.json"
+
+
+        self.max_depth = 5.0
+        # Only apply min depth to the arm camera to filter out pictures of the arm
+        self.min_depth_arm = 1.0
+
+        # Need to divide by range_dist as it will scale the grid which
+        # is created in range = [-1, 1]
+        # Also divide by 0.9 so extents are a bit larger than gt mesh
+        self.bounds_transform = torch.eye(4)
+        self.grid_dim = 224
+        grid_range = [-1.0, 1.0]
+        range_dist = grid_range[1] - grid_range[0]
+        # Gives the same size of map as the grid based approach
+        bounds_extents = torch.tensor([5.6, 1.5, 5.6])
+        self.scene_scale = bounds_extents / (range_dist * 0.9)
+        self.inv_scene_scale = 1. / self.scene_scale
+
+        self.grid_pc = isdf.geometry.transform.make_3D_grid(
+            grid_range,
+            self.grid_dim,
+            self.device if self.device is not None else torch.device("cpu"),
+            transform=self.bounds_transform,
+            scale=self.scene_scale,
+        )
+        self.grid_pc = self.grid_pc.view(-1, 3)
+        self.up_ix = 0
 
         self.train()
 
@@ -176,52 +215,88 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
             chkpt_load_file=None,
             incremental=True,
         )
+        sdf_map.grid_pc = self.grid_pc.clone().to(self.device)
+        sdf_map.grid_dim = self.grid_dim
+        sdf_map.up_ix = self.up_ix
+        sdf_map.scene_scale = self.scene_scale
+        sdf_map.grid_up = torch.tensor([0.0, 1.0, 0.0], device=self.device)
+        sdf_map.up_aligned = True
         print("created new map")
         return sdf_map
 
-    def format_frame_data(self, observations, timestep):
-        data = FrameData(
-            frame_id=torch.tensor([timestep]),
-            im_batch=observations['rgb_lowres'],
-            depth_batch=observations['depth_lowres'],
-            T_WC_batch=torch.linalg.inv(observations['odometry_emul']['camera_info']['camera']['gt_transform'])
-        )
+    def format_frame_data(self, observations, timestep, batch):
+        all_data = FrameData()
 
-        return data
+        for camera_name in ['']:#, '_arm']:
+            depth = observations['depth_lowres' + camera_name][timestep, batch].reshape(1, 224, 224)
+            depth[depth > self.max_depth] = 0
+            if camera_name == '_arm':
+                depth[depth < self.min_depth_arm] = 0
+
+            transform = observations['odometry_emul']['camera_info']['camera'+camera_name]['gt_transform'][timestep, batch]
+            camera = FrameData(
+                frame_id=torch.tensor([timestep]),
+                im_batch=observations['rgb_lowres' + camera_name][timestep, batch].unsqueeze(0),
+                depth_batch=depth,
+                T_WC_batch=torch.linalg.inv(transform).unsqueeze(0)
+            )
+            if camera_name == '':
+                fx = 162.96101
+                fy = 162.96101
+            else:
+                fx = 112
+                fy = 112
+            cx = 112
+            cy = 112
+
+            pc = isdf.geometry.transform.pointcloud_from_depth_torch(
+                depth[0], fx, fy, cx, cy)
+            normals = isdf.geometry.transform.estimate_pointcloud_normals(pc)
+            camera.normal_batch = normals[None, :]
+
+            all_data.add_frame_data(camera, replace=False)
+        return all_data
 
     def update_maps(self, observations, masks):
         num_timesteps = observations['depth_lowres'].shape[0]
         num_batches = observations['depth_lowres'].shape[1]
-
         all_outputs = []
-        for timestep in range(num_timesteps):
-            batch_outputs = []
-            for batch in range(num_batches):
-                print("batch, {}/{} mask".format(batch, num_batches), masks[timestep][batch])
-                if batch > len(self.sdf_trainers) - 1:
-                    self.sdf_trainers.append(self.init_new_map())
-                elif masks[timestep][batch] == 0:
-                    print("resetting map")
-                    self.sdf_trainers[batch] = self.init_new_map()
-                
-                frame_data = self.format_frame_data(observations, timestep)
 
-                self.sdf_trainers[batch].add_frame(frame_data)
-                if masks[timestep][batch] == 0:
-                    self.sdf_trainers[batch].last_is_keyframe = True
-                    self.sdf_trainers[batch].optim_frames = 200
+        # Mapping must always use gradients to update the sdf
+        # even if the rest of the model is evaluating
+        with torch.enable_grad():
+            for timestep in range(num_timesteps):
+                batch_outputs = []
+                for batch in range(num_batches):
+                    if batch > len(self.sdf_trainers) - 1:
+                        self.sdf_trainers.append(self.init_new_map())
+                    elif masks[timestep][batch] == 0:
+                        self.sdf_trainers[batch] = self.init_new_map()
+                    
+                    frame_data = self.format_frame_data(observations, timestep, batch)
 
-                losses, step_time = self.sdf_trainers[batch].step()
+                    self.sdf_trainers[batch].add_frame(frame_data)
+                    if masks[timestep][batch] == 0:
+                        self.sdf_trainers[batch].last_is_keyframe = True
+                        self.sdf_trainers[batch].optim_frames = 200
 
-                for i in range(self.sdf_trainers.optim_frames):
-                    self.sdf_trainers[batch].step()
+                    losses, step_time = self.sdf_trainers[batch].step()
 
-                output = self.sdf_trainers.compute_slices()
-                batch_outputs.append(output)
-                print("batch", batch, num_batches)
-            batch_outputs = torch.stack(batch_outputs)
-            all_outputs.append(batch_outputs)
+                    #for i in range(self.sdf_trainers[batch].optim_frames):
+                    #    self.sdf_trainers[batch].step()
+
+
+                    # Fix the computation of slices
+                    #output = self.sdf_trainers[batch].compute_slices()
+                    #import numpy as np
+                    #slices = torch.from_numpy(np.concatenate(output['pred_sdf'], axis=-1)).to(self.device).to(torch.float32)
+                    #slices = slices[:224, :224]
+                    slices = torch.zeros(224, 224, 18).to(self.device)
+                    batch_outputs.append(slices)
+                batch_outputs = torch.stack(batch_outputs)
+                all_outputs.append(batch_outputs)
         all_outputs = torch.stack(all_outputs)
+        all_outputs = all_outputs.detach()
         return all_outputs
 
 
@@ -254,9 +329,7 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
 
 
         all_maps = self.update_maps(observations, masks)
-        print("all_maps", all_maps.shape)
         map_embedding = compute_cnn_output(self.map_encoder, all_maps)
-        print("map_embedding", map_embedding.shape)
 
         #we really need to switch to resnet now that visual features are actually important
         pickup_bool = observations["pickedup_object"]
