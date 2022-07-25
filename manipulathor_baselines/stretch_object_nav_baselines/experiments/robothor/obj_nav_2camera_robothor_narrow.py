@@ -56,7 +56,7 @@ class RobothorObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
     # ]
 
     TASK_TYPE = ExploreWiseObjectNavTask
-    MAX_STEPS = 200
+    MAX_STEPS = 300
 
     # if platform.system() == "Darwin":
     #     SENSORS += [

@@ -118,10 +118,10 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
             clip_model_type=self.CLIP_MODEL_TYPE,
             screen_size=self.SCREEN_SIZE,
         )
-        self.REWARD_CONFIG['shaping_weight'] = 0.0
+        self.REWARD_CONFIG['shaping_weight'] = 1.0
         self.REWARD_CONFIG['exploration_reward'] = 0.05
-        self.REWARD_CONFIG['got_stuck_penalty'] = 0.0
-        self.REWARD_CONFIG['failed_action_penalty'] = -0.5
+        self.REWARD_CONFIG['got_stuck_penalty'] = -0.5
+        self.REWARD_CONFIG['failed_action_penalty'] = -0.25
         self.ENV_ARGS['renderInstanceSegmentation'] = True
 
     def preprocessors(self) -> Sequence[Union[Preprocessor, Builder[Preprocessor]]]:

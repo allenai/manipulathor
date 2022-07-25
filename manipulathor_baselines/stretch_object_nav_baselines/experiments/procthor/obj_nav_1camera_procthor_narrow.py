@@ -9,7 +9,7 @@ from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.ob
 from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
 
 
-class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
+class ProcTHORObjectNavClipResnet50RGBOnly1CameraNarrowFOV(
     ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVNoisy
 ):
     """An Object Navigation experiment configuration in iThor with RGB
@@ -28,14 +28,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
             stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
             uuid="rgb_lowres",
         ),
-        RGBSensorStretchKinect(
-            height=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVNoisy.SCREEN_SIZE,
-            width=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVNoisy.SCREEN_SIZE,
-            use_resnet_normalization=True,
-            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-            uuid="rgb_lowres_arm",
-        ),
         GoalObjectTypeThorSensor(
             object_types=OBJECT_TYPES,
         ),
@@ -43,14 +35,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
 
     if platform.system() == "Darwin":
         SENSORS += [
-            RGBSensorStretchKinect(
-            height=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVNoisy.SCREEN_SIZE,
-            width=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVNoisy.SCREEN_SIZE,
-            use_resnet_normalization=True,
-            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-                uuid="rgb_lowres_arm_only_viz",
-            ),
             RGBSensorStretchIntel(
             height=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVNoisy.SCREEN_SIZE,
             width=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOVNoisy.SCREEN_SIZE,
@@ -63,4 +47,4 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
     
     @classmethod
     def tag(cls):
-        return cls.TASK_TYPE.__name__ + '-RGB-2Camera-ProcTHOR-narrowFOV' + '-' +  cls.WHICH_AGENT
+        return cls.TASK_TYPE.__name__ + '-RGB-1Camera-ProcTHOR-narrowFOV' + '-' +  cls.WHICH_AGENT

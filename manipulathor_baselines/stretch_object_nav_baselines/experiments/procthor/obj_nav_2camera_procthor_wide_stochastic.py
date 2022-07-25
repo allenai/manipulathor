@@ -6,8 +6,8 @@
 
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_2camera_procthor_wide \
     import ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV
-from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_2camera_procthor_narrow \
-    import ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV
+# from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.obj_nav_2camera_procthor_narrow \
+#     import ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV
     # from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
 
 

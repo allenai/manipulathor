@@ -463,7 +463,7 @@ class StretchNeckedObjectNavTaskUpdateOrder(ObjectNavTask):
         "LookDown"
     )
 
-class StretchObjectNavTaskSegmentationSuccess(StretchObjectNavTask):
+class StretchObjectNavTaskKinectSegmentationSuccess(StretchObjectNavTask):
     def _is_goal_in_range(self) -> bool:
         all_kinect_masks = self.env.controller.last_event.third_party_instance_masks[0]
         for object_id in self.task_info["target_object_ids"]:
@@ -471,8 +471,17 @@ class StretchObjectNavTaskSegmentationSuccess(StretchObjectNavTask):
                 return True
         
         return False
+    
+class StretchObjectNavTaskIntelSegmentationSuccess(StretchObjectNavTask):
+    def _is_goal_in_range(self) -> bool:
+        all_intel_masks = self.env.controller.last_event.instance_masks
+        for object_id in self.task_info["target_object_ids"]:
+            if object_id in all_intel_masks and self.dist_to_target_func() < self.task_info['success_distance']:
+                return True
+        
+        return False
 
-class StretchObjectNavTaskSegmentationSuccessActionFail(StretchObjectNavTaskSegmentationSuccess):
+class StretchObjectNavTaskSegmentationSuccessActionFail(StretchObjectNavTaskKinectSegmentationSuccess):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.recent_three_strikes = 0
@@ -557,7 +566,7 @@ class ExploreWiseObjectNavTask(StretchObjectNavTaskSegmentationSuccessActionFail
             if self._success:
                 reward += self.reward_config['goal_success_reward']
             else:
-                reward += self.reward_config['failed_stop_reward']
+                reward += 2*self.reward_config['failed_action_penalty']
         elif self.num_steps_taken() + 1 >= self.max_steps:
             reward += self.reward_config['reached_horizon_reward']
         self._rewards.append(float(reward))
@@ -633,6 +642,9 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
         """Compute the reward after having taken a step."""
         reward = 0
         return reward
+    
+    def metrics(self):
+        return {}
 
 
 
