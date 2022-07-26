@@ -15,7 +15,7 @@ ssh-keygen; cat ~/.ssh/id_rsa.pub
 cat ~/manipulathor/scripts/public_keys.txt >> ~/.ssh/authorized_keys
 #cat ~/manipulathor/scripts/public_keys.txt >> ~/.ssh/authorized_keys
 sudo apt-get install xinit
-sudo python3 scripts/startx.py &
+sudo python3 ~/manipulathor/scripts/startx.py &
 tensorboard --logdir experiment_output/tb --bind_all
 #sudo /home/ubuntu/.local/bin/ai2thor-xorg start
 #sudo /home/kianae/manipulathor_env/bin/ai2thor-xorg start

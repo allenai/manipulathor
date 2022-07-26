@@ -481,6 +481,8 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
         initial_agent_location = self.env.controller.last_event.metadata["agent"]
         initial_hand_state = self.env.get_absolute_hand_state()
 
+        ForkedPdb().set_trace()
+
         task_info = {
             'source_object_id': init_object['object_id'],
             'goal_object_id': goal_object['object_id'],
@@ -492,7 +494,8 @@ class ProcTHORDiverseBringObjectTaskSampler(TaskSampler):
             'initial_object_location':initial_object_info,
             'initial_hand_state': initial_hand_state,
             'episode_number': random.uniform(0, 10000),
-            'scene_name':scene_name
+            'scene_name':scene_name,
+            'object_type': source_obj['objectType'],
         }
 
 
