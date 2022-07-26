@@ -90,6 +90,14 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV(
         # self.REWARD_CONFIG['got_stuck_penalty'] = -0.5
         # self.REWARD_CONFIG['failed_action_penalty'] = -0.1
 
+        self.ENV_ARGS['motion_noise_type'] = 'habitat'
+        self.ENV_ARGS['motion_noise_args'] = dict()
+        self.ENV_ARGS['motion_noise_args']['multiplier_means'] = [1,1,1,1,1,1]
+        self.ENV_ARGS['motion_noise_args']['multiplier_sigmas'] = [0.01,0.01,0.01,0.01,0.01,0.01,0.01]
+        self.ENV_ARGS['motion_noise_args']['effect_scale'] = .1 
+        self.ENV_ARGS['returnToStart'] = False 
+
+
     @classmethod
     def tag(cls):
         return cls.TASK_TYPE.__name__ + '-RGB-2Camera-ProcTHOR' + '-' +  cls.WHICH_AGENT
