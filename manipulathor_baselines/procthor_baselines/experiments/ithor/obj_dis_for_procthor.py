@@ -45,12 +45,18 @@ class ObjDisArmPointNavProcTHOR(
     input."""
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
-
+    mean = np.array(0.5)
+    stdev = np.array(0.25)
+    IMAGENET_RGB_MEANS = np.array([0.485, 0.456, 0.406])
+    IMAGENET_RGB_STDS = np.array([0.229, 0.224, 0.225])
     SENSORS = [
         RGBSensorThorNoNan(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,#
-            use_resnet_normalization=True,
+            use_resnet_normalization=True, #TODO
+            # use_normalization=True,
+            # mean=IMAGENET_RGB_MEANS,
+            # stdev = IMAGENET_RGB_STDS,
             uuid="rgb_lowres",
         ),
         DepthSensorThorNoNan(
@@ -58,6 +64,8 @@ class ObjDisArmPointNavProcTHOR(
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
             use_normalization=True,
             uuid="depth_lowres",
+            mean=mean,
+            stdev=stdev #TODO this is super critical
         ),
         PickedUpObjSensor(),
         SceneNumberSensor(), #TODO remove as soon as bug is resolved
@@ -74,7 +82,7 @@ class ObjDisArmPointNavProcTHOR(
     TASK_TYPE = ExploreWiseRewardTask
     ENVIRONMENT_TYPE = ManipulaTHOREnvironment
 
-    NUM_PROCESSES = 20
+    NUM_PROCESSES = 5
 
     if platform.system() == "Darwin":
         MAX_STEPS = 10

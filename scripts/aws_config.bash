@@ -5,10 +5,17 @@ tmux
 python3 -m venv manipulathor_env
 source ~/manipulathor_env/bin/activate
 pip3 install --upgrade pip
-pip3 install -r aws_requirements.txt
+pip3 install -r ~/manipulathor/aws_requirements.txt
+#For installing dataset
+pip3 install datasets
+huggingface-cli login
+rm -rf ~/.cache/huggingface
+#TODO install newest things
+pip3 uninstall allenact allenact_plugins; pip3 install -e "git+https://github.com/allenai/allenact.git@callbacks-cpca-softmax#egg=allenact&subdirectory=allenact"
+pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+c658efdc4911d38dd2f40f0fa29a3cac638e2201
 #ai2thor==0+dc0f9ecd8672dc2d62651f567ff95c63f3542332
+#pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+dc0f9ecd8672dc2d62651f567ff95c63f3542332
 #pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+5afa5633597b12898e12eed528c2332a50bc0f79
-pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+dc0f9ecd8672dc2d62651f567ff95c63f3542332
 #ai2thor==0+dc0f9ecd8672dc2d62651f567ff95c63f3542332
 #pip3 install --extra-index-url https://ai2thor-pypi.allenai.org ai2thor==0+08ec97f5d93486460f388b50d4ef5485468dc87f
 ssh-keygen; cat ~/.ssh/id_rsa.pub
@@ -29,10 +36,7 @@ pip3 uninstall allenact allenact_plugins; pip3 install -e "git+https://github.co
 # remove previous hugging dataset for procthor
 #rm -rf ~/.cache/huggingface
 
-#For installing dataset
-#pip3 install datasets
-#huggingface-cli login
-#rm -rf ~/.cache/huggingface
+
 
 #For solving the segmentation lazy backward uncompatibiliity
 pip3 install --extra-index-url https://ai2thor-pypi.allenai.org  ai2thor==0+dc0f9ecd8672dc2d62651f567ff95c63f3542332

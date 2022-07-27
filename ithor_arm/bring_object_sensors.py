@@ -31,17 +31,45 @@ class RGBSensorThorNoNan(RGBSensorThor):
     def frame_from_env(
         self, env: IThorEnvironment, task: Task[IThorEnvironment]
     ) -> np.ndarray:  # type:ignore
-        frame = env.current_frame.copy()
+        # frame = env.current_frame.copy()
+        frame = env.not_nan_rgb_frame.copy()
         frame, is_changed = remove_nan(frame)
+        #TODO remove
+        if is_changed > 0:
+            print('RGB nan', is_changed)
         return frame
 
 class DepthSensorThorNoNan(DepthSensorThor):
     def frame_from_env(
         self, env: IThorEnvironment, task: Task[IThorEnvironment]
     ) -> np.ndarray:  # type:ignore
-        frame = (env.controller.last_event.depth_frame.copy())
+        # frame = (env.controller.last_event.depth_frame.copy())
+        frame = env.not_nan_depth_frame.copy()
         frame, is_changed = remove_nan(frame)
+        #TODO remove
+        if is_changed > 0:
+            print('Depth nan', is_changed)
         return frame
+    # def get_observation(  # type: ignore
+    #     self, env, task, *args: Any, **kwargs: Any
+    # ) -> Any:
+    #     result = super(DepthSensorThorNoNan, self).get_observation(env, task, *args, **kwargs)
+    #     isnan_inf = np.isnan(result) + np.isnan(result)
+    #     if isnan_inf.sum() > 0: TODO remove
+    #         print('depth becomes nan-inf after')
+    #         import pickle
+    #         file_name = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S_%f")
+    #         file_name = f'{file_name}_{type}_raw.pkl'
+    #         with open(file_name, 'wb') as f:
+    #             frame = env.not_nan_depth_frame.copy()
+    #             pickle.dump(frame, f)
+    #         file_name = datetime.datetime.now().strftime("%m_%d_%Y_%H_%M_%S_%f")
+    #         file_name = f'{file_name}_{type}_normalized_{self._norm_sds}.pkl'
+    #         with open(file_name, 'wb') as f:
+    #             frame = result
+    #             pickle.dump(frame, f)
+    #         something
+    #     return result
 
 def remove_nan(frame): #TODO inefficient and hacky
     should_be_removed = np.isinf(frame) + np.isnan(frame)

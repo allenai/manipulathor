@@ -27,6 +27,14 @@ from scripts.hacky_objects_that_move import OBJECTS_MOVE_THR
 from scripts.jupyter_helper import get_reachable_positions
 
 
+def remove_nan(frame): #TODO inefficient and hacky
+    should_be_removed = np.isinf(frame) + np.isnan(frame)
+    is_changed = should_be_removed.sum()
+    frame[should_be_removed] = 0
+    should_be_removed = np.isinf(frame) + np.isnan(frame)
+    assert should_be_removed.sum() == 0
+    return frame, is_changed
+
 class ManipulaTHOREnvironment(IThorEnvironment):
     """Wrapper for the manipulathor controller providing arm functionality
     and bookkeeping.
@@ -139,6 +147,18 @@ class ManipulaTHOREnvironment(IThorEnvironment):
         assert 'commit_id' in self.env_args, 'No commit id is specified'
         controller = Controller(**self.env_args)
         return controller
+    @property
+    def not_nan_rgb_frame(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        frame = self.current_frame.copy()
+        frame, is_changed = remove_nan(frame)
+        return frame
+    @property
+    def not_nan_depth_frame(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        frame = self.controller.last_event.depth_frame.copy()
+        frame, is_changed = remove_nan(frame)
+        return frame
 
     def start(
             self,

@@ -8,6 +8,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Sync')
     parser.add_argument('--servers', default=None, nargs='+')
     parser.add_argument('--sync_weights', default=False, action='store_true')
+    parser.add_argument('--sync_procthor_data', default=False, action='store_true')
     parser.add_argument('--sync_specific_weight', default=None)
     parser.add_argument('--sync_back', default=False, action='store_true')
 
@@ -44,7 +45,8 @@ def main(args):
              --exclude trained_weights/do_not_sync_weights/  \
              --exclude datasets/procthor_apnd_dataset/ \
              ../manipulathor {}:~/'.format(server)
-
+        if args.sync_procthor_data:
+            command = command.replace('--exclude datasets/procthor_apnd_dataset/ ', '')
         if args.sync_weights:
             command = command.replace('--exclude datasets/apnd-dataset/weights/ ', '')
         if args.sync_specific_weight is not None:

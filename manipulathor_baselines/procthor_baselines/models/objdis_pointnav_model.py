@@ -144,7 +144,34 @@ class ObjDisPointNavModel(ActorCriticModel[CategoricalDistr]):
         pickup_bool = observations["pickedup_object"]
         after_pickup = pickup_bool == 1
 
-        visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres']], dim=-1).float()
+        def remove_nan(frame,type): #TODO remove
+            should_be_removed = torch.isinf(frame) + torch.isnan(frame)
+            is_changed = should_be_removed.sum()
+            # if is_changed > 0:
+            #     import pickle
+            #     file_name = datetime.now().strftime("%m_%d_%Y_%H_%M_%S_%f")
+            #     file_name = f'{file_name}_{type}.pkl'
+            #     with open(file_name, 'wb') as f:
+            #         pickle.dump(frame.to(torch.device('cpu')), f)
+            frame[should_be_removed] = 0
+            should_be_removed = torch.isinf(frame) + torch.isnan(frame)
+            assert should_be_removed.sum() == 0
+            return frame, is_changed
+
+        depth = observations['depth_lowres']
+        depth, is_changed = remove_nan(depth, 'depth')
+        if is_changed > 0:
+            print('depth after norm nan', is_changed)
+            # raise Exception('depth nan')
+        rgb = observations['rgb_lowres']
+        rgb, is_changed = remove_nan(rgb, 'rgb')
+        if is_changed > 0:
+            print('rgb after norm nan', is_changed)
+            # raise Exception('rgb nan')
+
+        visual_observation = torch.cat([depth, rgb], dim=-1).float()
+
+        # visual_observation = torch.cat([observations['depth_lowres'], observations['rgb_lowres']], dim=-1).float()
 
         visual_observation_encoding = compute_cnn_output(self.full_visual_encoder, visual_observation)
 
@@ -156,6 +183,9 @@ class ObjDisPointNavModel(ActorCriticModel[CategoricalDistr]):
         arm_distance_to_obj_destination_embedding = self.pointnav_embedding(arm_distance_to_obj_destination)
         pointnav_embedding = arm_distance_to_obj_source_embedding
         pointnav_embedding[after_pickup] = arm_distance_to_obj_destination_embedding[after_pickup]
+
+        # if torch.any(torch.isinf(visual_observation) + torch.isnan(visual_observation)):
+        #     ForkedPdb().set_trace()
 
         #TODO remove as soon as the bug is resolved
         assert not torch.any(torch.isinf(pointnav_embedding) + torch.isnan(pointnav_embedding)), 'pointnav_embedding is nan'
