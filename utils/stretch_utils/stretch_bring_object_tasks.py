@@ -568,6 +568,8 @@ class StretchObjectNavTask(StretchExploreWiseRewardTask):
         MOVE_BACK,
         ROTATE_RIGHT,
         ROTATE_LEFT,
+        #TODO LOOK UP AND DOWN?
+
         # ROTATE_RIGHT_SMALL,
         # ROTATE_LEFT_SMALL,
         # PICKUP,

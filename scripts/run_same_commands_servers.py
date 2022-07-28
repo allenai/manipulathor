@@ -3,10 +3,12 @@ import os
 import pdb
 
 
-command_aws8 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/clip_obj_dis_for_procthor_rgb_only_distrib \
-# --distributed_ip_and_port IP_ADR:6060 \
-#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
-#  --seed 10 --machine_id 0 --extra_tag ??'
+command_aws8 = ''
+
+command_aws12 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/object_explore_for_ithor_rgb_only.py_distrib \
+ --distributed_ip_and_port IP_ADR:6060 \
+  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+  --seed 10 --machine_id 0 --extra_tag object_explore_with_clip'
 
 command_aws1 = ''
 command_aws5 = ''
@@ -30,6 +32,11 @@ server_mapping = dict(
         'servers':[f'aws{i}' for i in range(8, 12)],
         'ip_adr': '35.90.135.47',
         'command': command_aws8,
+    },
+    aws12 = {
+        'servers':[f'aws{i}' for i in range(12,16)],
+        'ip_adr': '35.91.24.190',
+        'command': command_aws12,
     },
     aws15 = {
         'servers':[f'aws{i}' for i in range(1, 9)],
