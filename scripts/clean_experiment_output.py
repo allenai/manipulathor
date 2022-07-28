@@ -36,13 +36,13 @@ def clean_dir(path, min_checkpoint_size, min_tb_size, delete=False, list_all=Fal
             ckpt_size = get_size(join(ckpt_path, experiment, seed))
             
             if list_all:
-                print(tb_size, "\t", ckpt_size, "\t", seed)
+                print(tb_size, "\t", ckpt_size, "\t", experiment, seed)
                 continue
             if tb_size > min_tb_size:
                 continue
             if ckpt_size > min_checkpoint_size:
                 continue
-            print(tb_size, "\t", ckpt_size, "\t", seed)
+            print(tb_size, "\t", ckpt_size, "\t", experiment, seed)
 
             if delete:
                 rm_if_dir(join(tb_path, experiment, seed))

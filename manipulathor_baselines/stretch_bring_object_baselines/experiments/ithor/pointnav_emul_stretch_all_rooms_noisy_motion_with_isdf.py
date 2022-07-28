@@ -27,7 +27,7 @@ from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, Dept
     RGBSensorStretchKinectZero, \
     DepthSensorStretchKinectZero, IntelRawDepthSensor, ArmPointNavEmulSensor, KinectRawDepthSensor, \
     KinectNoisyObjectMask, IntelNoisyObjectMask, StretchPickedUpObjSensor, \
-    AgentOdometryEmulSensor, PrevFrameSensor
+    AgentOdometryEmulSensor, PrevFrameSensor, KinectAgentMask
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
@@ -53,6 +53,8 @@ class PointNavEmulStretchAllRoomsNoisyMotionWithISDF(
     odometry_sensor = AgentOdometryEmulSensor()
 
     SENSORS = [
+        KinectAgentMask(height=desired_screen_size,
+                        width=desired_screen_size),
         PrevFrameSensor(
             RGBSensorStretchIntel(
                 height=desired_screen_size,
@@ -129,6 +131,7 @@ class PointNavEmulStretchAllRoomsNoisyMotionWithISDF(
     NUM_PROCESSES = 4
     #NUM_PROCESSES = 20
     NUM_PROCESSES = 20
+    NUM_PROCESSES = 14
     NUM_PROCESSES = 14
 
     TRAIN_SCENES = KITCHEN_TRAIN + LIVING_ROOM_TRAIN + BEDROOM_TRAIN + BATHROOM_TRAIN

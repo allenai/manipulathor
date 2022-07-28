@@ -341,7 +341,7 @@ class AgentOdometryEmulSensor(Sensor):
             #                         [0.0, 0.0, 1.0, -(camera_xyz_rot[2])],
             #                         [0.0, 0.0, 0.0, 1.0]])
             translation = np.array([[1.0, 0.0, 0.0, -(camera_xyz_rot[0])],
-                                    [0.0, 1.0, 0.0, (camera_xyz_rot[1])],
+                                    [0.0, 1.0, 0.0, (camera_xyz_rot[1]) - 1.5],
                                     [0.0, 0.0, 1.0, -(camera_xyz_rot[2])],
                                     [0.0, 0.0, 0.0, 1.0]])
             # print((camera_xyz_rot[1]), self.initial_pos[1])
@@ -963,6 +963,30 @@ class IntelNoisyObjectMask(Sensor):
         else:
             resized_mask = cv2.resize(result, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
         return intel_reshape(resized_mask)
+
+class KinectAgentMask(Sensor):
+    def __init__(self, height, width,  uuid: str="agent_mask_arm"):
+        observation_space = gym.spaces.Box(
+            low=0, high=1, shape=(height, width), dtype=np.bool
+        )
+        self.height = height
+        self.width = width
+        super().__init__(**prepare_locals_for_super(locals()))
+
+    def get_observation(
+        self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
+    ) -> Any:
+        agent_mask_keys = [k for k in env.controller.last_event.object_id_to_color if 'stretch' in k or 'agent' in k]
+        mask = np.zeros((self.height, self.width), dtype=np.bool)
+        for k in agent_mask_keys:
+            color = env.controller.last_event.object_id_to_color[k]
+
+            part_mask = np.logical_and(env.controller.last_event.third_party_instance_segmentation_frames[0][:, :, 0] == color[0],
+                                       env.controller.last_event.third_party_instance_segmentation_frames[0][:, :, 1] == color[1],
+                                       env.controller.last_event.third_party_instance_segmentation_frames[0][:, :, 2] == color[2])
+            mask = np.logical_or(mask, part_mask)
+        return mask
+
 
 class KinectNoisyObjectMask(Sensor):
     def __init__(self, type: str,noise, height, width,  uuid: str = "object_mask_kinect", distance_thr: float = -1, only_close_big_masks=False, **kwargs: Any):

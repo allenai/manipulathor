@@ -5,10 +5,13 @@ Facebook's Habitat.
 """
 import platform
 from datetime import datetime
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
+import time
 
+import cv2
 import gym
 import torch
+import torch.nn.functional as F
 from allenact.algorithms.onpolicy_sync.policy import (
     ActorCriticModel,
     LinearCriticHead,
@@ -26,6 +29,7 @@ from torch import nn
 import isdf
 from isdf.modules import trainer
 from isdf.datasets.data_util import FrameData
+from isdf.datasets.sdf_util import get_colormap
 
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.model_utils import LinearActorHeadNoCategory
@@ -97,14 +101,16 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
                         'output_relu': True}
         self.full_visual_encoder_arm = make_cnn(**network_args)
 
-        network_args = {'input_channels': 18,
+        network_args = {'input_channels': 6, #18,
                         'layer_channels': [32, 64, 32],
                         'kernel_sizes': [(8, 8), (4, 4), (3, 3)],
                         'strides': [(4, 4), (2, 2), (1, 1)],
                         'paddings': [(0, 0), (0, 0), (0, 0)],
                         'dilations': [(1, 1), (1, 1), (1, 1)],
-                        'output_height': 24,
-                        'output_width': 24,
+                        'output_height': 10,
+                        'output_width': 10,
+                        #'output_height': 24,
+                        #'output_width': 24,
                         'output_channels': 512,
                         'flatten': True,
                         'output_relu': True}
@@ -149,8 +155,10 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
 
         self.device = None
         self.sdf_trainers = []
+        self.no_norm = False
         self.config_file = "/home/karls/iSDF/isdf/train/configs/thor_live.json"
-
+        if self.no_norm:
+            self.config_file = "/home/karls/iSDF/isdf/train/configs/thor_live_no_norm.json"
 
         self.max_depth = 5.0
         # Only apply min depth to the arm camera to filter out pictures of the arm
@@ -159,24 +167,69 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         # Need to divide by range_dist as it will scale the grid which
         # is created in range = [-1, 1]
         # Also divide by 0.9 so extents are a bit larger than gt mesh
-        self.bounds_transform = torch.eye(4)
-        self.grid_dim = 224
+        #self.bounds_transform = torch.eye(4)
+        self.bounds_transform = torch.tensor([[-2.06479118e-23,  1.00000000e+00,  6.12323400e-17,  9.52677835e-01],
+             [ 1.00000000e+00, -4.23140135e-39,  3.37205989e-07,  1.48196393e+00],                                          
+              [ 3.37205989e-07,  6.12323400e-17, -1.00000000e+00,  1.66513429e+00],
+               [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]])
+        self.bounds_transform = torch.tensor([[0, 1, 0, 0],#0.95],
+                                              [1, 0, 0, 1.48],
+                                              [0, 0, -1, 0],#1.67],
+                                              [0, 0, 0, 1.0]])
+
+        self.grid_dim = 112#224
         grid_range = [-1.0, 1.0]
         range_dist = grid_range[1] - grid_range[0]
         # Gives the same size of map as the grid based approach
-        bounds_extents = torch.tensor([5.6, 1.5, 5.6])
-        self.scene_scale = bounds_extents / (range_dist * 0.9)
+        #bounds_extents = torch.tensor([[1.7362, 4.0325, 7.2216]])#torch.tensor([5.6, 1.5, 5.6])
+        self.scene_scale = torch.tensor([1.7362, 4.0325, 7.2216])
+        self.scene_scale = torch.tensor([1.7362, 5.6, 5.6])
+        self.scene_scale = torch.tensor([1.7362, 4.0, 4.0])
+        #self.scene_scale = bounds_extents / (range_dist * 0.9)
         self.inv_scene_scale = 1. / self.scene_scale
 
-        self.grid_pc = isdf.geometry.transform.make_3D_grid(
+        grid_pc = isdf.geometry.transform.make_3D_grid(
             grid_range,
             self.grid_dim,
             self.device if self.device is not None else torch.device("cpu"),
             transform=self.bounds_transform,
             scale=self.scene_scale,
         )
-        self.grid_pc = self.grid_pc.view(-1, 3)
+        grid_pc = grid_pc.view(-1, 3)
         self.up_ix = 0
+
+        n_slices = 6
+        z_ixs = torch.linspace(30, self.grid_dim - 30, n_slices)
+        z_ixs = torch.round(z_ixs).long()
+        z_ixs = z_ixs.to(grid_pc.device)
+
+        self.sampling_pc = grid_pc.reshape(self.grid_dim, self.grid_dim, self.grid_dim, 3)
+        self.sampling_pc = torch.index_select(self.sampling_pc, self.up_ix, z_ixs)
+
+        self.camera_fx_fy = 162.96101
+        self.camera_arm_fx_fy = 112
+        self.cx_cy = 112
+        self.height_width = 224
+
+        self.dirs_c_batch_camera = isdf.geometry.transform.ray_dirs_C(
+                1,
+                self.height_width, self.height_width,
+                self.camera_fx_fy, self.camera_fx_fy,
+                self.cx_cy, self.cx_cy,
+                self.device,
+                depth_type="z")
+
+        self.dirs_c_batch_camera_arm = isdf.geometry.transform.ray_dirs_C(
+                1,
+                self.height_width, self.height_width,
+                self.camera_arm_fx_fy, self.camera_arm_fx_fy,
+                self.cx_cy, self.cx_cy,
+                self.device,
+                depth_type="z")
+
+        self.cmap = get_colormap()
+
+        self.step_count = 0
 
         self.train()
 
@@ -215,44 +268,65 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
             chkpt_load_file=None,
             incremental=True,
         )
-        sdf_map.grid_pc = self.grid_pc.clone().to(self.device)
+        #sdf_map.grid_pc = self.grid_pc.clone().to(self.device)
         sdf_map.grid_dim = self.grid_dim
         sdf_map.up_ix = self.up_ix
         sdf_map.scene_scale = self.scene_scale
         sdf_map.grid_up = torch.tensor([0.0, 1.0, 0.0], device=self.device)
         sdf_map.up_aligned = True
-        print("created new map")
+        sdf_map.bounds_transform_np = self.bounds_transform.cpu().numpy()
+        #from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+        #print("created new map")
         return sdf_map
 
     def format_frame_data(self, observations, timestep, batch):
         all_data = FrameData()
 
-        for camera_name in ['']:#, '_arm']:
+        for camera_name in ['', '_arm']:
             depth = observations['depth_lowres' + camera_name][timestep, batch].reshape(1, 224, 224)
             depth[depth > self.max_depth] = 0
             if camera_name == '_arm':
-                depth[depth < self.min_depth_arm] = 0
-
+                depth[observations['agent_mask_arm'][timestep, batch].unsqueeze(0)] = 0
             transform = observations['odometry_emul']['camera_info']['camera'+camera_name]['gt_transform'][timestep, batch]
+            # First element of scene_scale is the virtical scale
+            #transform[0, -1] /= self.scene_scale[1]
+            #transform[2, -1] /= self.scene_scale[2]
+            transform = torch.linalg.inv(transform).unsqueeze(0)
+
+            if camera_name == '':
+                fx = self.camera_fx_fy
+                fy = self.camera_fx_fy
+                dirs_c_batch = self.dirs_c_batch_camera.clone()
+            else:
+                fx = self.camera_arm_fx_fy
+                fy = self.camera_arm_fx_fy
+                dirs_c_batch = self.dirs_c_batch_camera_arm.clone()
+            #cx = 112
+            #cy = 112
+            #height = 224
+            #width = 224
+            cx = self.cx_cy
+            cy = self.cx_cy
+            height = self.height_width
+            width = self.height_width
+
+            frame_id = self.step_count + timestep
+            if camera_name == '_arm':
+                frame_id *= -1
             camera = FrameData(
-                frame_id=torch.tensor([timestep]),
+                frame_id=torch.tensor([frame_id]),
                 im_batch=observations['rgb_lowres' + camera_name][timestep, batch].unsqueeze(0),
                 depth_batch=depth,
-                T_WC_batch=torch.linalg.inv(transform).unsqueeze(0)
+                T_WC_batch=transform,
+                T_WC_batch_np=transform.cpu().numpy(),
+                dirs_c_batch=dirs_c_batch,
             )
-            if camera_name == '':
-                fx = 162.96101
-                fy = 162.96101
-            else:
-                fx = 112
-                fy = 112
-            cx = 112
-            cy = 112
 
-            pc = isdf.geometry.transform.pointcloud_from_depth_torch(
-                depth[0], fx, fy, cx, cy)
-            normals = isdf.geometry.transform.estimate_pointcloud_normals(pc)
-            camera.normal_batch = normals[None, :]
+            if not self.no_norm:
+                pc = isdf.geometry.transform.pointcloud_from_depth_torch(
+                    depth[0], fx, fy, cx, cy)
+                normals = isdf.geometry.transform.estimate_pointcloud_normals(pc)
+                camera.normal_batch = normals[None, :]
 
             all_data.add_frame_data(camera, replace=False)
         return all_data
@@ -262,6 +336,15 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         num_batches = observations['depth_lowres'].shape[1]
         all_outputs = []
 
+        step_scale = 10
+
+        init_time = 0.0
+        data_time = 0.0
+        data_1 = 0.0
+        is_keyframe_time = 0.0
+        optim_time = 0.0
+        render_time = 0.0
+
         # Mapping must always use gradients to update the sdf
         # even if the rest of the model is evaluating
         with torch.enable_grad():
@@ -269,37 +352,101 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
                 batch_outputs = []
                 for batch in range(num_batches):
                     if batch > len(self.sdf_trainers) - 1:
+                        st = time.perf_counter()
                         self.sdf_trainers.append(self.init_new_map())
-                    elif masks[timestep][batch] == 0:
+                        et = time.perf_counter()
+                        init_time += (et - st)
+                    elif  masks[timestep][batch] == 0:
+                        st = time.perf_counter()
                         self.sdf_trainers[batch] = self.init_new_map()
+                        et = time.perf_counter()
+                        init_time += (et - st)
                     
+                    st = time.perf_counter()
                     frame_data = self.format_frame_data(observations, timestep, batch)
-
+                    et = time.perf_counter()
+                    data_1 += (et - st)
+                    st = time.perf_counter()
                     self.sdf_trainers[batch].add_frame(frame_data)
+                    et = time.perf_counter()
+                    data_time += (et - st)
                     if masks[timestep][batch] == 0:
                         self.sdf_trainers[batch].last_is_keyframe = True
                         self.sdf_trainers[batch].optim_frames = 200
+                    else:
+                        st = time.perf_counter()
+                        # Only checks on one camera
+                        T_WC = frame_data.T_WC_batch#[-1].unsqueeze(0)
+                        depth_gt = frame_data.depth_batch#[-1].unsqueeze(0)
+                        dirs_c = frame_data.dirs_c_batch#[-1].unsqueeze(0)
+                        self.sdf_trainers[batch].last_is_keyframe = self.sdf_trainers[batch].is_keyframe(T_WC, depth_gt, dirs_c)
+                        if self.sdf_trainers[batch].last_is_keyframe:
+                            self.sdf_trainers[batch].optim_frames = self.sdf_trainers[batch].iters_per_kf
+                        et = time.perf_counter()
+                        is_keyframe_time += (et - st)
+                    #print("optim frames", self.sdf_trainers[batch].optim_frames)
 
+                    st = time.perf_counter()
                     losses, step_time = self.sdf_trainers[batch].step()
 
-                    #for i in range(self.sdf_trainers[batch].optim_frames):
-                    #    self.sdf_trainers[batch].step()
+                    for i in range(self.sdf_trainers[batch].optim_frames // step_scale):
+                        self.sdf_trainers[batch].step()
+                    et = time.perf_counter()
+                    optim_time += (et - st)
 
+                    st = time.perf_counter()
+                    output = self.sdf_trainers[batch].compute_slices_rotated(
+                            self.sampling_pc,
+                            observations['odometry_emul']['agent_info']['xyz'][timestep, batch],
+                            observations['odometry_emul']['agent_info']['rotation'][timestep, batch]
+                    )
 
-                    # Fix the computation of slices
-                    #output = self.sdf_trainers[batch].compute_slices()
+                    #output = self.sdf_trainers[batch].compute_slices(draw_cams=True)
+                    slices = output.permute(1, 2, 0)
+                    et = time.perf_counter()
+                    render_time += (et - st)
+                    #from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+                    #import cv2
+                    #for s in range(len(output['pred_sdf'])):
+                    #    cv2.imwrite("../debug_images/pred_{}_ts{}_b{}_s{}.png".format(self.step_count, timestep, batch, s),
+                    #            output["pred_sdf"][s][..., ::-1])
                     #import numpy as np
                     #slices = torch.from_numpy(np.concatenate(output['pred_sdf'], axis=-1)).to(self.device).to(torch.float32)
                     #slices = slices[:224, :224]
-                    slices = torch.zeros(224, 224, 18).to(self.device)
+                    #slices = torch.zeros(224, 224, 18).to(self.device)
+
                     batch_outputs.append(slices)
                 batch_outputs = torch.stack(batch_outputs)
                 all_outputs.append(batch_outputs)
         all_outputs = torch.stack(all_outputs)
         all_outputs = all_outputs.detach()
+        #print("init", init_time)
+        #print("data1", data_1)
+        #print("data", data_time)
+        #print("is keyframe", is_keyframe_time)
+        #print("optim", optim_time)
+        #print("render", render_time)
         return all_outputs
 
+    def transform_global_map_to_ego_map(
+        self,
+        global_maps: torch.FloatTensor,
+        agent_info: Dict,
+    ) -> torch.FloatTensor:
 
+        ego_rotations = -torch.deg2rad(agent_info['rotation'].reshape(-1))
+        map_resolution_cm = 5.0
+        map_size = 224
+        ego_xyz = agent_info['xyz'].reshape(-1, 3) / (map_resolution_cm / 100.) / map_size * 2.0
+        transform_world_to_ego = torch.tensor([[[torch.cos(a), -torch.sin(a), pos[0]],
+                                                [torch.sin(a),  torch.cos(a), pos[2]]] for a, pos in zip(ego_rotations, ego_xyz)], 
+                                                dtype=global_maps.dtype, device=global_maps.device)
+        global_maps_reshaped = global_maps.reshape(-1, *global_maps.shape[2:]).permute(0, 3, 1, 2)
+        affine_grid_world_to_ego = F.affine_grid(transform_world_to_ego, global_maps_reshaped.shape)
+        ego_maps = F.grid_sample(global_maps_reshaped, affine_grid_world_to_ego, align_corners=False)
+        # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
+        ego_maps = ego_maps.permute(0, 2, 3, 1).reshape(global_maps.shape)
+        return ego_maps
 
     def forward(  # type:ignore
         self,
@@ -323,13 +470,45 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         # Returns
         Tuple of the `ActorCriticOutput` and recurrent hidden state.
         """
+        if self.step_count == 0:
+            self.start_time = time.perf_counter()
+        else:
+            end_time = time.perf_counter()
+            fps = self.step_count / (end_time - self.start_time)
+            #print("fps", fps, fps*8, "frame", self.step_count)
 
         if self.device is None:
             self.device = self.full_visual_encoder_arm[0].bias.device
+            self.sampling_pc = self.sampling_pc.to(self.device)
+            self.dirs_c_batch_camera = self.dirs_c_batch_camera.to(self.device)
+            self.dirs_c_batch_camera_arm = self.dirs_c_batch_camera_arm.to(self.device)
 
-
+        mapping_start_time = time.perf_counter()
         all_maps = self.update_maps(observations, masks)
+        #all_maps = self.transform_global_map_to_ego_map(all_maps, observations['odometry_emul']['agent_info'])
+        if all_maps.shape[0] > 1:
+            end_time = time.perf_counter()
+            print("mapping_time", end_time - mapping_start_time)
+        if self.step_count % 100 == 0 and self.device.index == 0:
+            if all_maps.shape[0] == 1:
+                for batch in range(all_maps.shape[1]):
+                    for s in range(all_maps.shape[-1]):
+                        if s != 3:
+                            continue
+                        im = all_maps[0, batch, :, :, s].cpu().numpy()
+                        im = self.cmap.to_rgba(im)[:, :, :3] * 255
+                        px = im.shape[0] //2
+                        py = im.shape[1] //2
+                        im[px-1:px+1, py-1:py+1, :] = (0, 255, 0)
+                        im = im[..., ::-1]
+                        cv2.imwrite("../debug_images/pred_{}_b{}_s{}.png".format(self.step_count, batch, s), im)
+                    print("saved images", self.step_count)
+                    break
+        
         map_embedding = compute_cnn_output(self.map_encoder, all_maps)
+#        map_embedding = torch.zeros((observations['rgb_lowres'].shape[0], 
+#                                     observations['rgb_lowres'].shape[1],
+#                                     512), device=observations['rgb_lowres'].device)
 
         #we really need to switch to resnet now that visual features are actually important
         pickup_bool = observations["pickedup_object"]
@@ -357,6 +536,7 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         visual_observation_arm = check_for_nan_visual_observations(visual_observation_arm)
         visual_observation_encoding_arm = compute_cnn_output(self.full_visual_encoder_arm, visual_observation_arm)
         # ForkedPdb().set_trace()
+
 
 
         # arm_distance_to_obj_source = observations['point_nav_real_source'].copy()
@@ -420,12 +600,15 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         critic_out_final = self.critic_pickup(x_out)
 
         actor_out_final = check_for_nan_visual_observations(actor_out_final, where_it_occured='actor_out_final')
-
+        #actor_out_final[:, :, :] = -100000
+        #actor_out_final[:, :, 7] = 100000
         actor_out = CategoricalDistr(logits=actor_out_final)
 
         actor_critic_output = ActorCriticOutput(
             distributions=actor_out, values=critic_out_final, extras={}
         )
+
+        self.step_count += 1
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
