@@ -25,7 +25,7 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly1Ca
     # EVAL_TASKS = datasets.load_dataset(
     #     f"allenai/robothor-objectnav-eval", use_auth_token=True
     # )
-    EVAL_TASKS = prior.load_dataset(dataset="object-nav-eval",scene_datasets="robothor")
+    EVAL_TASKS = prior.load_dataset(dataset="object-nav-eval",scene_datasets={"robothor"}).val
 
     TEST_TASK_SAMPLER = RoboThorObjectNavTestTaskSampler
     TEST_ON_VALIDATION = True

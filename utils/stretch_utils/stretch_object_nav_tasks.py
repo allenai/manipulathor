@@ -351,8 +351,10 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             #     "EstimatedValue",
             # ],
         )
-        ForkedPdb().set_trace()
-        ep_length = self._metrics["ep_length"]
+        try:
+            ep_length = self._metrics["ep_length"]
+        except:
+            ForkedPdb().set_trace()
 
         # get returns from each step
         returns = []
@@ -372,7 +374,11 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                 Image.fromarray(self.observations[step]).resize((224, 224))
             )
             frame_number = step
-            dist_to_target = self.task_info["dist_to_target"][step]
+            # try:
+            #     dist_to_target = self.task_info["dist_to_target"][step]
+            # except:
+            #     ForkedPdb().set_trace()
+
 
             if is_first_frame:
                 last_action_success = None
@@ -388,10 +394,12 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                 critic_value = None
 
                 taken_action = None
+                dist_to_target = self.task_info["dist_to_target"][step-1]
             else:
                 policy_critic_value = df.iloc[step].values.tolist()
-                action_dist = policy_critic_value[:6]
-                critic_value = policy_critic_value[6]
+                action_dist = policy_critic_value[:5] # set programmatically
+                critic_value = policy_critic_value[5]
+                dist_to_target = self.task_info["dist_to_target"][step]
 
                 taken_action = self.task_info["taken_actions"][step]
 

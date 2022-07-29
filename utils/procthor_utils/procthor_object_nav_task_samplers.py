@@ -415,7 +415,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
             task_info={
                 "mode": self.sampler_mode, #self.env_args['agentMode'],
                 "process_ind": self.process_ind,
-                "scene_name": self.env_args['scene'],
+                # "scene_name": self.env_args['scene'],
                 "house_name": str(self.house_index),
                 "rooms": self.house_entry["rooms"],
                 "target_object_ids": target_object_ids,
@@ -488,7 +488,6 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
                 continue
 
             difficulty = {"difficulty": ep["difficulty"]} if "difficulty" in ep else {}
-            ForkedPdb().set_trace()
             self._last_sampled_task = self.TASK_TYPE(
                 # visualize=self.episode_index in self.epids_to_visualize,
                 env=self.env,
@@ -501,7 +500,7 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
                 task_info={
                     "mode": self.sampler_mode, #self.env_args['agentMode'],
                     "house_name": ep["scene"],
-                    "house_rooms": self.houses[ep["scene"]]["rooms"],
+                    "house_rooms": 1, #self.houses[ep["scene"]]["rooms"], # 1 for robothor
                     "target_object_ids": target_object_ids,
                     "object_type": ep["targetObjectType"],
                     "starting_pose": ep["agentPose"],

@@ -50,7 +50,7 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
             source_obj_type = task_info['source_object_type']
             goal_obj_type = task_info['goal_object_type']
 
-        room_name = task_info['scene_name']
+        room_name = task_info['house_name']
         gif_name = (
                 f"{time_to_write}_room_{room_name}_from_{source_obj_type}_to_{goal_obj_type}_pickup_{pickup_success_offset}_episode_{episode_success_offset}.gif"
         )
@@ -190,7 +190,7 @@ class StretchObjNavImageVisualizer(LoggerVisualizer):
         if source_obj_type == 'small':
             source_obj_type = task_info['object_type']
 
-        room_name = task_info['scene_name']
+        room_name = task_info['house_name']
         gif_name = (
                 f"{time_to_write}_room_{room_name}_to_{source_obj_type}_episode_{episode_success_offset}.gif"
         )
