@@ -36,6 +36,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         max_steps: int,
         env_args: Dict[str, Any],
         rewards_config: Dict,
+        process_ind: int,
         task_type: type,
         houses: datasets.Dataset,
         house_inds: List[int],
@@ -61,6 +62,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.max_steps = max_steps
         self._action_space = gym.spaces.Discrete(len(self.TASK_TYPE.class_action_names()))
         self.resample_same_scene_freq = resample_same_scene_freq
+        self.process_ind = process_ind
 
         self._last_sampled_task: Optional[Task] = None
         
@@ -411,8 +413,8 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
             visualizers=self.visualizers,
             # visualize=True,
             task_info={
-                "mode": self.env_args['agentMode'],
-                # "process_ind": self.process_ind,
+                "mode": self.sampler_mode, #self.env_args['agentMode'],
+                "process_ind": self.process_ind,
                 "scene_name": self.env_args['scene'],
                 "house_name": str(self.house_index),
                 "rooms": self.house_entry["rooms"],
@@ -486,6 +488,7 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
                 continue
 
             difficulty = {"difficulty": ep["difficulty"]} if "difficulty" in ep else {}
+            ForkedPdb().set_trace()
             self._last_sampled_task = self.TASK_TYPE(
                 # visualize=self.episode_index in self.epids_to_visualize,
                 env=self.env,
@@ -496,13 +499,14 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
                 distance_cache=self.distance_cache,
                 visualizers=self.visualizers,
                 task_info={
-                    "mode": self.env_args['agentMode'],
-                    "scene_name": ep["scene"],
+                    "mode": self.sampler_mode, #self.env_args['agentMode'],
+                    "house_name": ep["scene"],
+                    "house_rooms": self.houses[ep["scene"]]["rooms"],
                     "target_object_ids": target_object_ids,
                     "object_type": ep["targetObjectType"],
                     "starting_pose": ep["agentPose"],
                     "mirrored": False,
-                    "id": f"{ep['scene']}__global{epidx}__{ep['targetObjectType']}",
+                    "id": f"{ep['scene']}__proc{self.process_ind}__global{epidx}__{ep['targetObjectType']}",
                     'success_distance': self.success_distance,
                     **difficulty,
                 },

@@ -9,14 +9,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from manipulathor_utils.debugger_util import ForkedPdb
+from allenact.base_abstractions.misc import ActorCriticOutput
+import torch.nn.functional as F
 from utils.stretch_utils.stretch_constants import MOVE_AHEAD, ROTATE_LEFT ,ROTATE_RIGHT ,MOVE_ARM_HEIGHT_P ,MOVE_ARM_HEIGHT_M ,MOVE_ARM_X_P ,MOVE_ARM_X_M ,MOVE_ARM_Y_P ,MOVE_ARM_Y_M ,MOVE_ARM_Z_P ,MOVE_ARM_Z_M ,PICKUP ,DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL
 
 
 def hacky_visualization(observations, object_mask=None, base_directory_to_right_images='', query_objects=None, gt_mask=None, text_to_write=None, distance_vector_to_viz=None):
     def unnormalize_image(img):
         # img = img.squeeze(0).squeeze(0)
-        mean=torch.Tensor([0.485, 0.456, 0.406]).to(img.device)
-        std=torch.Tensor([0.229, 0.224, 0.225]).to(img.device)
+        mean=torch.Tensor([0.48145466, 0.4578275, 0.40821073]).to(img.device)
+        std=torch.Tensor([0.26862954, 0.26130258, 0.27577711]).to(img.device)
         img = (img * std + mean)
         img = torch.clamp(img, 0, 1)
         return img
@@ -263,3 +265,32 @@ def depth_to_rgb(frame):
     frame = np.expand_dims(frame, axis=-1)
     frame = np.tile(frame,(1,1,3))
     return frame
+
+def log_ac_return(ac: ActorCriticOutput, task_id_obs):
+    os.makedirs("experiment_output/ac-data/", exist_ok=True)
+    assert len(task_id_obs.shape) == 3
+    assert task_id_obs.shape[0] == 1
+
+    for i in range(len(task_id_obs[0])):
+        task_id = "".join(
+            [
+                chr(int(k))
+                for k in task_id_obs[0, i]
+                if chr(int(k)) != " "
+            ]
+        )
+
+        with open(f"experiment_output/ac-data/{task_id}.txt", "a") as f:
+            estimated_value = ac.values[0, i].item()
+            policy = F.softmax(
+                ac.distributions.logits[0, i]
+            ).tolist()
+            f.write(",".join(map(str, policy + [estimated_value])) + "\n")
+    # action_dist = ac.distributions.probs_tensor.numpy()
+    # critic_dist = ac.values.numpy()
+    # log_path = os.path.join('experiment_output/visualizations_masks', specific_log_directory)
+    # os.makedirs(log_path, exist_ok=True)
+    # file_name = "action_dist_and_critic_values.txt"
+    # # cv2.imwrite(, (combined[:,:,[2,1,0]] * 255.).int().cpu().numpy())
+    # with open(os.path.join(log_path, file_name), "a") as logfile:
+    #     logfile.write("appended text")

@@ -21,7 +21,7 @@ from allenact.embodiedai.models.visual_nav_models import (
 )
 
 from manipulathor_utils.debugger_util import ForkedPdb
-from utils.hacky_viz_utils import hacky_visualization
+from utils.hacky_viz_utils import hacky_visualization, log_ac_return
 
 class ResnetTensorNavNCameraActorCritic(VisualNavActorCritic):
     def __init__(
@@ -98,10 +98,15 @@ class ResnetTensorNavNCameraActorCritic(VisualNavActorCritic):
     #         hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
     #     return super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
 
-    # def forward(self, **kwargs): #TODO NOW remove
-    #     if self.visualize:
-    #         hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
-    #     return super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
+    def forward(self, **kwargs):
+        actor_critic_output, memory = super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
+        # ForkedPdb().set_trace()
+        if self.visualize:
+            # hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
+            log_ac_return(actor_critic_output,kwargs['observations']["task_id_sensor"])
+
+            
+        return actor_critic_output, memory
 
 
 class ResnetNCameraTensorGoalEncoder(nn.Module):

@@ -8,6 +8,8 @@ from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.ob
     import ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV
 from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
 
+from manipulathor_baselines.stretch_object_nav_baselines.models.clip_resnet_ncamera_preprocess_mixin \
+    import TaskIdSensor
 
 class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
     ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV
@@ -17,6 +19,10 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
 
     with open('datasets/objects/robothor_habitat2022.yaml', 'r') as f:
         OBJECT_TYPES=yaml.safe_load(f)
+
+    # NUM_PROCESSES = 1
+    # NUMBER_OF_TEST_PROCESS = 0
+    # NUMBER_OF_VALID_PROCESS = 0
         
 
     SENSORS = [
@@ -39,6 +45,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
         GoalObjectTypeThorSensor(
             object_types=OBJECT_TYPES,
         ),
+        TaskIdSensor(),
     ]
 
     if platform.system() == "Darwin":

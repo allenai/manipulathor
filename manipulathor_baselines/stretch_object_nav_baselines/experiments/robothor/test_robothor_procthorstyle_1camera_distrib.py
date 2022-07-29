@@ -10,6 +10,8 @@ from utils.procthor_utils.procthor_object_nav_task_samplers import RoboThorObjec
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 from manipulathor_utils.debugger_util import ForkedPdb
 
+import prior
+
 from allenact.base_abstractions.experiment_config import MachineParams
 from allenact.base_abstractions.preprocessor import SensorPreprocessorGraph
 from allenact.utils.experiment_utils import evenly_distribute_count_into_bins
@@ -20,9 +22,10 @@ from allenact.base_abstractions.sensor import (
 
 class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly1CameraNarrowFOV):
 
-    EVAL_TASKS = datasets.load_dataset(
-        f"allenai/robothor-objectnav-eval", use_auth_token=True
-    )
+    # EVAL_TASKS = datasets.load_dataset(
+    #     f"allenai/robothor-objectnav-eval", use_auth_token=True
+    # )
+    EVAL_TASKS = prior.load_dataset(dataset="object-nav-eval",scene_datasets="robothor")
 
     TEST_TASK_SAMPLER = RoboThorObjectNavTestTaskSampler
     TEST_ON_VALIDATION = True
@@ -82,7 +85,7 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly1Ca
         out = self._get_sampler_args_for_scene_split(
             houses=self.EVAL_TASKS["validation"].shuffle(),
             mode="eval",
-            max_tasks=10,
+            max_tasks=20,
             allow_flipping=False,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,  # ignored
             **kwargs,

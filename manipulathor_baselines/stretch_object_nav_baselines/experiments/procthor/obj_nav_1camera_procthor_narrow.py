@@ -8,6 +8,8 @@ from manipulathor_baselines.stretch_object_nav_baselines.experiments.procthor.ob
     import ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV
 from allenact_plugins.clip_plugin.clip_preprocessors import ClipResNetPreprocessor
 
+from manipulathor_baselines.stretch_object_nav_baselines.models.clip_resnet_ncamera_preprocess_mixin \
+    import TaskIdSensor
 
 class ProcTHORObjectNavClipResnet50RGBOnly1CameraNarrowFOV(
     ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV
@@ -31,6 +33,7 @@ class ProcTHORObjectNavClipResnet50RGBOnly1CameraNarrowFOV(
         GoalObjectTypeThorSensor(
             object_types=OBJECT_TYPES,
         ),
+        TaskIdSensor(),
     ]
 
     if platform.system() == "Darwin":

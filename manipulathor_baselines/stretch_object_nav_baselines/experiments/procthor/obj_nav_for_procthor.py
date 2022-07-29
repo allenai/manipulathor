@@ -5,6 +5,7 @@ import platform
 
 import datasets
 import numpy as np
+import prior
 
 from allenact.base_abstractions.preprocessor import (
     Preprocessor,
@@ -55,9 +56,10 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
 
     TEST_ON_VALIDATION = False
 
-    HOUSE_DATASET = datasets.load_dataset(
-        "allenai/houses", use_auth_token=True, ignore_verifications=True
-    ) # this loads even for inherited classes where is unused - not necessarily a problem 
+    # HOUSE_DATASET = datasets.load_dataset(
+    #     "allenai/houses", use_auth_token=True, ignore_verifications=True
+    # ) # this loads even for inherited classes where is unused - not necessarily a problem 
+    HOUSE_DATASET = prior.load_dataset("procthor-10k")
 
     NUM_TRAIN_HOUSES = None # none means all
 

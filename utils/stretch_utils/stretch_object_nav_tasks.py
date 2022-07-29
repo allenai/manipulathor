@@ -1,17 +1,15 @@
-from ast import For
-from dis import dis
-from email.encoders import encode_noop
+import os
+import json
+import copy
 import random
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Literal
 
 import signal
-import time
 
 import gym
-from importlib_metadata import Lookup
 import numpy as np
-from sklearn.metrics import recall_score
+import pandas as pd
 import torch
 from allenact.base_abstractions.misc import RLStepResult
 from allenact.base_abstractions.sensor import Sensor
@@ -20,6 +18,10 @@ from allenact.utils.cache_utils import DynamicDistanceCache
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
 from allenact.utils.system import get_logger
+from moviepy.editor import ImageSequenceClip
+from PIL import Image
+import matplotlib.pyplot as plt
+from manipulathor_baselines.stretch_object_nav_baselines.callbacks.local_logging import LocalLogging
 
 from utils.procthor_utils.procthor_helper import distance_to_object_id, position_dist, spl_metric
 from utils.stretch_utils.stretch_constants import (
@@ -81,11 +83,14 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         )  # the initial coordinate will be directly taken from the optimal path
         self.travelled_distance = 0.0
 
-        self.task_info["followed_path"] = [
-            self.env.last_event.metadata["agent"]["position"]
-        ]
+        pose = copy.deepcopy(self.env.last_event.metadata["agent"]["position"])
+        pose["rotation"] = self.env.last_event.metadata["agent"]["rotation"]["y"]
+        pose["horizon"] = self.env.last_event.metadata["agent"]["cameraHorizon"]
+        self.task_info["followed_path"] = [pose]
         self.task_info["taken_actions"] = []
         self.task_info["action_successes"] = []
+        self.task_info["rewards"] = []
+        self.task_info["dist_to_target"] = []
         self.agent_body_dist_to_obj = []
 
 
@@ -135,7 +140,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         if min_dist == float("inf"):
             get_logger().error(
                 f"No target object {self.task_info['object_type']} found"
-                f" in house {self.task_info['scene_name']}."
+                f" in house {self.task_info['house_name']}."
             )
             return -1.0
         return min_dist
@@ -151,7 +156,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                 env=self.env,
                 distance_cache=self.distance_cache,
                 object_id=object_id,
-                house_name=self.task_info["scene_name"],
+                house_name=self.task_info["house_name"],
             )
             if (min_dist is None and geo_dist >= 0) or (
                 geo_dist >= 0 and geo_dist < min_dist
@@ -263,11 +268,13 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         return result
 
     def shaping(self) -> float:
+        cur_distance = self.dist_to_target_func()
+        self.task_info["dist_to_target"].append(cur_distance)
+
         if self.reward_config['shaping_weight'] == 0.0:
             return 0
 
         reward = 0.0
-        cur_distance = self.dist_to_target_func()
 
         if self.distance_type == "l2":
             reward = max(self.closest_distance - cur_distance, 0)
@@ -318,8 +325,8 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             dict(x=p["x"], y=0.25, z=p["z"])
             for p in self._metrics["task_info"]["followed_path"]
         ]
-        if not self.env.last_event.third_party_camera_frames:
-            # assumes this is the only third party camera
+        # THIS ASSUMES BOTH CAMERAS ARE ON (slash only works for stretch with one third-party camera)
+        if len(self.env.controller.last_event.third_party_camera_frames) < 2:
             event = self.env.step({"action": "GetMapViewCameraProperties"})
             cam = event.metadata["actionReturn"].copy()
             cam["orthographicSize"] += 1
@@ -328,12 +335,147 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             )
         event = self.env.step({"action": "VisualizePath", "positions":agent_path})
         self.env.step({"action":"HideVisualizedPath"})
+        path = event.third_party_camera_frames[1]
+        # ForkedPdb().set_trace()
+
+        df = pd.read_csv(
+            f"experiment_output/ac-data/{self.task_info['id']}.txt",
+            names=list(self.class_action_names())+["EstimatedValue"],
+            # names=[
+            #     "MoveAhead",
+            #     "RotateLeft",
+            #     "RotateRight",
+            #     "End",
+            #     "LookUp",
+            #     "LookDown",
+            #     "EstimatedValue",
+            # ],
+        )
+        ForkedPdb().set_trace()
+        ep_length = self._metrics["ep_length"]
+
+        # get returns from each step
+        returns = []
+        for r in reversed(self.task_info["rewards"]):
+            if len(returns) == 0:
+                returns.append(r)
+            else:
+                returns.append(r + returns[-1] * 0.99) # gamma value
+        returns = returns[::-1]
+
+        video_frames = []
+        for step in range(self._metrics["ep_length"] + 1):
+            is_first_frame = step == 0
+            is_last_frame = step == self._metrics["ep_length"]
+
+            agent_frame = np.array(
+                Image.fromarray(self.observations[step]).resize((224, 224))
+            )
+            frame_number = step
+            dist_to_target = self.task_info["dist_to_target"][step]
+
+            if is_first_frame:
+                last_action_success = None
+                last_reward = None
+                return_value = None
+            else:
+                last_action_success = self.task_info["action_successes"][step - 1]
+                last_reward = self.task_info["rewards"][step - 1]
+                return_value = returns[step - 1]
+
+            if is_last_frame:
+                action_dist = None
+                critic_value = None
+
+                taken_action = None
+            else:
+                policy_critic_value = df.iloc[step].values.tolist()
+                action_dist = policy_critic_value[:6]
+                critic_value = policy_critic_value[6]
+
+                taken_action = self.task_info["taken_actions"][step]
+
+            video_frame = LocalLogging.get_video_frame(
+                agent_frame=agent_frame,
+                frame_number=frame_number,
+                last_reward=(
+                    round(last_reward, 2) if last_reward is not None else None
+                ),
+                critic_value=(
+                    round(critic_value, 2) if critic_value is not None else None
+                ),
+                return_value=(
+                    round(return_value, 2) if return_value is not None else None
+                ),
+                dist_to_target=round(dist_to_target, 2),
+                action_dist=action_dist,
+                ep_length=ep_length,
+                last_action_success=last_action_success,
+                taken_action=taken_action,
+            )
+            video_frames.append(video_frame)
+
+        for _ in range(9):
+            video_frames.append(video_frames[-1])
+
+        os.makedirs(f"trajectories/{self.task_info['id']}", exist_ok=True)
+
+        imsn = ImageSequenceClip([frame for frame in video_frames], fps=10)
+        imsn.write_videofile(f"trajectories/{self.task_info['id']}/frames.mp4")
+
+        # save the top-down path
+        Image.fromarray(path).save(f"trajectories/{self.task_info['id']}/path.png")
+
+        # save the value function over time
+        fig, ax = plt.subplots()
+        estimated_values = df.EstimatedValue.to_numpy()
+        ax.plot(estimated_values, label="Critic Estimated Value")
+        ax.plot(returns, label="Return")
+        ax.set_ylabel("Value")
+        ax.set_xlabel("Time Step")
+        ax.set_title("Value Function over Time")
+        ax.legend()
+        fig.savefig(
+            f"trajectories/{self.task_info['id']}/value_fn.svg",
+            bbox_inches="tight",
+        )
+
+        with open(f"trajectories/{self.task_info['id']}/data.json", "w") as f:
+            json.dump(
+                {
+                    "id": self.task_info["id"],
+                    "spl": self._metrics["spl"],
+                    "success": self._metrics["success"],
+                    "finalDistance": self.task_info["dist_to_target"][-1],
+                    "initialDistance": self.task_info["dist_to_target"][0],
+                    "minDistance": min(self.task_info["dist_to_target"]),
+                    "episodeLength": self._metrics["ep_length"],
+                    "confidence": (
+                        None
+                        if self.task_info["taken_actions"][-1] != "End"
+                        else df.End.to_list()[-1]
+                    ),
+                    "failedActions": len(
+                        [s for s in self.task_info["action_successes"] if not s]
+                    ),
+                    "targetObjectType": self.task_info["object_type"],
+                    "numTargetObjects": len(self.task_info["target_object_ids"]),
+                    "mirrored": self.task_info["mirrored"],
+                    "scene": {
+                        "name": self.task_info["house_name"],
+                        "split": "train",
+                        "rooms": 1,
+                    },
+                },
+                f,
+            )
 
         return {
             "observations": self.observations,
-            "path": event.third_party_camera_frames[0],
+            "path": path,
             **self._metrics,
         }
+
 
     def metrics(self) -> Dict[str, Any]:
         if self.is_done():
@@ -383,7 +525,16 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
 
             position = self.env.last_event.metadata["agent"]["position"]
             self.path.append(position)
-            self.task_info["followed_path"].append(position)
+            pose = copy.deepcopy(
+                self.env.last_event.metadata["agent"]["position"]
+            )
+            pose["rotation"] = self.env.last_event.metadata["agent"]["rotation"][
+                "y"
+            ]
+            pose["horizon"] = self.env.last_event.metadata["agent"][
+                "cameraHorizon"
+            ]
+            self.task_info["followed_path"].append(pose)            
             self.task_info["action_successes"].append(self.last_action_success)
 
         if len(self.path) > 1:
@@ -399,6 +550,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                 ))
 
         if self.additional_visualize:
+            # TODO: does not include second camera.
             self.observations.append(self.env.last_event.frame)
         self.visualize(action_str)
 
@@ -426,6 +578,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             reward += self.reward_config['reached_horizon_reward']
 
         self._rewards.append(float(reward))
+        self.task_info["rewards"].append(float(reward))
         return float(reward)
 
 
@@ -524,6 +677,7 @@ class StretchObjectNavTaskSegmentationSuccessActionFail(StretchObjectNavTaskKine
             reward += self.reward_config['reached_horizon_reward']
 
         self._rewards.append(float(reward))
+        self.task_info["rewards"].append(float(reward))
         return float(reward)
 
 
@@ -570,6 +724,7 @@ class ExploreWiseObjectNavTask(StretchObjectNavTaskSegmentationSuccessActionFail
         elif self.num_steps_taken() + 1 >= self.max_steps:
             reward += self.reward_config['reached_horizon_reward']
         self._rewards.append(float(reward))
+        self.task_info["rewards"].append(float(reward))
         return float(reward)
     
     def metrics(self) -> Dict[str, Any]:
