@@ -688,6 +688,7 @@ class StretchObjectNavTask(StretchExploreWiseRewardTask):
             self.last_body_to_obj_distance = current_obj_to_body_distance
             reward += delta_body_to_obj_distance_reward * self.reward_configs["arm_dist_multiplier"]
 
+        #TODO delta distance
 
         # add collision cost, maybe distance to goal objective,...
 

@@ -3,7 +3,9 @@ import pdb
 import time
 import psutil
 
-servers = [('aws1', 6006), ('aws5', 6007)]
+# servers = [('aws1', 6006), ('aws5', 6007)]
+
+servers = [('aws8', 6006), ('aws12', 6007)]
 
 
 while(True):
