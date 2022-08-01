@@ -10,7 +10,7 @@ class PointNavEmulStretchAllRoomsNoisyMotionWithISDFDistrib(
     NUM_PROCESSES = 8
     def __init__(
             self,
-            distributed_nodes: int = 3,
+            distributed_nodes: int = 4,
     ):
         super().__init__()
         self.distributed_nodes = distributed_nodes
