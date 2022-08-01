@@ -396,15 +396,12 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
                             self.sdf_trainers[batch].optim_frames = self.sdf_trainers[batch].iters_per_kf
                         et = time.perf_counter()
                         is_keyframe_time += (et - st)
-                    print("optim frames", self.sdf_trainers[batch].optim_frames)
 
                     st = time.perf_counter()
                     losses, _ = self.sdf_trainers[batch].step()
 
                     for i in range(self.sdf_trainers[batch].optim_frames // step_scale):
-                        print("i", i)
                         losses, _ = self.sdf_trainers[batch].step()
-                    print("losses", losses)
                     et = time.perf_counter()
                     optim_time += (et - st)
 
@@ -438,7 +435,6 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
                     render_time += (et - st)
                 else:
                     batch_outputs = torch.stack(batch_outputs)
-                print("batch_outputs", batch_outputs.shape)
                 all_outputs.append(batch_outputs)
         all_outputs = torch.stack(all_outputs)
         all_outputs = all_outputs.detach()
@@ -530,7 +526,6 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
             map_embedding = compute_cnn_output(self.map_encoder, all_maps)
         else:
             map_embedding = all_maps
-        print("map embedding", map_embedding.shape)
 #        map_embedding = torch.zeros((observations['rgb_lowres'].shape[0], 
 #                                     observations['rgb_lowres'].shape[1],
 #                                     512), device=observations['rgb_lowres'].device)
