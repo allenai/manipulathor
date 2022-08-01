@@ -12,6 +12,9 @@ from allenact.base_abstractions.callbacks import Callback
 from moviepy.editor import ImageSequenceClip
 from PIL import Image, ImageDraw, ImageFont
 
+from manipulathor_utils.debugger_util import ForkedPdb
+import cv2
+
 
 class LocalLogging(Callback):
     def __init__(self):
@@ -274,6 +277,7 @@ class LocalLogging(Callback):
     def get_video_frame(
         agent_frame: np.ndarray,
         frame_number: int,
+        action_names: List[str],
         last_reward: Optional[float],
         critic_value: Optional[float],
         return_value: Optional[float],
@@ -283,11 +287,23 @@ class LocalLogging(Callback):
         last_action_success: Optional[bool],
         taken_action: Optional[str],
     ) -> np.array:
-        image = np.full((300, 470, 3), 255, dtype=np.uint8)
+        
+        agent_height, agent_width, ch = agent_frame.shape
+        # cv2.imshow("Image", agent_frame)
+        # cv2.waitKey(0)
+        IMAGE_BORDER = 25
+        TEXT_OFFSET_H = 60
+        TEXT_OFFSET_V = 30
 
-        TOP_OFFSET = 25
+        image_dims = (agent_height + 2*IMAGE_BORDER +  30,
+                        agent_width + 2*IMAGE_BORDER + 200,
+                        ch)
+        # ForkedPdb().set_trace()
+        image = np.full(image_dims, 255, dtype=np.uint8)
+
+        
         image[
-            TOP_OFFSET : TOP_OFFSET + 224, TOP_OFFSET : TOP_OFFSET + 224, :
+            IMAGE_BORDER : IMAGE_BORDER + agent_height, IMAGE_BORDER : IMAGE_BORDER + agent_width, :
         ] = agent_frame
 
         text_image = Image.fromarray(image)
@@ -296,19 +312,19 @@ class LocalLogging(Callback):
         if action_dist is not None:
             for i, (prob, action) in enumerate(
                 zip(
-                    action_dist,
-                    [
-                        "MoveAhead",
-                        "RotateLeft",
-                        "RotateRight",
-                        "End",
-                        "LookUp",
-                        "LookDown",
-                    ],
+                    action_dist,action_names
+                    # [
+                    #     "MoveAhead",
+                    #     "RotateLeft",
+                    #     "RotateRight",
+                    #     "End",
+                    #     "LookUp",
+                    #     "LookDown",
+                    # ],
                 )
             ):
                 img_draw.text(
-                    (TOP_OFFSET * 2 + 224 + 60, 35 + i * 20),
+                    (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, (TEXT_OFFSET_V+5) + i * 20),
                     action,
                     font=ImageFont.truetype("Arial.ttf", 14),
                     fill="gray" if action != taken_action else "black",
@@ -316,17 +332,17 @@ class LocalLogging(Callback):
                 )
                 img_draw.rectangle(
                     (
-                        TOP_OFFSET * 2 + 224 + 65,
-                        30 + i * 20,
-                        TOP_OFFSET * 2 + 224 + 65 + int(100 * prob),
-                        40 + i * 20,
+                        IMAGE_BORDER * 2 + agent_width + (TEXT_OFFSET_H+5),
+                        TEXT_OFFSET_V + i * 20,
+                        IMAGE_BORDER * 2 + agent_width + (TEXT_OFFSET_H+5) + int(100 * prob),
+                        (TEXT_OFFSET_V+10) + i * 20,
                     ),
                     outline="blue",
                     fill="blue",
                 )
 
         img_draw.text(
-            (TOP_OFFSET * 1.1, TOP_OFFSET * 1),
+            (IMAGE_BORDER * 1.1, IMAGE_BORDER * 1),
             str(frame_number),
             font=ImageFont.truetype("Arial.ttf", 25),
             fill="white",
@@ -335,14 +351,14 @@ class LocalLogging(Callback):
         oset = -10
         if last_reward is not None:
             img_draw.text(
-                (TOP_OFFSET * 2 + 224 + 60, TOP_OFFSET * 1 + 175 + oset),
+                (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 175 + oset),
                 "Last Reward:",
                 font=ImageFont.truetype("Arial.ttf", 14),
                 fill="gray",
                 anchor="rm",
             )
             img_draw.text(
-                (TOP_OFFSET * 2 + 224 + 60, TOP_OFFSET * 1 + 175 + oset),
+                (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 175 + oset),
                 " " + ("+" if last_reward > 0 else "") + str(last_reward),
                 font=ImageFont.truetype("Arial.ttf", 14),
                 fill="gray",
@@ -352,14 +368,14 @@ class LocalLogging(Callback):
         oset = 10
         if critic_value is not None:
             img_draw.text(
-                (TOP_OFFSET * 2 + 224 + 60, TOP_OFFSET * 1 + 175 + oset),
+                (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 175 + oset),
                 "Critic Value:",
                 font=ImageFont.truetype("Arial.ttf", 14),
                 fill="gray",
                 anchor="rm",
             )
             img_draw.text(
-                (TOP_OFFSET * 2 + 224 + 60, TOP_OFFSET * 1 + 175 + oset),
+                (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 175 + oset),
                 " " + ("+" if critic_value > 0 else "") + str(critic_value),
                 font=ImageFont.truetype("Arial.ttf", 14),
                 fill="gray",
@@ -368,14 +384,14 @@ class LocalLogging(Callback):
 
         if return_value is not None:
             img_draw.text(
-                (TOP_OFFSET * 2 + 224 + 60, TOP_OFFSET * 1 + 195 + oset),
+                (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 195 + oset),
                 "Return:",
                 font=ImageFont.truetype("Arial.ttf", 14),
                 fill="gray",
                 anchor="rm",
             )
             img_draw.text(
-                (TOP_OFFSET * 2 + 224 + 60, TOP_OFFSET * 1 + 195 + oset),
+                (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 195 + oset),
                 " " + ("+" if return_value > 0 else "") + str(return_value),
                 font=ImageFont.truetype("Arial.ttf", 14),
                 fill="gray",
@@ -384,14 +400,14 @@ class LocalLogging(Callback):
 
         if last_action_success is not None:
             img_draw.text(
-                (TOP_OFFSET * 2 + 224 + 60, TOP_OFFSET * 1 + 235),
+                (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 235),
                 "Last Action:",
                 font=ImageFont.truetype("Arial.ttf", 14),
                 fill="gray",
                 anchor="rm",
             )
             img_draw.text(
-                (TOP_OFFSET * 2 + 224 + 60, TOP_OFFSET * 1 + 235),
+                (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 235),
                 " Success" if last_action_success else " Failure",
                 font=ImageFont.truetype("Arial.ttf", 14),
                 fill="green" if last_action_success else "red",
@@ -399,36 +415,39 @@ class LocalLogging(Callback):
             )
 
         img_draw.text(
-            (TOP_OFFSET * 2 + 224 + 60, TOP_OFFSET * 1 + 145),
+            (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 145),
             "Target Dist:",
             font=ImageFont.truetype("Arial.ttf", 14),
             fill="gray",
             anchor="rm",
         )
         img_draw.text(
-            (TOP_OFFSET * 2 + 224 + 60, TOP_OFFSET * 1 + 145),
+            (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 145),
             f" {dist_to_target}m",
             font=ImageFont.truetype("Arial.ttf", 14),
             fill="gray",
             anchor="lm",
         )
 
+        lower_offset = 10
+        progress_bar_height = 20
+
         img_draw.rectangle(
             (
-                TOP_OFFSET,
-                224 + TOP_OFFSET + 10,
-                TOP_OFFSET + 224,
-                224 + TOP_OFFSET + 20 + 10,
+                IMAGE_BORDER,
+                agent_height + IMAGE_BORDER + lower_offset,
+                IMAGE_BORDER + agent_width,
+                agent_height + IMAGE_BORDER + progress_bar_height + lower_offset,
             ),
             outline="lightgray",
             fill="lightgray",
         )
         img_draw.rectangle(
             (
-                TOP_OFFSET,
-                224 + TOP_OFFSET + 10,
-                TOP_OFFSET + int(frame_number * 224 / ep_length),
-                224 + TOP_OFFSET + 20 + 10,
+                IMAGE_BORDER,
+                agent_height + IMAGE_BORDER + lower_offset,
+                IMAGE_BORDER + int(frame_number * agent_width / ep_length),
+                agent_height + IMAGE_BORDER + progress_bar_height + lower_offset,
             ),
             outline="blue",
             fill="blue",

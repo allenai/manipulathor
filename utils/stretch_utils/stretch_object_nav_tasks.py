@@ -41,6 +41,27 @@ from datetime import datetime
 def handler(signum, frame):
     raise Exception("Controller call took too long")
 
+def unnormalize_image(img):
+    # img = img.squeeze(0).squeeze(0)
+    mean=np.array([0.48145466, 0.4578275, 0.40821073])
+    std=np.array([0.26862954, 0.26130258, 0.27577711])
+    img = (img * std + mean)
+    img = np.clip(img, 0, 1) * 255
+    return img.astype('uint8')
+
+def get_true_sensor_obs(obs):
+    if 'rgb_lowres' in obs:
+        viz_image = obs['rgb_lowres']
+        viz_image = unnormalize_image(viz_image)
+        list_of_visualizations = [viz_image]
+    if 'rgb_lowres_arm' in obs:
+        kinect_image = obs['rgb_lowres_arm']
+        kinect_image = unnormalize_image(kinect_image)
+        list_of_visualizations.append(kinect_image)
+    combined = np.concatenate(list_of_visualizations, axis=1)
+    return combined
+
+
 class ObjectNavTask(Task[ManipulaTHOREnvironment]):
     _actions = (
         MOVE_AHEAD,
@@ -118,7 +139,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             if additional_visualize is not None
             else (self.task_info["mode"] == "eval" or random.random() < 1 / 1000)
         )
-        self.observations = [self.env.last_event.frame]
+        self.observations = [get_true_sensor_obs(self.get_observations())]#[self.env.last_event.frame]
         self._metrics = None
 
     def min_l2_distance_to_target(self) -> float:
@@ -371,14 +392,9 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             is_last_frame = step == self._metrics["ep_length"]
 
             agent_frame = np.array(
-                Image.fromarray(self.observations[step]).resize((224, 224))
+                Image.fromarray(self.observations[step])#.resize((224*2, 224))
             )
             frame_number = step
-            # try:
-            #     dist_to_target = self.task_info["dist_to_target"][step]
-            # except:
-            #     ForkedPdb().set_trace()
-
 
             if is_first_frame:
                 last_action_success = None
@@ -406,6 +422,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             video_frame = LocalLogging.get_video_frame(
                 agent_frame=agent_frame,
                 frame_number=frame_number,
+                action_names=self.class_action_names(),
                 last_reward=(
                     round(last_reward, 2) if last_reward is not None else None
                 ),
@@ -559,7 +576,23 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
 
         if self.additional_visualize:
             # TODO: does not include second camera.
-            self.observations.append(self.env.last_event.frame)
+            self.observations.append(get_true_sensor_obs(self.get_observations()))
+            # obs=self.get_observations()
+            # if 'rgb_lowres' in obs:
+            #     viz_image = obs['rgb_lowres']
+            #     viz_image = unnormalize_image(viz_image)
+            #     list_of_visualizations = [viz_image]
+            # if 'rgb_lowres_arm' in obs:
+            #     kinect_image = obs['rgb_lowres_arm']
+            #     kinect_image = unnormalize_image(kinect_image)
+            #     list_of_visualizations.append(kinect_image)
+            # combined = np.concatenate(list_of_visualizations, axis=1)
+            # ForkedPdb().set_trace()
+            # self.observations.append(combined)
+            
+            # ForkedPdb().set_trace()
+
+            # self.observations.append(self.env.last_event.frame)
         self.visualize(action_str)
 
         step_result = RLStepResult(
