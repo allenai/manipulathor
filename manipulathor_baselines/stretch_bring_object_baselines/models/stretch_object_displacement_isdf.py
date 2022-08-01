@@ -156,9 +156,9 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         self.device = None
         self.sdf_trainers = []
         self.no_norm = False
-        self.config_file = "/home/karls/iSDF/isdf/train/configs/thor_live.json"
+        self.config_file = "../iSDF/isdf/train/configs/thor_live.json"
         if self.no_norm:
-            self.config_file = "/home/karls/iSDF/isdf/train/configs/thor_live_no_norm.json"
+            self.config_file = "../iSDF/isdf/train/configs/thor_live_no_norm.json"
 
         self.max_depth = 5.0
         # Only apply min depth to the arm camera to filter out pictures of the arm
