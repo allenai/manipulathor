@@ -976,7 +976,10 @@ class KinectAgentMask(Sensor):
     def get_observation(
         self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
-        agent_mask_keys = [k for k in env.controller.last_event.object_id_to_color if 'stretch' in k or 'agent' in k]
+        agent_mask_keys = [k for k in env.controller.last_event.object_id_to_color if 'stretch' in k
+                                                                                     or 'agent' in k
+                                                                                     or 'robot' in k
+                                                                                     or 'MagnetRenderer' in k]
         mask = np.zeros((self.height, self.width), dtype=np.bool)
         for k in agent_mask_keys:
             color = env.controller.last_event.object_id_to_color[k]
