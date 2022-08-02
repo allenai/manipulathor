@@ -234,6 +234,10 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
             self.sdf_encoder = NetworkEncoderModel(self.init_new_map().sdf_map)
 
 
+        self.multiprocessing = False
+        if self.multiprocessing:
+            self.obs_queue = torch.multiprocessing.Queue()
+            self.output_queue = torch.multiprocessing.Queue()
 
         self.cmap = get_colormap()
 
@@ -466,6 +470,32 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         ego_maps = ego_maps.permute(0, 2, 3, 1).reshape(global_maps.shape)
         return ego_maps
 
+    def update_maps_multiprocessing(self, observations, masks):
+        from manipulathor_baselines.stretch_bring_object_baselines.models.sdf_trainer_multiprocessing_wrapper import start_process
+        num_batches = observations['depth_lowres'].shape[1]
+        for i in range(num_batches):
+            if i > len(self.sdf_trainers) - 1:
+                p = torch.multiprocessing.Process(target=start_process,
+                                                  args=(i, self.device, self.obs_queue, self.output_queue))
+                p.start()
+                self.sdf_trainers.append(p)
+            
+        for i in range(num_batches):
+            self.obs_queue.put((observations, masks))
+            print("sent obs", i)
+    
+        output_unsorted = []
+        for i in range(num_batches):
+            output_unsorted.append(self.output_queue.get())
+            print("got output", output_unsorted[-1][0])
+        output = [o[1] for o in sorted(output_unsorted)]
+        
+        output = torch.stack(output)
+        output = output.permute(1, 0, 2, 3, 4)
+        return output
+
+
+
     def forward(  # type:ignore
         self,
         observations: ObservationType,
@@ -502,7 +532,11 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
             self.dirs_c_batch_camera_arm = self.dirs_c_batch_camera_arm.to(self.device)
 
         mapping_start_time = time.perf_counter()
-        all_maps = self.update_maps(observations, masks)
+        if self.multiprocessing:
+            all_maps = self.update_maps_multiprocessing(observations, masks)
+        else:
+            all_maps = self.update_maps(observations, masks)
+        print("all_maps", all_maps.shape)
         #all_maps = self.transform_global_map_to_ego_map(all_maps, observations['odometry_emul']['agent_info'])
         if all_maps.shape[0] > 1:
             end_time = time.perf_counter()
