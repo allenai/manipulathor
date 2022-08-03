@@ -85,7 +85,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             trainable_masked_hidden_state: bool = False,
             num_rnn_layers=1,
             rnn_type="GRU",
-            learn_pose=True,
+            learn_pose=False,
             visualize=False,
             ):
         super().__init__(action_space=action_space, observation_space=observation_space)
