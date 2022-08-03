@@ -7,7 +7,7 @@ from manipulathor_baselines.stretch_bring_object_baselines.experiments.ithor.poi
 class PointNavEmulStretchAllRoomsNoisyMotionWithMapDistrib(
     PointNavEmulStretchAllRoomsNoisyMotionWithMap
 ):
-    NUM_PROCESSES = 15
+    NUM_PROCESSES = 11
     def __init__(
             self,
             distributed_nodes: int = 4,
