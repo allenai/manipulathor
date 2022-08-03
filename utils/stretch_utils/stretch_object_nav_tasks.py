@@ -130,6 +130,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         self.last_distance = self.dist_to_target_func()
         self.optimal_distance = self.last_distance
         self.closest_distance = self.last_distance
+        self.task_info["dist_to_target"].append(self.last_distance)
 
         self.visualizers = visualizers
         self.start_visualize()
@@ -341,36 +342,28 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         if not self.additional_visualize:
             return None
 
-        # NOTE: Create top-down trajectory path visualization
-        agent_path = [
-            dict(x=p["x"], y=0.25, z=p["z"])
-            for p in self._metrics["task_info"]["followed_path"]
-        ]
-        # THIS ASSUMES BOTH CAMERAS ARE ON (slash only works for stretch with one third-party camera)
-        if len(self.env.controller.last_event.third_party_camera_frames) < 2:
-            event = self.env.step({"action": "GetMapViewCameraProperties"})
-            cam = event.metadata["actionReturn"].copy()
-            cam["orthographicSize"] += 1
-            self.env.step(
-                {"action": "AddThirdPartyCamera", "skyboxColor":"white", **cam}
-            )
-        event = self.env.step({"action": "VisualizePath", "positions":agent_path})
-        self.env.step({"action":"HideVisualizedPath"})
-        path = event.third_party_camera_frames[1]
-        # ForkedPdb().set_trace()
+
+        if self.distance_type != "real_world":
+            # NOTE: Create top-down trajectory path visualization
+            agent_path = [
+                dict(x=p["x"], y=0.25, z=p["z"])
+                for p in self._metrics["task_info"]["followed_path"]
+            ]
+            # THIS ASSUMES BOTH CAMERAS ARE ON (slash only works for stretch with one third-party camera)
+            if len(self.env.controller.last_event.third_party_camera_frames) < 2:
+                event = self.env.step({"action": "GetMapViewCameraProperties"})
+                cam = event.metadata["actionReturn"].copy()
+                cam["orthographicSize"] += 1
+                self.env.step(
+                    {"action": "AddThirdPartyCamera", "skyboxColor":"white", **cam}
+                )
+            event = self.env.step({"action": "VisualizePath", "positions":agent_path})
+            self.env.step({"action":"HideVisualizedPath"})
+            path = event.third_party_camera_frames[1]
 
         df = pd.read_csv(
             f"experiment_output/ac-data/{self.task_info['id']}.txt",
             names=list(self.class_action_names())+["EstimatedValue"],
-            # names=[
-            #     "MoveAhead",
-            #     "RotateLeft",
-            #     "RotateRight",
-            #     "End",
-            #     "LookUp",
-            #     "LookDown",
-            #     "EstimatedValue",
-            # ],
         )
         try:
             ep_length = self._metrics["ep_length"]
@@ -395,6 +388,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                 Image.fromarray(self.observations[step])#.resize((224*2, 224))
             )
             frame_number = step
+            dist_to_target = self.task_info["dist_to_target"][step]
 
             if is_first_frame:
                 last_action_success = None
@@ -408,14 +402,11 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
             if is_last_frame:
                 action_dist = None
                 critic_value = None
-
                 taken_action = None
-                dist_to_target = self.task_info["dist_to_target"][step-1]
             else:
                 policy_critic_value = df.iloc[step].values.tolist()
                 action_dist = policy_critic_value[:5] # set programmatically
                 critic_value = policy_critic_value[5]
-                dist_to_target = self.task_info["dist_to_target"][step]
 
                 taken_action = self.task_info["taken_actions"][step]
 
@@ -443,13 +434,14 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         for _ in range(9):
             video_frames.append(video_frames[-1])
 
-        os.makedirs(f"trajectories/{self.task_info['id']}", exist_ok=True)
+        os.makedirs(f"experiment_output/trajectories/{self.task_info['id']}", exist_ok=True)
 
         imsn = ImageSequenceClip([frame for frame in video_frames], fps=10)
-        imsn.write_videofile(f"trajectories/{self.task_info['id']}/frames.mp4")
+        imsn.write_videofile(f"experiment_output/trajectories/{self.task_info['id']}/frames.mp4")
 
         # save the top-down path
-        Image.fromarray(path).save(f"trajectories/{self.task_info['id']}/path.png")
+        if self.distance_type != "real_world":
+            Image.fromarray(path).save(f"experiment_output/trajectories/{self.task_info['id']}/path.png")
 
         # save the value function over time
         fig, ax = plt.subplots()
@@ -461,11 +453,11 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         ax.set_title("Value Function over Time")
         ax.legend()
         fig.savefig(
-            f"trajectories/{self.task_info['id']}/value_fn.svg",
+            f"experiment_output/trajectories/{self.task_info['id']}/value_fn.svg",
             bbox_inches="tight",
         )
 
-        with open(f"trajectories/{self.task_info['id']}/data.json", "w") as f:
+        with open(f"experiment_output/trajectories/{self.task_info['id']}/data.json", "w") as f:
             json.dump(
                 {
                     "id": self.task_info["id"],
@@ -497,7 +489,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
 
         return {
             "observations": self.observations,
-            "path": path,
+            "path": [],#path,
             **self._metrics,
         }
 
@@ -506,7 +498,8 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         if self.is_done():
             result={} # placeholder for future
             metrics = super().metrics()
-            metrics = {**metrics, **self.calc_action_stat_metrics()}
+            if self.distance_type != "real_world":
+                metrics = {**metrics, **self.calc_action_stat_metrics()}
             metrics["dist_to_target"] = self.dist_to_target_func()
             metrics["total_reward"] = np.sum(self._rewards)
             metrics["spl"] = spl_metric(
@@ -575,24 +568,8 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
                 ))
 
         if self.additional_visualize:
-            # TODO: does not include second camera.
             self.observations.append(get_true_sensor_obs(self.get_observations()))
-            # obs=self.get_observations()
-            # if 'rgb_lowres' in obs:
-            #     viz_image = obs['rgb_lowres']
-            #     viz_image = unnormalize_image(viz_image)
-            #     list_of_visualizations = [viz_image]
-            # if 'rgb_lowres_arm' in obs:
-            #     kinect_image = obs['rgb_lowres_arm']
-            #     kinect_image = unnormalize_image(kinect_image)
-            #     list_of_visualizations.append(kinect_image)
-            # combined = np.concatenate(list_of_visualizations, axis=1)
-            # ForkedPdb().set_trace()
-            # self.observations.append(combined)
-            
-            # ForkedPdb().set_trace()
 
-            # self.observations.append(self.env.last_event.frame)
         self.visualize(action_str)
 
         step_result = RLStepResult(
@@ -783,10 +760,12 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
         self.start_time = datetime.now()
         self.last_time = None
         signal.signal(signal.SIGALRM, handler)
+        self.additional_visualize = True
     
     def _step(self, action: int) -> RLStepResult:
 
         action_str = self.class_action_names()[action]
+        self.task_info["taken_actions"].append(action_str)
         print('Model Said', action_str, ' as action ', str(self.num_steps_taken()))
 
         self.manual_action = False
@@ -809,12 +788,28 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
         
         signal.alarm(0)
 
+        obj_distance = self.dist_to_target_func()
+
         if action_str == "Done" or end_ep_early:
             self._took_end_action = True
             dt_total = (datetime.now() - self.start_time).total_seconds()/60
             print('I think I found a ', self.task_info['object_type'], ' after ', str(dt_total), ' minutes.' )
             print('Was I correct? Set self._success in trace. Default false.')            
             ForkedPdb().set_trace()
+            
+
+            print('How far was my spine from the object of interest? Set obj_distance in meters in trace.')
+            ForkedPdb().set_trace()
+        # else:
+        
+        nominal = self.env.nominal_agent_location
+        position = dict(x=nominal["x"], y=nominal["y"], z=nominal["z"], )
+        self.path.append(position)
+        
+        pose = copy.deepcopy(nominal)
+        self.task_info["followed_path"].append(pose)            
+        self.task_info["action_successes"].append("unknown")
+        self.task_info["dist_to_target"].append(obj_distance)
 
         if self.last_time is not None:
             dt = (datetime.now() - self.last_time).total_seconds()
@@ -825,6 +820,9 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
 
         last_action_name = self._last_action_str
         self.visualize(last_action_name)
+
+        if True: #self.additional_visualize:
+            self.observations.append(get_true_sensor_obs(self.get_observations()))
 
         step_result = RLStepResult(
             observation=self.get_observations(),
@@ -837,10 +835,26 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
     def judge(self) -> float:
         """Compute the reward after having taken a step."""
         reward = 0
+        self.task_info["rewards"].append(float(reward))
         return reward
     
-    def metrics(self):
-        return {}
+    def metrics(self) -> Dict[str, Any]:
+        if self.is_done():
+            # result={} # placeholder for future
+            metrics = super().metrics()
+            # metrics = {**metrics, **self.calc_action_stat_metrics()}
+            metrics["dist_to_target"] = self.task_info["dist_to_target"][-1]
+            metrics["total_reward"] = "Not computed for real"
+            metrics["spl"] = "Not computed for real"
+            metrics["success"] = self._success
+            # result["success"] = self._success
+            # self.finish_visualizer_metrics(result)
+            # self.finish_visualizer(self._success)
+
+            self._metrics = metrics
+            return metrics
+        else:
+            return {}
 
 
 

@@ -289,8 +289,7 @@ class LocalLogging(Callback):
     ) -> np.array:
         
         agent_height, agent_width, ch = agent_frame.shape
-        # cv2.imshow("Image", agent_frame)
-        # cv2.waitKey(0)
+
         IMAGE_BORDER = 25
         TEXT_OFFSET_H = 60
         TEXT_OFFSET_V = 30
@@ -298,7 +297,6 @@ class LocalLogging(Callback):
         image_dims = (agent_height + 2*IMAGE_BORDER +  30,
                         agent_width + 2*IMAGE_BORDER + 200,
                         ch)
-        # ForkedPdb().set_trace()
         image = np.full(image_dims, 255, dtype=np.uint8)
 
         
@@ -313,14 +311,6 @@ class LocalLogging(Callback):
             for i, (prob, action) in enumerate(
                 zip(
                     action_dist,action_names
-                    # [
-                    #     "MoveAhead",
-                    #     "RotateLeft",
-                    #     "RotateRight",
-                    #     "End",
-                    #     "LookUp",
-                    #     "LookDown",
-                    # ],
                 )
             ):
                 img_draw.text(

@@ -14,6 +14,9 @@ from utils.stretch_utils.stretch_object_nav_tasks import RealStretchObjectNavTas
 from manipulathor_baselines.stretch_object_nav_baselines.experiments.ithor.obj_nav_2camera_ithor_wide import \
      ithorObjectNavClipResnet50RGBOnly2CameraWideFOV
 
+from manipulathor_baselines.stretch_object_nav_baselines.models.clip_resnet_ncamera_preprocess_mixin \
+    import TaskIdSensor
+
 
 class RealStretchObjectNav(
     ithorObjectNavClipResnet50RGBOnly2CameraWideFOV
@@ -39,6 +42,7 @@ class RealStretchObjectNav(
         GoalObjectTypeThorSensor(
             object_types=ithorObjectNavClipResnet50RGBOnly2CameraWideFOV.OBJECT_TYPES, # doesn't matter for now, it's apples all the way dow
         ),
+        TaskIdSensor(),
     ]
 
     # this should only ever be run on darwin anyway - sensors for visualization

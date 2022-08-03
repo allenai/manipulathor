@@ -98,6 +98,9 @@ class StretchRealEnvironment(StretchManipulaTHOREnvironment):
         self.list_of_actions_so_far = []
         self.last_image_changed = True
 
+        self.nominal_agent_location = {'x': 0.0, 'y': 0.9009925723075867, 'z': 0.0,
+                                      'rotation': 0.0, 'horizon': -0.0, 'standing': True}
+
 
     def step(
             self, action_dict: Dict[str, Union[str, int, float]]
@@ -156,6 +159,8 @@ class StretchRealEnvironment(StretchManipulaTHOREnvironment):
 
         sr = self.controller.step(**stretch_action)
         self.list_of_actions_so_far.append(action)
+
+        self.update_nominal_location(stretch_action)
 
         if self._verbose:
             print(self.controller.last_event)

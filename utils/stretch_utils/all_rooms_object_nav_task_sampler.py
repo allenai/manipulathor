@@ -1,4 +1,5 @@
 """Task Samplers for the task of ArmPointNav"""
+from datetime import datetime
 import json
 import os
 import random
@@ -511,14 +512,16 @@ class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
         target_object = self.preset_easyish_tasks[self.real_object_index]
         print('I am now seeking a', target_object['object_type'], '. Continue when ready.')
         ForkedPdb().set_trace()
-
+        
+        task_start = datetime.now().strftime("{}_%m_%d_%Y_%H_%M_%S_%f".format(self.TASK_TYPE.__name__))
         task_info = {
             'target_object_ids': [target_object['object_id']],
             'object_type': target_object['object_type'],
             'starting_pose': {},
             'mode': self.env_args['agentMode'],
             'house_name': 'RealRobothor',
-            'scene_name': 'RealRobothor',
+            "id": f"realRobothor__{target_object['object_type']}__{task_start}",
+            # 'scene_name': 'RealRobothor',
             'mirrored': False # yeah no
         }
 
