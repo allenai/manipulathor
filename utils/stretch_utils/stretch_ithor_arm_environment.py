@@ -264,6 +264,14 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
         frame = self.controller.last_event.third_party_camera_frames[0].copy()
         frame = remove_nan_inf_for_frames(frame, 'kinect_frame')
         return kinect_reshape(frame)
+
+    @property
+    def kinect_frame_no_reshape(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        frame = self.controller.last_event.third_party_camera_frames[0].copy()
+        frame = remove_nan_inf_for_frames(frame, 'kinect_frame')
+        return frame
+    
     @property
     def kinect_depth(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
@@ -276,18 +284,41 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
 
         return kinect_reshape(depth_frame)
 
+    
+    @property
+    def kinect_depth_no_reshape(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        depth_frame = self.controller.last_event.third_party_depth_frames[0].copy()
+        depth_frame = remove_nan_inf_for_frames(depth_frame, 'depth_kinect')
+        return depth_frame
+
     @property
     def intel_frame(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
         frame = self.controller.last_event.frame.copy()
         frame = remove_nan_inf_for_frames(frame, 'intel_frame')
         return intel_reshape(frame)
+
+    @property
+    def intel_frame_no_reshape(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        frame = self.controller.last_event.frame.copy()
+        frame = remove_nan_inf_for_frames(frame, 'intel_frame')
+        return frame
+    
     @property
     def intel_depth(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
         depth_frame = self.controller.last_event.depth_frame.copy()
         depth_frame = remove_nan_inf_for_frames(depth_frame, 'depth_intel')
         return intel_reshape(depth_frame)
+
+    @property
+    def intel_depth_no_reshape(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        depth_frame = self.controller.last_event.depth_frame.copy()
+        depth_frame = remove_nan_inf_for_frames(depth_frame, 'depth_intel')
+        return depth_frame
 
     def get_current_arm_state(self):
         ForkedPdb().set_trace()

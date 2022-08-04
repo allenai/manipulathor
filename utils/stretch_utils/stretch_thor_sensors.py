@@ -61,9 +61,13 @@ class DepthSensorStretchIntel(
     Returns from a running StretchManipulaTHOREnvironment instance, the current RGB
     frame corresponding to the agent's egocentric view.
     """
+    def __init__(self, full_frame=False, *args, **kwargs):
+        self.full_frame = full_frame
+        super().__init__(*args, **kwargs)
 
     def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
-
+        if self.full_frame:
+            return env.intel_depth_no_reshape
         # depth = (env.controller.last_event.depth_frame.copy())
         # check_validity(depth, env.controller,scene_number=task.task_info['scene_name']) TODO remove
         # return intel_reshape(depth)
@@ -82,9 +86,13 @@ class DepthSensorStretchKinect(
     Returns from a running StretchManipulaTHOREnvironment instance, the current RGB
     frame corresponding to the agent's egocentric view.
     """
+    def __init__(self, full_frame=False, *args, **kwargs):
+        self.full_frame = full_frame
+        super().__init__(*args, **kwargs)
 
     def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
-
+        if self.full_frame:
+            return env.kinect_depth_no_reshape
         # depth = env.controller.last_event.third_party_depth_frames[0].copy()
         # check_validity(depth, env.controller,scene_number=task.task_info['scene_name']) TODO remove
         # return kinect_reshape(depth)
@@ -117,9 +125,13 @@ class RGBSensorStretchKinect(
     Returns from a running StretchManipulaTHOREnvironment instance, the current RGB
     frame corresponding to the agent's egocentric view.
     """
+    def __init__(self, full_frame=False, *args, **kwargs):
+        self.full_frame = full_frame
+        super().__init__(*args, **kwargs)
 
     def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
-
+        if self.full_frame:
+            return env.kinect_frame_no_reshape
         rgb = env.controller.last_event.third_party_camera_frames[0].copy()
         return kinect_reshape(rgb)
 
@@ -132,6 +144,7 @@ class RGBSensorStretchKinectZero(
     Returns from a running StretchManipulaTHOREnvironment instance, the current RGB
     frame corresponding to the agent's egocentric view.
     """
+    
 
     def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
 
@@ -147,13 +160,15 @@ class RGBSensorStretchIntel(
     Returns from a running StretchManipulaTHOREnvironment instance, the current RGB
     frame corresponding to the agent's egocentric view.
     """
+    def __init__(self, full_frame=False, *args, **kwargs):
+        self.full_frame = full_frame
+        super().__init__(*args, **kwargs)
 
     def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
-
+        if self.full_frame:
+            return env.intel_frame_no_reshape
         rgb = (env.controller.last_event.frame.copy())
-
         return intel_reshape(rgb)#cv2.resize(rgb, (224,224))
-        # return env.intel_frame_no_reshape
 
 # class NoisyObjectMaskStretch(NoisyObjectMask): TODO double check correctness of this
 #
