@@ -312,6 +312,19 @@ command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/Str
 
 # scp 52.24.154.159:~/manipulathor/experiment_output/checkpoints/NoPointNavStretchAllRoomsDistrib/ithor_train_no_armpointnav/2022-05-09_22-13-53/exp_NoPointNavStretchAllRoomsDistrib_ithor_train_no_armpointnav__stage_00__steps_000114436451.pt ~/
 
+
+# command_awsv1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test/2022-07-27_16-21-39/exp_StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test__stage_02__steps_000070733520.pt   ~/; \
+#      ./manipulathor/scripts/kill-zombie.sh; sleep 5s; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_2camera_distrib.py \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 -c ~/exp_StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test__stage_02__steps_000070733520.pt '
+
+command_awsv1 = 'scp MAIN_SERVER:~/manipulathor/weights/real_robothor_test_weights/exp_StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test__stage_02__steps_000194525504.pt  ~/; \
+     ./manipulathor/scripts/kill-zombie.sh; sleep 5s; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_2camera_distrib.py \
+--distributed_ip_and_port IP_ADR:6060 \
+ --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+ --seed 10 --machine_id 0 -c ~/exp_StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test__stage_02__steps_000194525504.pt  '
+
 server_sets = {
     'aws1':{
         'servers':[f'aws{i}' for i in range(1,5)],
@@ -322,7 +335,12 @@ server_sets = {
         'servers':[f'aws{i}' for i in range(5, 8)],
         'ip_adr': '34.216.219.227',
         'command': command_aws5,
-    }
+    },
+    'awsv1':{
+        'servers':[f'awsv{i}' for i in range(1,5)],
+        'ip_adr': '3.95.8.34',
+        'command': command_awsv1,
+    },
 }
 
 
