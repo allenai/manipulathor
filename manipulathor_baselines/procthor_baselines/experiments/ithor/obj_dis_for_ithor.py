@@ -75,6 +75,7 @@ class ObjDisArmPointNavITHORAllRooms(
     OBJECT_TYPES = list(set([v for room_typ, obj_list in FULL_LIST_OF_OBJECTS.items() for v in obj_list if room_typ != 'robothor']))
 
     random.shuffle(TRAIN_SCENES)
+    random.shuffle(TEST_SCENES)
 
     if platform.system() == "Darwin":
         MAX_STEPS = 10
