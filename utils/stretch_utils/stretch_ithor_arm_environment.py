@@ -385,7 +385,8 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                 action_dict = dict(action='LookDown')
 
         copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
-        action_dict = {**action_dict, **copy_aditions}
+        if action in [MOVE_AHEAD, MOVE_BACK, ROTATE_LEFT, ROTATE_RIGHT, ROTATE_LEFT_SMALL,ROTATE_RIGHT_SMALL, MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_WRIST_P,MOVE_WRIST_M, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL, LOOKUP, LOOKDOWN]:
+            action_dict = {**action_dict, **copy_aditions}
         if action_dict['action'] == 'FailAction':
             sr = self.controller.step(action='Done')
             sr.metadata['lastActionSuccess'] = False

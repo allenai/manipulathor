@@ -702,3 +702,58 @@ class StretchObjectNavTaskwLookUp(StretchObjectNavTask):
         LOOKUP,
         LOOKDOWN
     )
+
+
+class StretchObjectNavTaskwLookUpDone(StretchObjectNavTask):
+    _actions = (
+        MOVE_AHEAD,
+        MOVE_BACK,
+        ROTATE_RIGHT,
+        ROTATE_LEFT,
+        LOOKUP,
+        LOOKDOWN,
+        DONE
+    )
+    def _step(self, action: int) -> RLStepResult:
+
+        action_str = self.class_action_names()[action]
+
+        self.manual = False
+        if self.manual:
+            action_str = self.manual_action(action)
+
+
+        self._last_action_str = action_str
+        action_dict = {"action": action_str}
+        object_id = self.task_info["source_object_id"]
+        if action_str == PICKUP:
+            action_dict = {**action_dict, "object_id": object_id}
+
+        if action_str == DONE:
+            action_dict = {'action': 'Pass'}
+        self.env.step(action_dict)
+        self.last_action_success = self.env.last_action_success
+
+        last_action_name = self._last_action_str
+        last_action_success = float(self.last_action_success)
+        self.action_sequence_and_success.append((last_action_name, last_action_success))
+        self.agent_body_dist_to_obj.append(self.body_distance_from_obj())
+        self.visualize(last_action_name)
+
+        object_visible = self.env.get_object_by_id(object_id)['visible']
+        if action_str == DONE:
+            self._took_end_action = True
+            self.last_action_success = False
+            self._success = False
+            if object_visible and self.body_distance_from_obj() < 1:
+                self.last_action_success = True
+                self._success = True
+
+
+        step_result = RLStepResult(
+            observation=self.get_observations(),
+            reward=self.judge(),
+            done=self.is_done(),
+            info={"last_action_success": self.last_action_success},
+        )
+        return step_result
