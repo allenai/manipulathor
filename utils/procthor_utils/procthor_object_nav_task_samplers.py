@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 import platform
-import pickle
+import json
 import random
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -283,45 +283,22 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
     @property
     def reachable_positions(self) -> List[Vector3]:
         """Return the reachable positions in the current house."""
-        return self.reachable_positions_map[self.house_index]
-    
-    # def reset_scene(self):
-    #     self.env.reset(
-    #         scene_name='Procedural',
-    #         agentMode=self.env_args['agentMode'], agentControllerType=self.env_args['agentControllerType']
-    #     )    
+        return self.reachable_positions_map[self.house_index] 
 
     def increment_scene(self) -> bool:
         """Increment the current scene.
         Returns True if the scene works with reachable positions, False otherwise.
         """
-
-        # self.reset_scene()
         self.increment_scene_index()
-
-        # self.env.controller.step(action="DestroyHouse", raise_for_failure=True)
-        # self.env.controller.reset()
-        self.env.reset(scene_name='Procedural')
         
         self.env.list_of_actions_so_far = []
-        self.house_entry = self.houses[self.house_index]
-        self.house = pickle.loads(self.house_entry["house"])
+        self.house = self.houses[self.house_index]
+        self.env.reset(scene_name='Procedural', scene=self.house)
 
-        if platform.system() == "Darwin": #TODO remove
+        if platform.system() == "Darwin":
             print('The house is ', self.house_index)
-
-        self.env.controller.step(
-            action="CreateHouse", house=self.house, raise_for_failure=True
-        )
         
         if self.house_index not in self.reachable_positions_map:
-            pose = self.house["metadata"]["agent"].copy()
-            if self.env_args['agentMode'] == 'locobot':
-                del pose["standing"]
-            event = self.env.controller.step(action="TeleportFull", **pose)
-            if not event:
-                get_logger().warning(f"Initial teleport failing in {self.house_index}.")
-                return False
             rp_event = self.env.controller.step(action="GetReachablePositions")
             if not rp_event:
                 # NOTE: Skip scenes where GetReachablePositions fails
@@ -417,7 +394,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
                 "process_ind": self.process_ind,
                 # "scene_name": self.env_args['scene'],
                 "house_name": str(self.house_index),
-                "rooms": self.house_entry["rooms"],
+                "rooms": self.house["rooms"],
                 "target_object_ids": target_object_ids,
                 "object_type": target_object_type,
                 "starting_pose": starting_pose,

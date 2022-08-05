@@ -27,16 +27,16 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
 
     SENSORS = [
         RGBSensorStretchIntel(
-            height=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-            width=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+            height=2*ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+            width=2*ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
             use_resnet_normalization=True,
             mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
             stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
             uuid="rgb_lowres",
         ),
         RGBSensorStretchKinect(
-            height=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-            width=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+            height=2*ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+            width=2*ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
             use_resnet_normalization=True,
             mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
             stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
@@ -47,26 +47,6 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
         ),
         TaskIdSensor(),
     ]
-
-    if platform.system() == "Darwin":
-        SENSORS += [
-            RGBSensorStretchKinect(
-            height=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-            width=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-            use_resnet_normalization=True,
-            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-                uuid="rgb_lowres_arm_only_viz",
-            ),
-            RGBSensorStretchIntel(
-            height=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-            width=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-            use_resnet_normalization=True,
-            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-                uuid="rgb_lowres_only_viz",
-            ),
-        ]
 
     @classmethod
     def tag(cls):

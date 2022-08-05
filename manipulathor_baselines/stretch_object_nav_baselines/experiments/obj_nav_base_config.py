@@ -33,7 +33,7 @@ from ithor_arm.ithor_arm_viz import TestMetricLogger
 
 from utils.stretch_utils.all_rooms_object_nav_task_sampler import AllRoomsObjectNavTaskSampler
 from utils.stretch_utils.stretch_object_nav_tasks import ObjectNavTask
-from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, STRETCH_ENV_ARGS, UPDATED_PROCTHOR_COMMIT_ID
+from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, STRETCH_ENV_ARGS, UPDATED_PROCTHOR_COMMIT_ID, NANNA_COMMIT_ID
 
 LOCOBOT_ENV_ARGS = dict(
     gridSize=0.25,
@@ -51,8 +51,8 @@ LOCOBOT_ENV_ARGS = dict(
 
 STRETCH_ENV_ARGS = dict(
     gridSize=0.25,
-    width=224,
-    height=224,
+    width=2*224,
+    height=2*224,
     visibilityDistance=3.0,
     agentMode='stretch',
     fieldOfView=69,
@@ -65,7 +65,7 @@ STRETCH_ENV_ARGS = dict(
     autoSyncTransforms=True,
     renderInstanceSegmentation=False,
     renderDepthImage=False,
-    commit_id=UPDATED_PROCTHOR_COMMIT_ID, #### TODO not sure if this works for stretch
+    commit_id=NANNA_COMMIT_ID, #### TODO not sure if this works for stretch
     horizon_init=15
 )
 
@@ -123,7 +123,7 @@ class ObjectNavBaseConfig(ExperimentConfig, ABC):
     CAMERA_HEIGHT = 224
     SCREEN_SIZE = 224
 
-    POTENTIAL_VISUALIZERS = [StretchObjNavImageVisualizer, TestMetricLogger]
+    POTENTIAL_VISUALIZERS = []#[StretchObjNavImageVisualizer, TestMetricLogger]
 
     TASK_SAMPLER = AllRoomsObjectNavTaskSampler
     TASK_TYPE = ObjectNavTask

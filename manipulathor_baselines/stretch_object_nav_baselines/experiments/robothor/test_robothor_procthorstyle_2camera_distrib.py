@@ -20,26 +20,20 @@ from allenact.base_abstractions.sensor import (
     SensorSuite,
 )
 
+from manipulathor_utils.debugger_util import ForkedPdb
+
 class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV):
 
-    EVAL_TASKS = datasets.load_dataset(
-        f"allenai/robothor-objectnav-eval", use_auth_token=True
-    )
-    # EVAL_TASKS = prior.load_dataset("object-nav-eval")
+    EVAL_TASKS = prior.load_dataset("object-nav-eval",minival=True)
 
 
     TEST_TASK_SAMPLER = RoboThorObjectNavTestTaskSampler
     TEST_ON_VALIDATION = True
     # TEST_GPU_IDS = list(range(torch.cuda.device_count())) # uncomment for vision server testing
 
-    # NUM_PROCESSES = 56 # one them crashed for space?
-    # NUM_TRAIN_PROCESSES = 64
-    # NUM_VAL_PROCESSES = 2
-    # NUM_TEST_PROCESSES = 60
-
-    NUM_TRAIN_PROCESSES = 0
-    NUM_TEST_PROCESSES = 1
-    NUM_VAL_PROCESSES = 0
+    NUM_TRAIN_PROCESSES = 48
+    NUM_VAL_PROCESSES = 2
+    NUM_TEST_PROCESSES = 48
 
     TRAIN_DEVICES = (
         tuple(range(torch.cuda.device_count()))
@@ -88,9 +82,9 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2Ca
 
     def valid_task_sampler_args(self, **kwargs):
         out = self._get_sampler_args_for_scene_split(
-            houses=self.EVAL_TASKS["validation"].shuffle(),
+            houses=self.EVAL_TASKS["val"].shuffle(),
             mode="eval",
-            max_tasks=20,
+            max_tasks=40,
             allow_flipping=False,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,  # ignored
             **kwargs,
@@ -99,7 +93,7 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2Ca
 
     def test_task_sampler_args(self, **kwargs):
         if self.TEST_ON_VALIDATION:
-            houses = self.EVAL_TASKS["validation"]
+            houses = self.EVAL_TASKS["val"]
         else:
             houses = self.EVAL_TASKS["test"].shuffle()
             # return self.valid_task_sampler_args(**kwargs)
@@ -140,6 +134,7 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2Ca
                 source_observation_spaces=SensorSuite(sensors).observation_spaces,
                 preprocessors=self.preprocessors(),
             )
+
             if mode == "train"
             or (
                 (isinstance(nprocesses, int) and nprocesses > 0)
@@ -147,6 +142,8 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2Ca
             )
             else None
         )
+        # ForkedPdb().set_trace()
+
 
         params = MachineParams(
             nprocesses=nprocesses,

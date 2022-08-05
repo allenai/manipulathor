@@ -24,7 +24,7 @@ from manipulathor_baselines.stretch_object_nav_baselines.experiments.obj_nav_bas
 from utils.procthor_utils.procthor_object_nav_task_samplers import ProcTHORObjectNavTaskSampler
 from utils.stretch_utils.stretch_object_nav_tasks import ObjectNavTask
 from utils.procthor_utils.procthor_helper import PROCTHOR_INVALID_SCENES
-from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, UPDATED_PROCTHOR_COMMIT_ID
+from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, UPDATED_PROCTHOR_COMMIT_ID, NANNA_COMMIT_ID
 
 from manipulathor_utils.debugger_util import ForkedPdb
 
@@ -132,7 +132,7 @@ class ProcTHORObjectNavBaseConfig(ObjectNavBaseConfig):
         out["task_type"] = self.TASK_TYPE
 
         out["env_args"]["x_display"] = x_display
-        out["env_args"]['commit_id'] = UPDATED_PROCTHOR_COMMIT_ID#PROCTHOR_COMMIT_ID
+        out["env_args"]['commit_id'] = NANNA_COMMIT_ID
         out["env_args"]['scene'] = 'Procedural'
         if allow_flipping is not None:
             out["env_args"]['allow_flipping'] = allow_flipping

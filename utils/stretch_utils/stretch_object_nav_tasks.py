@@ -138,7 +138,7 @@ class ObjectNavTask(Task[ManipulaTHOREnvironment]):
         self.additional_visualize = (
             additional_visualize
             if additional_visualize is not None
-            else (self.task_info["mode"] == "eval" or random.random() < 1 / 1000)
+            else (self.task_info["mode"] == "eval" )#or random.random() < 1 / 1000)
         )
         self.observations = [get_true_sensor_obs(self.get_observations())]#[self.env.last_event.frame]
         self._metrics = None

@@ -41,13 +41,15 @@ class TaskIdSensor(Sensor):
         *args: Any,
         **kwargs: Any,
     ) -> Any:
-        if task.task_info["id"] is not None:
-            out = [ord(k) for k in task.task_info["id"]]
-            for _ in range(len(out), 1000):
-                out.append(ord(" "))
-            return out
+        if "id" in task.task_info:
+            id=task.task_info["id"]
         else:
-            return 1
+            id="no_task_id_provided"
+        out = [ord(k) for k in id]
+        for _ in range(len(out), 1000):
+            out.append(ord(" "))
+        return out
+
 
 
 @attr.s(kw_only=True)
@@ -83,6 +85,7 @@ class ClipResNetPreprocessNCameraGRUActorCriticMixin:
                         clip_model_type=self.clip_model_type,
                         pool=self.pool,
                         output_uuid=camera.uuid+"_clip_resnet",
+                        input_img_height_width=(camera.height,camera.width)
                     )
                 )
                 self.resnet_preprocessor_uuids.append(camera.uuid+"_clip_resnet")

@@ -203,10 +203,10 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             scene_name = self.controller.last_event.metadata["sceneName"]
         # self.reset_init_params()#**kwargs) removing this fixes one of the crashing problem
 
-        if self.env_args['agentMode'] is not 'stretch':
+        if self.env_args['agentMode'] != 'stretch':
             self.controller.reset(scene_name)
         elif scene_name=='Procedural':
-            self.controller.reset()
+            self.controller.reset(scene=kwargs['scene'])
         else:
 
             # to solve the crash issue

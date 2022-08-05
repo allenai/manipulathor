@@ -93,19 +93,11 @@ class ResnetTensorNavNCameraActorCritic(VisualNavActorCritic):
 
     def forward_encoder(self, observations: ObservationType) -> torch.FloatTensor:
         return self.goal_visual_encoder(observations)
-    # def forward(self, **kwargs): #TODO NOW remove
-    #     if platform.system() == "Darwin":
-    #         hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
-    #     return super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
 
     def forward(self, **kwargs):
         actor_critic_output, memory = super(ResnetTensorNavNCameraActorCritic, self).forward(**kwargs)
-        # ForkedPdb().set_trace()
         if self.visualize:
-            # hacky_visualization(kwargs['observations'], base_directory_to_right_images=self.starting_time)
             log_ac_return(actor_critic_output,kwargs['observations']["task_id_sensor"])
-
-            
         return actor_critic_output, memory
 
 
@@ -241,7 +233,6 @@ class ResnetNCameraTensorGoalEncoder(nn.Module):
                 self.distribute_target(observations),
             ]
             viz_x.append(self.target_obs_combiners[cam_idx](torch.cat(viz_embs, dim=1,)))
-        
         x = torch.cat(viz_x,dim=1)
         x = x.reshape(x.shape[0], -1)  # flatten
 
