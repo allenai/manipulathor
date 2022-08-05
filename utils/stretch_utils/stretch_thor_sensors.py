@@ -873,15 +873,18 @@ class ArmPointNavEmulSensorDeadReckoning(Sensor):
 
 class IntelRawDepthSensor(Sensor):
 
-    def __init__(self, uuid: str = "intel_raw_depth", **kwargs: Any):
+    def __init__(self, full_frame=False, uuid: str = "intel_raw_depth", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.full_frame = full_frame
         super().__init__(**prepare_locals_for_super(locals()))
 
     def get_observation(
             self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
+        if self.full_frame:
+            return env.intel_depth_no_reshape
         return env.intel_depth
         # depth_frame = env.controller.last_event.depth_frame
         # check_validity(depth_frame, env.controller,scene_number=task.task_info['scene_name']) # remove
@@ -903,15 +906,18 @@ def normalize_depth(depth):
     return depth[:,:,np.newaxis].repeat(3,axis=2) * (255. / depth.max())
 class KinectRawDepthSensor(Sensor):
 
-    def __init__(self, uuid: str = "kinect_raw_depth", **kwargs: Any):
+    def __init__(self, full_frame=False, uuid: str = "kinect_raw_depth", **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
+        self.full_frame = full_frame
         super().__init__(**prepare_locals_for_super(locals()))
 
     def get_observation(
             self, env: StretchManipulaTHOREnvironment, task: Task, *args: Any, **kwargs: Any
     ) -> Any:
+        if self.full_frame:
+            return env.kinect_depth_no_reshape
         return env.kinect_depth
         # depth_frame = env.controller.last_event.third_party_depth_frames[0]
         # check_validity(depth_frame, env.controller,scene_number=task.task_info['scene_name']) TODO remove
@@ -919,7 +925,16 @@ class KinectRawDepthSensor(Sensor):
 
 
 class IntelNoisyObjectMask(Sensor):
-    def __init__(self, type: str,noise, height, width,  uuid: str = "object_mask", distance_thr: float = -1, only_close_big_masks=False, **kwargs: Any):
+    def __init__(self,
+                 type: str,
+                 noise,
+                 height,
+                 width,
+                 full_frame: bool = False,
+                 uuid: str = "object_mask", 
+                 distance_thr: float = -1,
+                 only_close_big_masks=False,
+                 **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
@@ -930,6 +945,7 @@ class IntelNoisyObjectMask(Sensor):
         self.noise = noise
         self.distance_thr = distance_thr
         self.only_close_big_masks = only_close_big_masks
+        self.full_frame = False
         super().__init__(**prepare_locals_for_super(locals()))
         assert self.noise == 0
 
@@ -977,6 +993,8 @@ class IntelNoisyObjectMask(Sensor):
             resized_mask = result
         else:
             resized_mask = cv2.resize(result, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
+        if self.full_frame:
+            return resized_mask
         return intel_reshape(resized_mask)
 
 class KinectAgentMask(Sensor):
@@ -1007,7 +1025,16 @@ class KinectAgentMask(Sensor):
 
 
 class KinectNoisyObjectMask(Sensor):
-    def __init__(self, type: str,noise, height, width,  uuid: str = "object_mask_kinect", distance_thr: float = -1, only_close_big_masks=False, **kwargs: Any):
+    def __init__(self,
+                 type: str,
+                 noise,
+                 height,
+                 width,
+                 full_frame: bool = False,
+                 uuid: str = "object_mask_kinect",
+                 distance_thr: float = -1,
+                 only_close_big_masks=False,
+                 **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )  # (low=-1.0, high=2.0, shape=(3, 4), dtype=np.float32)
@@ -1018,6 +1045,7 @@ class KinectNoisyObjectMask(Sensor):
         self.noise = noise
         self.distance_thr = distance_thr
         self.only_close_big_masks = only_close_big_masks
+        self.full_frame = full_frame
         super().__init__(**prepare_locals_for_super(locals()))
         assert self.noise == 0
 
@@ -1060,7 +1088,8 @@ class KinectNoisyObjectMask(Sensor):
             resized_mask = mask_frame
         else:
             resized_mask = cv2.resize(mask_frame, (self.height, self.width)).reshape(self.width, self.height, 1) # my gut says this is gonna be slow
-
+        if self.full_frame:
+            return resized_mask
         return kinect_reshape(resized_mask)
 
 class StretchPickedUpObjSensor(Sensor):

@@ -42,13 +42,37 @@ class PointNavEmulStretchAllRoomsFullFrameGTPose(
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
 
-    source_mask_sensor_intel = IntelNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True)
-    destination_mask_sensor_intel = IntelNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True)
-    depth_sensor_intel = IntelRawDepthSensor()
+    source_mask_sensor_intel = IntelNoisyObjectMask(height=desired_screen_size,
+                                                    width=desired_screen_size,
+                                                    noise=0,
+                                                    full_frame=True,
+                                                    type='source',
+                                                    distance_thr=distance_thr,
+                                                    only_close_big_masks=True)
+    destination_mask_sensor_intel = IntelNoisyObjectMask(height=desired_screen_size,
+                                                         width=desired_screen_size,
+                                                         noise=0,
+                                                         full_frame=True,
+                                                         type='destination',
+                                                         distance_thr=distance_thr,
+                                                         only_close_big_masks=True)
+    depth_sensor_intel = IntelRawDepthSensor(full_frame=True)
 
-    source_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True)
-    destination_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True)
-    depth_sensor_kinect = KinectRawDepthSensor()
+    source_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size,
+                                                      width=desired_screen_size,
+                                                      noise=0,
+                                                      full_frame=True,
+                                                      type='source',
+                                                      distance_thr=distance_thr,
+                                                      only_close_big_masks=True)
+    destination_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size,
+                                                           width=desired_screen_size,
+                                                           noise=0,
+                                                           full_frame=True,
+                                                           type='destination',
+                                                           distance_thr=distance_thr,
+                                                           only_close_big_masks=True)
+    depth_sensor_kinect = KinectRawDepthSensor(full_frame=True)
     odometry_sensor = AgentOdometryEmulSensor()
 
     SENSORS = [
