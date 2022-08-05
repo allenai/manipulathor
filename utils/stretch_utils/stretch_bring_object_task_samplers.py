@@ -307,7 +307,7 @@ class StretchDiverseBringObjectTaskSampler(TaskSampler):
                     z=agent_state["rotation"]["z"],
                 ),
                 # horizon=agent_state["cameraHorizon"],
-                horizon = self.first_camera_horizon,
+                horizon = random.choice(self.first_camera_horizon),
             )
         )
         if not event.metadata['lastActionSuccess']:

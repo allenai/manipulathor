@@ -69,7 +69,7 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         self.full_visual_encoder = make_cnn(**network_args)
         network_args = {'input_channels': 5, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder_arm = make_cnn(**network_args)
-
+        this file needs checks
         # self.detection_model = ConditionalDetectionModel()
         self.body_pointnav_embedding = nn.Sequential(
             nn.Linear(3, 32),
@@ -87,7 +87,7 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         )
 
         self.state_encoder = RNNStateEncoder(
-            512 * 4, #TODO this might be too big, maybe combine visual encodings and pointnav encodings first
+            512 * 4, #LATER_TODO this might be too big, maybe combine visual encodings and pointnav encodings first
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -167,7 +167,7 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         arm_mask = observations['object_mask_kinect_source'].clone()
         arm_mask[after_pickup] = observations['object_mask_kinect_destination'][after_pickup]
 
-        #TODO remove these after issue is resolved
+        #LATER_TODO remove these after issue is resolved
         observations['depth_lowres'] = check_for_nan_visual_observations(observations['depth_lowres'], where_it_occured='depth_lowres')
         observations['rgb_lowres'] = check_for_nan_visual_observations(observations['rgb_lowres'], where_it_occured='rgb_lowres')
         observations['depth_lowres_arm'] = check_for_nan_visual_observations(observations['depth_lowres_arm'], where_it_occured='depth_lowres_arm')
@@ -191,7 +191,7 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         # pointnav_embedding = arm_distance_to_obj_source_embedding
         # pointnav_embedding[after_pickup] = arm_distance_to_obj_destination_embedding[after_pickup]
 
-        #TODO remove
+        #LATER_TODO remove
         observations['point_nav_emul_source'] = check_for_nan_visual_observations(observations['point_nav_emul_source'], where_it_occured='point_nav_emul_source')
         observations['point_nav_emul_destination'] = check_for_nan_visual_observations(observations['point_nav_emul_destination'], where_it_occured='point_nav_emul_destination')
         observations['arm_point_nav_emul_source'] = check_for_nan_visual_observations(observations['arm_point_nav_emul_source'], where_it_occured='arm_point_nav_emul_source')
@@ -199,7 +199,7 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
 
         agent_distance_to_obj_source = observations['point_nav_emul_source'].clone()
         agent_distance_to_obj_destination = observations['point_nav_emul_destination'].clone()
-        #TODO eventually change this and the following to only calculate embedding for the ones we want
+        #LATER_TODO eventually change this and the following to only calculate embedding for the ones we want
         agent_distance_to_obj_embedding_source = self.body_pointnav_embedding(agent_distance_to_obj_source)
         agent_distance_to_obj_embedding_destination = self.body_pointnav_embedding(agent_distance_to_obj_destination)
         agent_distance_to_obj_embedding = agent_distance_to_obj_embedding_source
@@ -208,7 +208,7 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
 
         arm_distance_to_obj_source = observations['arm_point_nav_emul_source'].clone()
         arm_distance_to_obj_destination = observations['arm_point_nav_emul_destination'].clone()
-        #TODO eventually change this and the following to only calculate embedding for the ones we want
+        #LATER_TODO eventually change this and the following to only calculate embedding for the ones we want
         arm_distance_to_obj_embedding_source = self.arm_pointnav_embedding(arm_distance_to_obj_source)
         arm_distance_to_obj_embedding_destination = self.arm_pointnav_embedding(arm_distance_to_obj_destination)
         arm_distance_to_obj_embedding = arm_distance_to_obj_embedding_source

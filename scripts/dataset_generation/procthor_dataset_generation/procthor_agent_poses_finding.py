@@ -140,7 +140,7 @@ def initialize_environment():
     # env_to_work_with['branch'] = 'nanna-stretch'
     # env_to_work_with['branch'] = 'nanna-culling-stretch'
     # env_to_work_with['branch'] = 'nanna'
-    env_to_work_with = copy.deepcopy(MANIPULATHOR_ENV_ARGS) #TODO back to stretch?
+    env_to_work_with = copy.deepcopy(MANIPULATHOR_ENV_ARGS) TODO back to stretch?
     env_to_work_with['scene'] = 'Procedural'
     env_to_work_with['visibilityDistance'] = 2
     env_to_work_with['commit_id'] = PROCTHOR_COMMIT_ID

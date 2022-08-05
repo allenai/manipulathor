@@ -157,7 +157,7 @@ class ObjDisPointNavModel(ActorCriticModel[CategoricalDistr]):
         pointnav_embedding = arm_distance_to_obj_source_embedding
         pointnav_embedding[after_pickup] = arm_distance_to_obj_destination_embedding[after_pickup]
 
-        #TODO remove as soon as the bug is resolved
+        # TODO remove as soon as the bug is resolved
         assert not torch.any(torch.isinf(pointnav_embedding) + torch.isnan(pointnav_embedding)), 'pointnav_embedding is nan'
         assert not torch.any(torch.isinf(visual_observation) + torch.isnan(visual_observation)), 'visual_observation is nan'
 
@@ -190,7 +190,7 @@ class ObjDisPointNavModel(ActorCriticModel[CategoricalDistr]):
 
         memory = memory.set_tensor("rnn", rnn_hidden_states)
 
-        #TODO remove as soon as bug is resolved
+        # TODO remove as soon as bug is resolved
         actor_is_nan = torch.isinf(actor_out_final) + torch.isnan(actor_out_final)
         if torch.any(actor_is_nan):
             print('actor is nan', actor_is_nan.sum())

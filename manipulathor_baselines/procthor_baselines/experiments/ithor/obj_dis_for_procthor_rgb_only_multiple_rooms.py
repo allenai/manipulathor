@@ -59,7 +59,7 @@ class ObjDisArmPointNavRGBOnlyProcTHORMultipleRooms(
             uuid="rgb_lowres",
         ),
         PickedUpObjSensor(),
-        SceneNumberSensor(), #TODO remove as soon as bug is resolved
+        # SceneNumberSensor(), TODO remove as soon as bug is resolved
         RealPointNavSensor(type='source', uuid='arm_point_nav'),
         RealPointNavSensor(type='destination', uuid='arm_point_nav'),
         # TempRealArmpointNav(uuid='point_nav_emul',type='source'),

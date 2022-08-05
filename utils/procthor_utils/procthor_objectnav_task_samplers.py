@@ -111,6 +111,7 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         self.rewards_config = rewards_config
         self.environment_type = env_args['environment_type']
         del env_args['environment_type']
+        self.first_camera_horizon = kwargs['first_camera_horizon']
         self.env_args = env_args
         self.scenes = scenes
         self.grid_size = 0.25
@@ -306,17 +307,26 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
 
 
 
-        if True and random.random() < 0.5:
+        if random.random() < 0.5:
             self.env.controller.step(action="RandomizeMaterials", raise_for_failure=True)
         else:
             self.env.controller.step(action="ResetMaterials", raise_for_failure=True)
 
+        if random.random() < 0.5:
+            self.env.controller.step(
+                action="RandomizeLighting",
+                brightness=(0.5, 1.5),
+                randomizeColor=True,
+                hue=(0, 1),
+                saturation=(0.5, 1),
+                synchronized=False
+            )
 
         # NOTE: Set agent pose
         starting_pose = AgentPose(
             position=start_pose,
             rotation=dict(x=0,y=random.choice([i for i in range(0,360,90)]),z=0),
-            horizon=20, #TODO make this a variable that is called from one place
+            horizon=random.choice(self.first_camera_horizon),
             standing=True,
         )
         event = self.env.controller.step(action="TeleportFull", **starting_pose)

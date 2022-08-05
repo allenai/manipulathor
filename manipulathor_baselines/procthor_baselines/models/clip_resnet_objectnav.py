@@ -17,6 +17,7 @@ from allenact_plugins.navigation_plugin.objectnav.models import (
 from manipulathor_baselines.procthor_baselines.models.clip_objdis_pointnav_only_rgb_model import \
     ResnetArmPointNavActorCritic
 from manipulathor_baselines.procthor_baselines.models.clip_objectnav_only_rgb_model import ResnetObjectNavActorCritic
+from manipulathor_utils.debugger_util import ForkedPdb
 
 
 @attr.s(kw_only=True)
@@ -30,44 +31,74 @@ class ClipResNetPreprocessGRUActorCriticMixinObjectNav:
     def preprocessors(self) -> Sequence[Union[Preprocessor, Builder[Preprocessor]]]:
         preprocessors = []
 
-        rgb_sensor = next((s for s in self.sensors if isinstance(s, RGBSensor)), None)
-        assert (
-            np.linalg.norm(
-                np.array(rgb_sensor._norm_means)
-                - np.array(ClipResNetPreprocessor.CLIP_RGB_MEANS)
-            )
-            < 1e-5
-        )
-        assert (
-            np.linalg.norm(
-                np.array(rgb_sensor._norm_sds)
-                - np.array(ClipResNetPreprocessor.CLIP_RGB_STDS)
-            )
-            < 1e-5
-        )
+        for s in self.sensors:
+            if 'only_detection' in s.uuid:
+                continue
+            if isinstance(s, RGBSensor) or isinstance(s, DepthSensor):
+                if isinstance(s, RGBSensor):
+                    rgb_sensor = s
+                    assert (
+                        np.linalg.norm(
+                            np.array(rgb_sensor._norm_means)
+                            - np.array(ClipResNetPreprocessor.CLIP_RGB_MEANS)
+                        )
+                        < 1e-5
+                    )
+                    assert (
+                        np.linalg.norm(
+                            np.array(rgb_sensor._norm_sds)
+                            - np.array(ClipResNetPreprocessor.CLIP_RGB_STDS)
+                        )
+                        < 1e-5
+                    )
 
-        if rgb_sensor is not None:
-            preprocessors.append(
-                ClipResNetPreprocessor(
-                    rgb_input_uuid=rgb_sensor.uuid,
-                    clip_model_type=self.clip_model_type,
-                    pool=self.pool,
-                    output_uuid="rgb_clip_resnet",
+                preprocessors.append(
+                    ClipResNetPreprocessor(
+                        rgb_input_uuid=s.uuid,
+                        clip_model_type=self.clip_model_type,
+                        pool=self.pool,
+                        output_uuid=s.uuid + "_clip_resnet",
+                    )
                 )
-            )
 
-        depth_sensor = next(
-            (s for s in self.sensors if isinstance(s, DepthSensor)), None
-        )
-        if depth_sensor is not None:
-            preprocessors.append(
-                ClipResNetPreprocessor(
-                    rgb_input_uuid=depth_sensor.uuid,
-                    clip_model_type=self.clip_model_type,
-                    pool=self.pool,
-                    output_uuid="depth_clip_resnet",
-                )
-            )
+        # rgb_sensor = next((s for s in self.sensors if isinstance(s, RGBSensor)), None)
+        # assert (
+        #     np.linalg.norm(
+        #         np.array(rgb_sensor._norm_means)
+        #         - np.array(ClipResNetPreprocessor.CLIP_RGB_MEANS)
+        #     )
+        #     < 1e-5
+        # )
+        # assert (
+        #     np.linalg.norm(
+        #         np.array(rgb_sensor._norm_sds)
+        #         - np.array(ClipResNetPreprocessor.CLIP_RGB_STDS)
+        #     )
+        #     < 1e-5
+        # )
+        #
+        # if rgb_sensor is not None:
+        #     preprocessors.append(
+        #         ClipResNetPreprocessor(
+        #             rgb_input_uuid=rgb_sensor.uuid,
+        #             clip_model_type=self.clip_model_type,
+        #             pool=self.pool,
+        #             output_uuid="rgb_clip_resnet",
+        #         )
+        #     )
+        #
+        # depth_sensor = next(
+        #     (s for s in self.sensors if isinstance(s, DepthSensor)), None
+        # )
+        # if depth_sensor is not None:
+        #     preprocessors.append(
+        #         ClipResNetPreprocessor(
+        #             rgb_input_uuid=depth_sensor.uuid,
+        #             clip_model_type=self.clip_model_type,
+        #             pool=self.pool,
+        #             output_uuid="depth_clip_resnet",
+        #         )
+        #     )
 
         return preprocessors
 

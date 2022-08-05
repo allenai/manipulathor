@@ -36,7 +36,7 @@ class StretchBringObjectThorBaseConfig(StretchBringObjectBaseConfig, ABC):
     NUM_PROCESSES: Optional[int] = None
     TRAIN_GPU_IDS = list(range(torch.cuda.device_count()))
     SAMPLER_GPU_IDS = TRAIN_GPU_IDS
-    #TODO what is the plan?
+    # TODO what is the plan?
     VALID_GPU_IDS = []
     TEST_GPU_IDS = []
     # VALID_GPU_IDS = [torch.cuda.device_count() - 1]
@@ -51,7 +51,7 @@ class StretchBringObjectThorBaseConfig(StretchBringObjectBaseConfig, ABC):
     VAL_SCENES: str = None
     TEST_SCENES: str = None
 
-    FIRST_CAMERA_HORIZON = 0
+    FIRST_CAMERA_HORIZON = [0]
 
     OBJECT_TYPES: Optional[Sequence[str]] = None
     VALID_SAMPLES_IN_SCENE = 1

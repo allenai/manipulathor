@@ -132,6 +132,7 @@ class BringObjectThorBaseConfig(BringObjectBaseConfig, ABC):
         kwargs["objects"] = cls.OBJECT_TYPES
         kwargs["task_type"] = cls.TASK_TYPE
         kwargs["exp_name"] = exp_name_w_time
+        kwargs['first_camera_horizon'] = cls.FIRST_CAMERA_HORIZON
         return cls.TASK_SAMPLER(**kwargs)
 
     @staticmethod

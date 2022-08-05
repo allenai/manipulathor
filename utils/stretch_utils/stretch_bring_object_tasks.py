@@ -26,7 +26,8 @@ from utils.stretch_utils.stretch_constants import (
     ROTATE_RIGHT,
     ROTATE_LEFT,
     PICKUP,
-    DONE, ARM_LENGTH, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, ROTATE_RIGHT_SMALL, ROTATE_LEFT_SMALL, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL,
+    DONE, ARM_LENGTH, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, ROTATE_RIGHT_SMALL, ROTATE_LEFT_SMALL, MOVE_WRIST_P_SMALL,
+    MOVE_WRIST_M_SMALL, LOOKUP, LOOKDOWN,
 )
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.dataset_generation.find_categories_to_use import get_room_type_from_id
@@ -303,8 +304,8 @@ class StretchExploreWiseRewardTask(AbstractStretchBringObjectTask):
         return result
 
     def manual_action(self, original_action):
-        ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_WRIST_P,MOVE_WRIST_M,MOVE_AHEAD,MOVE_BACK,ROTATE_RIGHT,ROTATE_LEFT,]
-        ARM_SHORTENED_ACTIONS_ORDERED = ['hp','hm','zp','zm','wp','wm','m', 'b','r','l']
+        ARM_ACTIONS_ORDERED = [MOVE_ARM_HEIGHT_P,MOVE_ARM_HEIGHT_M,MOVE_ARM_Z_P,MOVE_ARM_Z_M,MOVE_WRIST_P,MOVE_WRIST_M,MOVE_AHEAD,MOVE_BACK,ROTATE_RIGHT,ROTATE_LEFT,LOOKUP, LOOKDOWN]
+        ARM_SHORTENED_ACTIONS_ORDERED = ['hp','hm','zp','zm','wp','wm','m', 'b','r','l', 'u', 'd']
         try:
             self.last_action_manual
         except Exception:
@@ -339,7 +340,6 @@ class StretchExploreWiseRewardTask(AbstractStretchBringObjectTask):
             save_quick_frame(self.env.controller, f'/Users/kianae/Desktop/current_frame{time_to_write}.png', top_view=True)
         if event_before_pass.metadata['lastActionSuccess'] is False:
             print(event_before_pass)
-
 
         ForkedPdb().set_trace()
 
@@ -568,8 +568,6 @@ class StretchObjectNavTask(StretchExploreWiseRewardTask):
         MOVE_BACK,
         ROTATE_RIGHT,
         ROTATE_LEFT,
-        #TODO LOOK UP AND DOWN?
-
         # ROTATE_RIGHT_SMALL,
         # ROTATE_LEFT_SMALL,
         # PICKUP,
@@ -596,7 +594,7 @@ class StretchObjectNavTask(StretchExploreWiseRewardTask):
 
         self.manual = False
         if self.manual:
-            action_str = self.manual_action()
+            action_str = self.manual_action(action)
 
 
         self._last_action_str = action_str
@@ -693,3 +691,14 @@ class StretchObjectNavTask(StretchExploreWiseRewardTask):
         # add collision cost, maybe distance to goal objective,...
 
         return float(reward)
+
+
+class StretchObjectNavTaskwLookUp(StretchObjectNavTask):
+    _actions = (
+        MOVE_AHEAD,
+        MOVE_BACK,
+        ROTATE_RIGHT,
+        ROTATE_LEFT,
+        LOOKUP,
+        LOOKDOWN
+    )

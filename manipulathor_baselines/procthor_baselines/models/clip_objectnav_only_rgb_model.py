@@ -65,7 +65,13 @@ class ResnetObjectNavActorCritic(ActorCriticModel[CategoricalDistr]):
         self._hidden_size = hidden_size
         self.object_type_embedding_size = obj_state_embedding_size
 
-        self.resnet_compressor = nn.Sequential(
+        self.resnet_compressor_intel = nn.Sequential(
+                nn.Conv2d(2048, 128, 1),
+                nn.ReLU(),
+                nn.Conv2d(128, 32, 1),
+                nn.ReLU(),
+            )
+        self.resnet_compressor_kinect = nn.Sequential(
                 nn.Conv2d(2048, 128, 1),
                 nn.ReLU(),
                 nn.Conv2d(128, 32, 1),
@@ -73,7 +79,7 @@ class ResnetObjectNavActorCritic(ActorCriticModel[CategoricalDistr]):
             )
 
         self.state_encoder = RNNStateEncoder(
-            512,
+            1024,
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -84,9 +90,11 @@ class ResnetObjectNavActorCritic(ActorCriticModel[CategoricalDistr]):
         self.critic_network = LinearCriticHead(self._hidden_size)
 
         self.target_obs_combiner = nn.Sequential(
-                nn.Linear(32 * 7 * 7 + 512,1024),
+                nn.Linear(32 * 7 * 7 + 32 * 7 * 7 + 512,2048),
                 nn.ReLU(),
-                nn.Linear(1024, 512),
+                nn.Linear(2048, 1024),
+                nn.ReLU(),
+                nn.Linear(1024, 1024)
             )
         self.object_embedding = nn.Sequential(
                 nn.Linear(100,200),
@@ -147,9 +155,9 @@ class ResnetObjectNavActorCritic(ActorCriticModel[CategoricalDistr]):
         Tuple of the `ActorCriticOutput` and recurrent hidden state.
         """
 
-
-        visual_embedding = observations['rgb_clip_resnet']
-        seq_len, bsize, c, w, h = visual_embedding.shape
+        rgb_intel = observations['rgb_lowres_clip_resnet']
+        rgb_kinect = observations['rgb_lowres_arm_clip_resnet']
+        seq_len, bsize, c, w, h = rgb_intel.shape
         # testing = True
         # if seq_len == 0 or bsize == 0 or testing: remove true
         #     print('OH NO SOMETHING IS WRONG', visual_embedding.shape)
@@ -167,15 +175,20 @@ class ResnetObjectNavActorCritic(ActorCriticModel[CategoricalDistr]):
         #         memory,
         #     )
 
-        visual_embedding = visual_embedding.view(seq_len * bsize, c, w, h)
-        visual_embedding = self.resnet_compressor(visual_embedding)
-        visual_embedding = visual_embedding.view(seq_len * bsize, -1)
-        visual_embedding = visual_embedding.view(seq_len, bsize, 32 * 7 * 7)
+        rgb_intel = rgb_intel.view(seq_len * bsize, c, w, h)
+        rgb_intel = self.resnet_compressor_intel(rgb_intel)
+        rgb_intel = rgb_intel.view(seq_len * bsize, -1)
+        rgb_intel = rgb_intel.view(seq_len, bsize, 32 * 7 * 7)
+
+        rgb_kinect = rgb_kinect.view(seq_len * bsize, c, w, h)
+        rgb_kinect = self.resnet_compressor_kinect(rgb_kinect)
+        rgb_kinect = rgb_kinect.view(seq_len * bsize, -1)
+        rgb_kinect = rgb_kinect.view(seq_len, bsize, 32 * 7 * 7)
 
         target_object = observations['goal_object_type_ind'].unsqueeze(-1).repeat(1,1,100).float()
         target_object_embedding = self.object_embedding(target_object)
 
-        visual_observation_encoding = torch.cat([visual_embedding, target_object_embedding], dim=-1)
+        visual_observation_encoding = torch.cat([rgb_intel, rgb_kinect, target_object_embedding], dim=-1)
         visual_observation_encoding = self.target_obs_combiner(visual_observation_encoding)
 
 

@@ -49,12 +49,12 @@ class PNEmulObjDisArmPointNavProcTHORAllRooms(
     distance_thr = 1.5 # is this a good number?
     source_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr)
     destination_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr)
-    no_normalization_depth = DepthSensorThorNoNan( #TODO be sure that the no nan depth is reflecting everywhere
-            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            use_normalization=False,
-            uuid="depth_lowres_nonorm",
-        )
+    # no_normalization_depth = DepthSensorThorNoNan( TODO be sure that the no nan depth is reflecting everywhere
+    #         height=BringObjectiThorBaseConfig.SCREEN_SIZE,
+    #         width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+    #         use_normalization=False,
+    #         uuid="depth_lowres_nonorm",
+    #     )
     SENSORS = [
         RGBSensorThor(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,

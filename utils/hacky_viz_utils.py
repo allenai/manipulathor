@@ -61,6 +61,10 @@ def hacky_visualization(observations, object_mask=None, base_directory_to_right_
             kinect_image = observations['rgb_lowres_arm'].squeeze(0).squeeze(0)
             kinect_image = unnormalize_image(kinect_image)
             list_of_visualizations.append(kinect_image)
+        if 'only_detection_rgb_lowres_arm' in observations:
+            kinect_image = observations['only_detection_rgb_lowres_arm'].squeeze(0).squeeze(0)
+            kinect_image = unnormalize_image(kinect_image)
+            list_of_visualizations.append(kinect_image)
         if 'depth_lowres_arm' in observations:
             arm_depth = normalize_depth(observations['depth_lowres_arm'])
             list_of_visualizations.append(arm_depth)
@@ -207,7 +211,10 @@ def put_action_on_image(images, actions):
         action = actions[i]
         action_names = (MOVE_AHEAD,ROTATE_LEFT ,ROTATE_RIGHT ,MOVE_ARM_HEIGHT_P ,MOVE_ARM_HEIGHT_M ,MOVE_ARM_X_P ,MOVE_ARM_X_M ,MOVE_ARM_Y_P ,MOVE_ARM_Y_M ,MOVE_ARM_Z_P ,MOVE_ARM_Z_M ,PICKUP ,DONE, MOVE_BACK, MOVE_WRIST_P, MOVE_WRIST_M, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL)
         action_short = ("MOVE_AHEAD","ROTATE_L" ,"ROTATE_R" ,"ARM_H_P" ,"ARM_H_M" ,"ARM_X_P" ,"ARM_X_M" ,"ARM_Y_P" ,"ARM_Y_M" ,"ARM_Z_P" ,"ARM_Z_M" ,"PICKUP" ,"DONE", "MOVE_BACK", "WRIST_P", "WRIST_M", "ROTATE_L_S" ,"ROTATE_R_S" , "WRIST_P_S", "WRIST_M_S")
-        action = action_short[action_names.index(action)]
+        if action in action_names:
+            action = action_short[action_names.index(action)]
+        else:
+            action = action #no short
         position = (10,10)
 
         from PIL import Image, ImageFont, ImageDraw

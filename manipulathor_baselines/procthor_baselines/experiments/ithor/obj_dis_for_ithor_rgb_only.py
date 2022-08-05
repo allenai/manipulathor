@@ -86,7 +86,7 @@ class ObjDisArmPointNavITHORAllRoomsRGBOnly(
         self.REWARD_CONFIG['object_found'] = 1 # is this too big?
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #  this is nto the best choice
-        self.ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID #TODO test with same commit id?
+        self.ENV_ARGS['commit_id'] = XXXX#STRETCH_MANIPULATHOR_COMMIT_ID TODO test with same commit id?
         self.ENV_ARGS['renderInstanceSegmentation'] = False
         self.ENV_ARGS['renderDepthImage'] = False
 

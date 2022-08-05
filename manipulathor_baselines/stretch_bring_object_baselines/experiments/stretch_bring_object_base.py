@@ -14,7 +14,6 @@ class StretchBringObjectBaseConfig(ExperimentConfig, ABC):
     SENSORS: Optional[Sequence[Sensor]] = None
 
     STEP_SIZE = 0.25
-    ROTATION_DEGREES = 45.0
     VISIBILITY_DISTANCE = 1.0
     STOCHASTIC = False
 

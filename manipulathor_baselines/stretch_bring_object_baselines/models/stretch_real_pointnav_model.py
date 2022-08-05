@@ -79,7 +79,7 @@ class StretchRealPointNavModel(ActorCriticModel[CategoricalDistr]):
         )
 
         self.state_encoder = RNNStateEncoder(
-            512 * 4, #TODO this might be too big, maybe combine visual encodings and pointnav encodings first
+            512 * 4, # this might be too big, maybe combine visual encodings and pointnav encodings first
             self._hidden_size,
             trainable_masked_hidden_state=trainable_masked_hidden_state,
             num_layers=num_rnn_layers,
@@ -172,7 +172,7 @@ class StretchRealPointNavModel(ActorCriticModel[CategoricalDistr]):
 
         agent_distance_to_obj_source = observations['point_nav_real_source'].clone()
         agent_distance_to_obj_destination = observations['point_nav_real_destination'].clone()
-        #TODO eventually change this and the following to only calculate embedding for the ones we want
+
         agent_distance_to_obj_embedding_source = self.pointnav_embedding(agent_distance_to_obj_source)
         agent_distance_to_obj_embedding_destination = self.pointnav_embedding(agent_distance_to_obj_destination)
         agent_distance_to_obj_embedding = agent_distance_to_obj_embedding_source

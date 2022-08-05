@@ -47,12 +47,12 @@ class PNEmulObjDisArmPointNavITHORAllRooms(
     distance_thr = 1.5 # is this a good number?
     source_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='source', distance_thr=distance_thr)
     destination_mask_sensor = NoisyObjectMask(height=BringObjectiThorBaseConfig.SCREEN_SIZE, width=BringObjectiThorBaseConfig.SCREEN_SIZE,noise=NOISE_LEVEL, type='destination', distance_thr=distance_thr)
-    no_normalization_depth = DepthSensorThorNoNan( #TODO be sure that the no nan depth is reflecting everywhere
-            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            use_normalization=False,
-            uuid="depth_lowres_nonorm",
-        )
+    # no_normalization_depth = DepthSensorThorNoNan( TODO be sure that the no nan depth is reflecting everywhere
+    #         height=BringObjectiThorBaseConfig.SCREEN_SIZE,
+    #         width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+    #         use_normalization=False,
+    #         uuid="depth_lowres_nonorm",
+    #     )
     SENSORS = [
         RGBSensorThor(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
@@ -124,7 +124,7 @@ class PNEmulObjDisArmPointNavITHORAllRooms(
         self.REWARD_CONFIG['object_found'] = 1 # is this too big?
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE #  this is nto the best choice
-        self.ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID #TODO test with same commit id?
+        self.ENV_ARGS['commit_id'] = xxx#STRETCH_MANIPULATHOR_COMMIT_ID TODO test with same commit id?
         self.ENV_ARGS['renderInstanceSegmentation'] = True
 
         self.ENV_ARGS['renderDepthImage'] = True

@@ -15,6 +15,7 @@ from allenact.utils.misc_utils import prepare_locals_for_super
 from allenact_plugins.ithor_plugin.ithor_sensors import RGBSensorThor
 import cv2
 from matplotlib import pyplot as plt
+from torchvision import transforms
 
 from ithor_arm.arm_calculation_utils import (
     convert_world_to_agent_coordinate,
@@ -182,6 +183,41 @@ class RGBSensorStretchIntel(
 
 
 
+def get_new_transformation():#TODO fix these values? in each iteration
+    return transforms.Compose([
+        transforms.ToPILImage(),
+        # transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.4)], p=0.8),
+        # transforms.RandomGrayscale(p=0.2),
+        transforms.RandomApply([transforms.ColorJitter(0.05, 0.05, 0.05, 0.05)], p=0.8),
+        transforms.ToTensor(),
+    ])
+def apply_transformation(rgb, transformation):
+    rgb = transformation(rgb)
+    rgb = rgb.permute(1, 2, 0)
+    rgb = rgb * 255.
+    return rgb.numpy().astype(np.uint8)
+
+
+class RGBSensorStretchKinectwJitter(
+    RGBSensorThor
+):
+    def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
+
+        rgb = env.controller.last_event.third_party_camera_frames[0].copy()
+        if task.num_steps_taken() == 0:
+            self.jitter_function = get_new_transformation()
+        rgb = apply_transformation(rgb, self.jitter_function)
+        return kinect_reshape(rgb)
+class RGBSensorStretchIntelwJitter(
+    RGBSensorThor
+):
+    def frame_from_env(self, env: StretchManipulaTHOREnvironment, task: Optional[Task]) -> np.ndarray:
+
+        rgb = (env.controller.last_event.frame.copy())
+        if task.num_steps_taken() == 0:
+            self.jitter_function = get_new_transformation()
+        rgb = apply_transformation(rgb, self.jitter_function)
+        return intel_reshape(rgb)
 
 
 class AgentBodyPointNavSensor(Sensor):

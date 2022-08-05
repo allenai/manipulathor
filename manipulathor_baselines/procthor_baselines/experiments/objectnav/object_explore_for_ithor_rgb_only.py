@@ -1,3 +1,4 @@
+import copy
 import platform
 import random
 from typing import Sequence
@@ -47,10 +48,13 @@ from scripts.dataset_generation.find_categories_to_use import KITCHEN_TRAIN, BED
 from utils.procthor_utils.all_rooms_obj_dis_task_sampler import AllRoomsBringObjectTaskSampler
 from utils.procthor_utils.procthor_bring_object_task_samplers import ProcTHORDiverseBringObjectTaskSampler
 from utils.procthor_utils.procthor_objectnav_task_samplers import ProcTHORObjectNavTaskSampler
-from utils.stretch_utils.stretch_bring_object_tasks import StretchObjectNavTask
-from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, STRETCH_MANIPULATHOR_COMMIT_ID
-from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
-from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, RGBSensorStretchKinect
+from utils.stretch_utils.stretch_bring_object_tasks import StretchObjectNavTask, StretchObjectNavTaskwLookUp
+from utils.stretch_utils.stretch_constants import PROCTHOR_COMMIT_ID, STRETCH_MANIPULATHOR_COMMIT_ID, STRETCH_ENV_ARGS, \
+    MIN_HORIZON, MAX_HORIZON
+from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment, \
+    StretchManipulaTHOREnvironmentwNoisyFailedActions
+from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, RGBSensorStretchKinect, \
+    RGBSensorStretchIntelwJitter, RGBSensorStretchKinectwJitter
 
 
 class ObjExploreITHORAllRoomsRGBOnly(
@@ -63,9 +67,10 @@ class ObjExploreITHORAllRoomsRGBOnly(
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
 
-    LIST_OF_OBJECT_TYPES = ['Bed','Chair','FloorLamp','Sofa','Television'] #TODO this needs to be changed later
+    LIST_OF_OBJECT_TYPES = ['Apple', 'BaseballBat', 'BasketBall', 'Bed', 'Bottle', 'Chair', 'CoffeeTable', 'FloorLamp', 'HousePlant', 'Laptop', 'Sofa', 'Television'] #TODO this needs to be changed later
 
     SENSORS = [
+        # RGBSensorStretchIntelwJitter(
         RGBSensorStretchIntel(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
@@ -74,6 +79,7 @@ class ObjExploreITHORAllRoomsRGBOnly(
             mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
             stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
         ),
+        # RGBSensorStretchIntelwJitter(
         RGBSensorStretchIntel(
             height=BringObjectiThorBaseConfig.SCREEN_SIZE,
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
@@ -82,37 +88,53 @@ class ObjExploreITHORAllRoomsRGBOnly(
             mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
             stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
         ),
-        #TODO test out with kinect
-        # RGBSensorStretchKinect(
-        #     height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-        #     width=BringObjectiThorBaseConfig.SCREEN_SIZE,
-        #     use_resnet_normalization=True,
-        #     uuid="rgb_lowres",
-        #     mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-        #     stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-        # ),
+        # RGBSensorStretchKinectwJitter(
+        RGBSensorStretchKinect(
+            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            use_resnet_normalization=True,
+            uuid="rgb_lowres_arm",
+            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
+        ),
+        # RGBSensorStretchKinectwJitter(
+        RGBSensorStretchKinect(
+            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
+            use_resnet_normalization=True,
+            uuid="only_detection_rgb_lowres_arm",
+            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
+            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
+        ),
 
         GoalObjectTypeThorSensor(
             object_types=LIST_OF_OBJECT_TYPES,
         ),
     ]
 
-    MAX_STEPS = 200
+    MAX_STEPS = 350 #TODO do we want to increase this?
+
+    if platform.system() == "Darwin":
+        MAX_STEPS = 10
 
     TASK_SAMPLER = ProcTHORObjectNavTaskSampler
     # TASK_TYPE = TestPointNavExploreWiseRewardTask
-    TASK_TYPE = StretchObjectNavTask
-    ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
+    # TASK_TYPE = StretchObjectNavTask
+    TASK_TYPE = StretchObjectNavTaskwLookUp
+    # ENVIRONMENT_TYPE = StretchManipulaTHOREnvironment
+    ENVIRONMENT_TYPE = StretchManipulaTHOREnvironmentwNoisyFailedActions
     OBJECT_TYPES = LIST_OF_OBJECT_TYPES
 
     NUM_PROCESSES = 30
 
     CLIP_MODEL_TYPE = "RN50"
+    FIRST_CAMERA_HORIZON = [i for i in range(MIN_HORIZON, MAX_HORIZON, 10)] #
 
     def __init__(self):
         super().__init__()
         self.REWARD_CONFIG['exploration_reward'] = 0.1 # is this too big?
         self.REWARD_CONFIG['object_found'] = 1 # is this too big?
+        self.ENV_ARGS = copy.deepcopy(STRETCH_ENV_ARGS)
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         self.ENV_ARGS['environment_type'] = self.ENVIRONMENT_TYPE
         self.ENV_ARGS['scene'] = 'Procedural'
@@ -133,25 +155,7 @@ class ObjExploreITHORAllRoomsRGBOnly(
         )
     def preprocessors(self):
         return self.preprocessing_and_model.preprocessors()
-    # def create_model(cls, **kwargs) -> nn.Module:
-    #     has_rgb = any(isinstance(s, RGBSensor) for s in cls.SENSORS)
-    #     has_depth = any(isinstance(s, DepthSensor) for s in cls.SENSORS)
-    #
-    #     goal_sensor_uuid = next(
-    #         (s.uuid for s in cls.SENSORS if isinstance(s, GoalObjectTypeThorSensor)),
-    #         None,
-    #     )
-    #
-    #     return ResnetTensorNavActorCritic(
-    #         action_space=gym.spaces.Discrete(len(cls.TASK_TYPE.class_action_names())),
-    #         observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
-    #         goal_sensor_uuid=goal_sensor_uuid,
-    #         rgb_resnet_preprocessor_uuid="rgb_clip_resnet" if has_rgb else None,
-    #         depth_resnet_preprocessor_uuid="depth_clip_resnet" if has_depth else None,
-    #         hidden_size=512,
-    #         goal_dims=32,
-    #         add_prev_actions=True, #TODO cfg.model.add_prev_actions_embedding,
-    #     )
+
 
 
     @classmethod

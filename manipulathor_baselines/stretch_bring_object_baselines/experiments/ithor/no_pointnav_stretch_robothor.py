@@ -78,8 +78,9 @@ class NoPointNavStretchRoboTHOR(
         destination_mask_sensor_kinect,
 
     ]
-    #TODO NOW this is not tilted do we want to train with tilted?
-    #TODO NOW also maybe we should increase max steps?
+    ERROR
+    # TODO NOW this is not tilted do we want to train with tilted?
+    # TODO NOW also maybe we should increase max steps?
     MAX_STEPS = 200
 
     TASK_SAMPLER = StretchDiverseBringObjectTaskSampler

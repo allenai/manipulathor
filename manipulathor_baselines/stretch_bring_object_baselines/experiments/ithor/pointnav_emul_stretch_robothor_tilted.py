@@ -34,5 +34,5 @@ from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualize
 class PointNavEmulStretchRoboTHORTilted(
     PointNavEmulStretchRoboTHOR
 ):
-    FIRST_CAMERA_HORIZON = 30 #TODO NOW
+    FIRST_CAMERA_HORIZON = xx30 # TODO NOW
     NUM_PROCESSES = 30

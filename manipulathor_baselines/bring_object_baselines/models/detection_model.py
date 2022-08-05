@@ -48,7 +48,7 @@ class ConditionalDetectionModel(nn.Module):
 
         full_feature = torch.cat([target_category_features, image_features], dim=1)
 
-        embedded_image_category = self.pointwise_conv(full_feature) #TODO this is 64x7x7 is this a good architecture choice?
+        embedded_image_category = self.pointwise_conv(full_feature) # this is 64x7x7 is this a good architecture choice?
 
 
         c1, c2, c3, c4, _ = intermediate_features

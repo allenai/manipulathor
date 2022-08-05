@@ -209,7 +209,9 @@ class PointNavEmulatorSensor(Sensor):
         depth_frame = self.depth_sensor.get_observation(env, task, *args, **kwargs).squeeze(-1)
         assert np.isnan(depth_frame).sum() == 0, 'DEPTH IS NAN'
         depth_frame[~mask] = -1
-        depth_frame[depth_frame == 0] = -1 #TODO do all these for other pnemul sensors
+        print('Resolve todos')
+        ForkedPdb().set_trace()
+        depth_frame[depth_frame == 0] = -1 #LATER_TODO do all these for other pnemul sensors
 
         if task.num_steps_taken() == 0:
             self.pointnav_history_aggr = []
@@ -226,20 +228,20 @@ class PointNavEmulatorSensor(Sensor):
 
         fov = env.controller.last_event.metadata['fov']
 
-        #TODO do all these for other pnemul sensors
+        #LATER_TODO do all these for other pnemul sensors
         if np.any(depth_frame != -1):
             world_space_point_cloud = calc_world_coordinates(self.min_xyz, camera_xyz, camera_rotation, camera_horizon, fov, self.device, depth_frame)
             valid_points = (world_space_point_cloud == world_space_point_cloud).sum(dim=-1) == 3
             point_in_world = world_space_point_cloud[valid_points]
             middle_of_object = point_in_world.mean(dim=0)
 
-            #TODO remove after bug is fixed
+            #LATER_TODO remove after bug is fixed
             middle_of_object, is_changed = check_for_nan(middle_of_object, 'middle of object')
 
             self.pointnav_history_aggr.append((middle_of_object.cpu(), len(point_in_world)))
         result = self.average_so_far(camera_xyz, camera_rotation, arm_state)
 
-        #TODO remove after bug is fixed
+        #LATER_TODO remove after bug is fixed
         result, is_changed = check_for_nan(result, 'average_so_far')
 
 

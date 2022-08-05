@@ -54,7 +54,7 @@ class PointNavEmulStretchProcTHOR(
     destination_mask_sensor_kinect = KinectNoisyObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=only_close_big_masks)
     depth_sensor_kinect = KinectRawDepthSensor()
     ForkedPdb().set_trace()
-    #TODO if you want to use this make sure you actually set the horizon of first person camera correctly
+    # TODO if you want to use this make sure you actually set the horizon of first person camera correctly
 
     SENSORS = [
         RGBSensorStretchIntel(
@@ -97,7 +97,7 @@ class PointNavEmulStretchProcTHOR(
 
     if platform.system() == "Darwin":
         MAX_STEPS = 200
-        VISUALIZE = False #TODO remove
+        VISUALIZE = False #
 
     TASK_SAMPLER = ProcTHORDiverseBringObjectTaskSampler
     TASK_TYPE = StretchExploreWiseRewardTaskOnlyPickUp #
@@ -130,8 +130,8 @@ class PointNavEmulStretchProcTHOR(
         self.ENV_ARGS['visibilityDistance'] = self.distance_thr
         # self.ENV_ARGS['commit_id'] = '0d540af71ea6408ead71d94f550d5a324686c7f3'
         self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
-
-        #TODO add all procthor elements
+        something
+        # TODO add all procthor elements
         self.ENV_ARGS['renderInstanceSegmentation'] = True
         self.ENV_ARGS['scene'] = 'Procedural'
 

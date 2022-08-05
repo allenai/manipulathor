@@ -2,19 +2,19 @@ import argparse
 import os
 import pdb
 
-
-command_aws8 = ''
-
-command_aws12 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/objectnav/object_explore_for_ithor_rgb_only_distrib \
- --distributed_ip_and_port IP_ADR:6060 \
-  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
-  --seed 10 --machine_id 0 --extra_tag object_explore_with_clip'
-
 command_aws1 = ''
 command_aws5 = ''
 command_aws15 = ''
 command_vs411 = ''
-command = None
+command_aws8 = ''
+command_aws12 = ''
+
+command_aws8 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ObjExploreITHORAllRoomsRGBOnlyDistrib/object_explore_with_clip/2022-08-05_01-10-17/exp_ObjExploreITHORAllRoomsRGBOnlyDistrib_object_explore_with_clip__stage_00__steps_000017614273.pt ~/; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/objectnav/object_explore_for_ithor_rgb_only_distrib \
+ --distributed_ip_and_port IP_ADR:6060 \
+  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+  --seed 10 --machine_id 0 --extra_tag object_explore_with_clip -c ~/exp_ObjExploreITHORAllRoomsRGBOnlyDistrib_object_explore_with_clip__stage_00__steps_000017614273.pt'
+
+
 
 
 server_mapping = dict(
@@ -55,7 +55,7 @@ server_mapping = dict(
 def parse_args():
     parser = argparse.ArgumentParser(description='Sync')
     parser.add_argument('--server_set', default=None)#, nargs='+')
-    parser.add_argument('--command', default=command, type=str)
+    parser.add_argument('--command', default=None, type=str)
     parser.add_argument('--directly', action='store_true')
 
     args = parser.parse_args()

@@ -17,7 +17,9 @@ from torch.distributions.utils import lazy_property
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from utils.stretch_utils.stretch_constants import (
     ADITIONAL_ARM_ARGS,
-    PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_BACK, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, MOVE_WRIST_P, MOVE_WRIST_M, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL,
+    PICKUP, DONE, MOVE_AHEAD, ROTATE_RIGHT, ROTATE_LEFT, MOVE_BACK, MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P,
+    MOVE_ARM_Z_M, MOVE_WRIST_P, MOVE_WRIST_M, MOVE_WRIST_P_SMALL, MOVE_WRIST_M_SMALL, ROTATE_LEFT_SMALL,
+    ROTATE_RIGHT_SMALL, LOOKUP, LOOKDOWN, MIN_HORIZON, MAX_HORIZON,
 )
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.jupyter_helper import ARM_MOVE_CONSTANT
@@ -252,7 +254,6 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
         depth_frame = self.controller.last_event.third_party_depth_frames[0].copy()
         depth_frame = remove_nan_inf_for_frames(depth_frame, 'depth_kinect')
 
-        # #TODO remove
         if np.sum(depth_frame != self.controller.last_event.third_party_depth_frames[0].copy()) > 10:
             raise Exception('Depth is nan again even after removing nan?')
 
@@ -304,6 +305,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
 
         if self.simplify_physics:
             action_dict["simplifyOPhysics"] = True
+
         if action in [PICKUP, DONE]:
             if action == PICKUP:
                 object_id = action_dict["object_id"]
@@ -328,8 +330,7 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             } # we have to change the last action success if the pik up fails, we do that in the task now
 
         elif action in [MOVE_AHEAD, MOVE_BACK, ROTATE_LEFT, ROTATE_RIGHT, ROTATE_LEFT_SMALL,ROTATE_RIGHT_SMALL ]:
-            copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
-            action_dict = {**action_dict, **copy_aditions}
+
             if action == MOVE_AHEAD:
                 action_dict["action"] = "MoveAgent"
                 action_dict["ahead"] = AGENT_MOVEMENT_CONSTANT
@@ -361,9 +362,9 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
                 base_position['z'] += change_value
             elif action == MOVE_ARM_Z_M:
                 base_position['z'] -= change_value
-            action_dict = dict(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']),**ADITIONAL_ARM_ARGS)
+            action_dict = dict(action='MoveArm', position=dict(x=base_position['x'], y=base_position['y'], z=base_position['z']))#,**ADITIONAL_ARM_ARGS)
         elif action in [MOVE_WRIST_P,MOVE_WRIST_M,]:
-            if action == MOVE_WRIST_P: #TODO these don't have additional arm args
+            if action == MOVE_WRIST_P:
                 action_dict = dict(action='RotateWristRelative', yaw=-WRIST_ROTATION)
             elif action == MOVE_WRIST_M:
                 action_dict = dict(action='RotateWristRelative', yaw=WRIST_ROTATION)
@@ -371,9 +372,26 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             action_dict = dict(action='RotateWristRelative', yaw=-WRIST_ROTATION / 5)
         elif action == MOVE_WRIST_M_SMALL:
             action_dict = dict(action='RotateWristRelative', yaw=WRIST_ROTATION / 5)
+        elif action == LOOKUP:
+            if self.controller.last_event.metadata['agent']['cameraHorizon'] - 30 < MIN_HORIZON - 5:
+                action_dict = dict(action='FailAction')
+            else:
+                action_dict = dict(action='LookUp')
 
+        elif action == LOOKDOWN:
+            if self.controller.last_event.metadata['agent']['cameraHorizon'] + 30 > MAX_HORIZON + 5:
+                action_dict = dict(action='FailAction')
+            else:
+                action_dict = dict(action='LookDown')
 
-        sr = self.controller.step(action_dict)
+        copy_aditions = copy.deepcopy(ADITIONAL_ARM_ARGS)
+        action_dict = {**action_dict, **copy_aditions}
+        if action_dict['action'] == 'FailAction':
+            sr = self.controller.step(action='Done')
+            sr.metadata['lastActionSuccess'] = False
+        else:
+            sr = self.controller.step(action_dict)
+
         self.list_of_actions_so_far.append(action_dict)
 
         if self._verbose:
@@ -396,11 +414,11 @@ class StretchManipulaTHOREnvironmentwNoisyFailedActions(StretchManipulaTHOREnvir
         res = super(StretchManipulaTHOREnvironmentwNoisyFailedActions, self).step(action_dict)
 
         action = typing.cast(str, action_dict["action"])
-        if action in [MOVE_AHEAD, MOVE_BACK, ROTATE_LEFT, ROTATE_RIGHT, ROTATE_RIGHT_SMALL, ROTATE_LEFT_SMALL] and res.metadata['lastActionSuccess'] is False:#TODO should we add arms?
-            #TODO are these good values?
+        #TODO should we add arms?
+        if action in [MOVE_AHEAD, MOVE_BACK, ROTATE_LEFT, ROTATE_RIGHT, ROTATE_RIGHT_SMALL, ROTATE_LEFT_SMALL] and res.metadata['lastActionSuccess'] is False:
             random_move = random.uniform(-0.03, 0.03)
             random_rotation = random.uniform(-2,2)
             self.controller.step(dict(action='MoveAgent', ahead=random_move,**ADITIONAL_ARM_ARGS))
             self.controller.step(dict(action='RotateAgent', degrees=random_rotation,**ADITIONAL_ARM_ARGS))
-
+            self.controller.last_event.metadata['lastActionSuccess'] = False
         return res
