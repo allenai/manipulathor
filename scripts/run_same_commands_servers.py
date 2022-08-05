@@ -288,10 +288,16 @@ import pdb
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 --extra_tag objdis_pointnav_emul_procthor -c ~/exp_PNEmulObjDisArmPointNavProcTHORAllRoomsDistrib_objdis_pointnav_emul_procthor__stage_00__steps_000004028790.pt'
 
-command_aws8 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavProcTHORDistrib/procthor_rgbd_apointnav_restart/2022-08-02_15-04-11/exp_ObjDisArmPointNavProcTHORDistrib_procthor_rgbd_apointnav_restart__stage_00__steps_000045807530.pt ~/; ./manipulathor/scripts/kill-zombie.sh ; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_distrib.py \
+# command_aws8 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ObjDisArmPointNavProcTHORDistrib/procthor_rgbd_apointnav_restart/2022-08-02_15-04-11/exp_ObjDisArmPointNavProcTHORDistrib_procthor_rgbd_apointnav_restart__stage_00__steps_000045807530.pt ~/; ./manipulathor/scripts/kill-zombie.sh ; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_distrib.py \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 --extra_tag procthor_rgbd_apointnav_restart --enable_crash_recovery -c ~/exp_ObjDisArmPointNavProcTHORDistrib_procthor_rgbd_apointnav_restart__stage_00__steps_000045807530.pt'
+
+
+command_aws8 = ' ./manipulathor/scripts/kill-zombie.sh ; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_procthor_distrib.py \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 --extra_tag procthor_rgbd_apointnav_restart --enable_crash_recovery -c ~/exp_ObjDisArmPointNavProcTHORDistrib_procthor_rgbd_apointnav_restart__stage_00__steps_000045807530.pt'
+ --seed 10 --machine_id 0 --extra_tag procthor_only_depth_apointnav --enable_crash_recovery'
 #
 #
 # command_aws5 = './manipulathor/scripts/kill-zombie.sh ; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/ithor/obj_dis_for_ithor_rgb_only_distrib.py \
