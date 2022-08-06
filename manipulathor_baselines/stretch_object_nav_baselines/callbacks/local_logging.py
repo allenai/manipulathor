@@ -1,7 +1,7 @@
 import glob
 import json
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 from typing_extensions import Literal
 
 import matplotlib.pyplot as plt
@@ -12,8 +12,185 @@ from allenact.base_abstractions.callbacks import Callback
 from moviepy.editor import ImageSequenceClip
 from PIL import Image, ImageDraw, ImageFont
 
+from allenact.base_abstractions.sensor import Sensor
+import gym
+from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
+from utils.stretch_utils.stretch_object_nav_tasks import ObjectNavTask
+
 from manipulathor_utils.debugger_util import ForkedPdb
 import cv2
+
+class LocalLoggingSensor(Sensor[StretchManipulaTHOREnvironment,ObjectNavTask]):
+
+    def get_observation(
+        self, env:StretchManipulaTHOREnvironment, task:ObjectNavTask, *args: Any, **kwargs: Any
+    ) -> Any:
+        if not task.additional_visualize:
+            return None
+
+        #     draw_points(self.real_prev_location, 'g'); draw_points(self.belief_prev_location, 'b'); plt.show()
+        #     ForkedPdb().set_trace()
+    
+        # NOTE: Create top-down trajectory path visualization
+        agent_path = [
+            dict(x=p["x"], y=0.25, z=p["z"])
+            for p in task._metrics["task_info"]["followed_path"]
+        ]
+        if task.distance_type != "real_world":
+            # THIS ASSUMES BOTH CAMERAS ARE ON (slash only works for stretch with one third-party camera)
+            if len(env.controller.last_event.third_party_camera_frames) < 2:
+                event = env.step({"action": "GetMapViewCameraProperties"})
+                cam = event.metadata["actionReturn"].copy()
+                cam["orthographicSize"] += 1
+                env.step(
+                    {"action": "AddThirdPartyCamera", "skyboxColor":"white", **cam}
+                )
+            event = env.step({"action": "VisualizePath", "positions":agent_path})
+            env.step({"action":"HideVisualizedPath"})
+            path = event.third_party_camera_frames[1]
+        else:
+
+            fig, ax = plt.subplots()
+            ax = plt.axes()
+            xs = [p["x"] for p in agent_path]
+            zs = [p["z"] for p in agent_path]
+            ax.plot(xs, zs, marker='o', color='g')
+            ax.set_title("Nominal agent path from origin/start")
+
+        df = pd.read_csv(
+            f"experiment_output/ac-data/{task.task_info['id']}.txt",
+            names=list(task.class_action_names())+["EstimatedValue"],
+        )
+        try:
+            ep_length = task._metrics["ep_length"]
+        except:
+            ForkedPdb().set_trace()
+
+        # get returns from each step
+        returns = []
+        for r in reversed(task.task_info["rewards"]):
+            if len(returns) == 0:
+                returns.append(r)
+            else:
+                returns.append(r + returns[-1] * 0.99) # gamma value
+        returns = returns[::-1]
+
+        video_frames = []
+        for step in range(task._metrics["ep_length"] + 1):
+            is_first_frame = step == 0
+            is_last_frame = step == task._metrics["ep_length"]
+
+            agent_frame = np.array(
+                Image.fromarray(task.observations[step])#.resize((224*2, 224))
+            )
+            frame_number = step
+            dist_to_target = task.task_info["dist_to_target"][step]
+
+            if is_first_frame:
+                last_action_success = None
+                last_reward = None
+                return_value = None
+            else:
+                last_action_success = task.task_info["action_successes"][step - 1]
+                last_reward = task.task_info["rewards"][step - 1]
+                return_value = returns[step - 1]
+
+            if is_last_frame:
+                action_dist = None
+                critic_value = None
+                taken_action = None
+            else:
+                policy_critic_value = df.iloc[step].values.tolist()
+                action_dist = policy_critic_value[:5] # set programmatically
+                critic_value = policy_critic_value[5]
+
+                taken_action = task.task_info["taken_actions"][step]
+
+            video_frame = LocalLogging.get_video_frame(
+                agent_frame=agent_frame,
+                frame_number=frame_number,
+                action_names=task.class_action_names(),
+                last_reward=(
+                    round(last_reward, 2) if last_reward is not None else None
+                ),
+                critic_value=(
+                    round(critic_value, 2) if critic_value is not None else None
+                ),
+                return_value=(
+                    round(return_value, 2) if return_value is not None else None
+                ),
+                dist_to_target=round(dist_to_target, 2),
+                action_dist=action_dist,
+                ep_length=ep_length,
+                last_action_success=last_action_success,
+                taken_action=taken_action,
+            )
+            video_frames.append(video_frame)
+
+        for _ in range(9):
+            video_frames.append(video_frames[-1])
+
+        os.makedirs(f"experiment_output/trajectories/{task.task_info['id']}", exist_ok=True)
+
+        imsn = ImageSequenceClip([frame for frame in video_frames], fps=10)
+        imsn.write_videofile(f"experiment_output/trajectories/{task.task_info['id']}/frames.mp4")
+
+        # save the top-down path
+        if task.distance_type != "real_world":
+            Image.fromarray(path).save(f"experiment_output/trajectories/{task.task_info['id']}/path.png")
+        else:
+            fig.savefig(f"experiment_output/trajectories/{task.task_info['id']}/path.png")
+            path=np.array(Image.open(f"experiment_output/trajectories/{task.task_info['id']}/path.png")) # this is really dumb
+
+        # save the value function over time
+        fig, ax = plt.subplots()
+        estimated_values = df.EstimatedValue.to_numpy()
+        ax.plot(estimated_values, label="Critic Estimated Value")
+        ax.plot(returns, label="Return")
+        ax.set_ylabel("Value")
+        ax.set_xlabel("Time Step")
+        ax.set_title("Value Function over Time")
+        ax.legend()
+        fig.savefig(
+            f"experiment_output/trajectories/{task.task_info['id']}/value_fn.svg",
+            bbox_inches="tight",
+        )
+
+        with open(f"experiment_output/trajectories/{task.task_info['id']}/data.json", "w") as f:
+            json.dump(
+                {
+                    "id": task.task_info["id"],
+                    "spl": task._metrics["spl"],
+                    "success": task._metrics["success"],
+                    "finalDistance": task.task_info["dist_to_target"][-1],
+                    "initialDistance": task.task_info["dist_to_target"][0],
+                    "minDistance": min(task.task_info["dist_to_target"]),
+                    "episodeLength": task._metrics["ep_length"],
+                    "confidence": (
+                        None
+                        if task.task_info["taken_actions"][-1] != "End"
+                        else df.End.to_list()[-1]
+                    ),
+                    "failedActions": len(
+                        [s for s in task.task_info["action_successes"] if not s]
+                    ),
+                    "targetObjectType": task.task_info["object_type"],
+                    "numTargetObjects": len(task.task_info["target_object_ids"]),
+                    "mirrored": task.task_info["mirrored"],
+                    "scene": {
+                        "name": task.task_info["house_name"],
+                        "split": "train",
+                        "rooms": 1,
+                    },
+                },
+                f,
+            )
+
+        return {
+            "observations": task.observations,
+            "path": [],#path,
+            **task._metrics,
+        }
 
 
 class LocalLogging(Callback):
@@ -22,6 +199,12 @@ class LocalLogging(Callback):
         self.aggregate_by_means_across_n_runs: int = 10
         self.by_means_iter: int = 0
         self.by_metrics = dict()
+    
+    def callback_sensors(self) -> Optional[Sequence[Sensor]]:
+        """Determines the data returned to the `tasks_data` parameter in the
+        above *_log functions."""
+        return [LocalLoggingSensor(uuid="local_logging_callback_sensor",
+                                   observation_space=gym.spaces.Discrete(1)),]
 
     @staticmethod
     def get_columns(task: Dict[str, Any]) -> List[str]:
