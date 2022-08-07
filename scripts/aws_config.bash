@@ -5,7 +5,7 @@ tmux
 python3 -m venv manipulathor_env
 source ~/manipulathor_env/bin/activate
 pip3 install --upgrade pip
-pip3 install -r aws_requirements.txt
+pip3 install -r ~/manipulathor/aws_requirements.txt
 #For installing dataset
 pip3 install datasets
 huggingface-cli login

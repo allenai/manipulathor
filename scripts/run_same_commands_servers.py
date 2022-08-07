@@ -27,7 +27,7 @@ server_mapping = dict(
         'command': command_aws1,
     },
     aws5 = {
-        'servers':[f'aws{i}' for i in range(5, 9)],
+        'servers':[f'aws{i}' for i in range(5, 8)],
         'ip_adr': '34.216.219.227',
         'command': command_aws5,
     },

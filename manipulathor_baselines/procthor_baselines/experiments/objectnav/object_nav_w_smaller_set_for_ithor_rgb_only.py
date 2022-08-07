@@ -68,9 +68,10 @@ class ObjNavSmallSetITHORAllRoomsRGBOnly(
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
 
-    LIST_OF_OBJECT_TYPES = ['Apple', 'BaseballBat', 'BasketBall', 'Bed', 'Bottle', 'Chair', 'CoffeeTable', 'FloorLamp', 'HousePlant', 'Laptop', 'Sofa', 'Television'] #TODO this needs to be changed later
-    OBJECT_TYPE_TO_SEARCH = ['Apple', 'BasketBall', 'Bed', 'Chair', 'Television']
-
+    # LIST_OF_OBJECT_TYPES = ['Apple', 'BaseballBat', 'BasketBall', 'Bed', 'Bottle', 'Chair', 'CoffeeTable', 'FloorLamp', 'HousePlant', 'Laptop', 'Sofa', 'Television'] #TODO this needs to be changed later
+    # OBJECT_TYPE_TO_SEARCH = ['Apple', 'BasketBall', 'Bed', 'Chair', 'Television']
+    OBJECT_TYPE_TO_SEARCH = ['Bed','Chair','FloorLamp','Fridge','Sofa','Television','Toilet']
+    LIST_OF_OBJECT_TYPES = OBJECT_TYPE_TO_SEARCH #TODO very important
     SENSORS = [
         # RGBSensorStretchIntelwJitter(
         RGBSensorStretchIntel(
