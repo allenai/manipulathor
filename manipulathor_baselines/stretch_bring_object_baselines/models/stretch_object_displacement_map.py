@@ -87,6 +87,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             rnn_type="GRU",
             learn_pose=False,
             visualize=False,
+            accumulate_maps_across_visits=False,
             ):
         super().__init__(action_space=action_space, observation_space=observation_space)
 
@@ -177,6 +178,9 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
 
         self.debug_image_save_freq_valid = 100
         self.next_debug_image_save_step_valid = 0
+
+        self.maps_from_previous_visit_to_scene = {}
+        self.accumulate_maps_across_visits = accumulate_maps_across_visits
 
     @property
     def recurrent_hidden_state_size(self) -> int:
@@ -402,7 +406,6 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         masks: torch.FloatTensor,
     ) -> Tuple[ActorCriticOutput[DistributionType], Optional[Memory]]:
         pose_errors = []
-
         batch_size = memory.tensor("map").shape[1]
         # print("batch size", batch_size)
         current_map = memory.tensor("map").reshape(batch_size, self.map_size, self.map_size, self.map_channels)
@@ -415,6 +418,16 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         all_pointnav_agent_frame_memory = []
         for timestep in range(observations['depth_lowres'].shape[0]):
             all_maps.append(all_maps[-1].clone() * masks[timestep].reshape(batch_size, 1, 1, 1))
+            if self.accumulate_maps_across_visits:
+                for b in range(batch_size):
+                    if masks[timestep, b] == 0:
+                        print("reset in loop", self.step_count, observations['odometry_emul']['scene_id'][timestep, b].item())
+                        if observations['odometry_emul']['scene_id'][timestep, b].item() in self.maps_from_previous_visit_to_scene:
+                            all_maps[-1][b, :, :, :2] = self.maps_from_previous_visit_to_scene[observations['odometry_emul']['scene_id'][timestep, b].item()]['map'][:, :, :2]
+                        else:
+                            print("no previous map", self.maps_from_previous_visit_to_scene.keys())
+
+                    
             prev_pose = prev_pose * masks[timestep].unsqueeze(-1)
             if self._learn_pose:
                 
@@ -582,6 +595,15 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             all_maps[-1] = torch.clamp(all_maps[-1], min=0, max=1)
             prev_pose = pose
 
+            if self.accumulate_maps_across_visits:
+                for b in range(batch_size):
+                    scene_id = observations['odometry_emul']['scene_id'][timestep, b].item()
+                    if scene_id not in self.maps_from_previous_visit_to_scene:
+                        self.maps_from_previous_visit_to_scene[scene_id] = {'map': all_maps[-1][b].clone().detach(), 'num_updates': 0}
+                    elif self.maps_from_previous_visit_to_scene[scene_id]['num_updates'] < 500:
+                        self.maps_from_previous_visit_to_scene[scene_id]['map'] = all_maps[-1][b].clone().detach()
+                        self.maps_from_previous_visit_to_scene[scene_id]['num_updates'] += 1
+
         
         # from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
 
@@ -606,9 +628,9 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                 self.next_debug_image_save_step = self.step_count + self.debug_image_save_freq
             else:
                 self.next_debug_image_save_step_valid = self.step_count + self.debug_image_save_freq_valid
-           
-        
-        
+
+
+
         # Transforms geocentric maps into egocentric maps
         ego_maps = self.transform_global_map_to_ego_map(all_maps, observations['odometry_emul']['agent_info'])
 

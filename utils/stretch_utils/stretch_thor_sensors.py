@@ -217,14 +217,15 @@ class RGBSensorStretchIntel(
 
 
 class AgentOdometryEmulSensor(Sensor):
-    def __init__(self, noise=0, uuid: str = "odometry_emul", **kwargs: Any):
+    def __init__(self, noise=0, uuid: str = "odometry_emul", fixed_frame=False, **kwargs: Any):
         observation_space = gym.spaces.Box(
             low=0, high=1, shape=(1,), dtype=np.float32
         )
+        self.scene_names = {}
 
         self.noise = noise
         assert self.noise == 0
-
+        self.fixed_frame = fixed_frame
         self.initial_pos = np.zeros(3, dtype=np.float32)
         self.initial_rot = 0.0
 
@@ -275,7 +276,7 @@ class AgentOdometryEmulSensor(Sensor):
         # Use env.nominal_agent_location to handle noise
 
         # if task.num_steps_taken() == 0:
-        if metadata['lastAction'] == 'GetReachablePositions':
+        if metadata['lastAction'] == 'GetReachablePositions' or (self.fixed_frame and len(self.scene_names) == 0):
             self.initial_rot = metadata["agent"]["rotation"]["y"]
             self.initial_pos = np.array([metadata['agent']['position'][k] for k in ["x", "y", "z"]], dtype=np.float32)
 
@@ -397,9 +398,13 @@ class AgentOdometryEmulSensor(Sensor):
 
 
         
-        
+        scene_id = hash(env.scene_name)
+        if scene_id not in self.scene_names:
+            self.scene_names[scene_id] = env.scene_name
+            print("Scene names", self.scene_names)
 
-        return {'agent_info': agent_info, 'camera_info': camera_info}
+
+        return {'agent_info': agent_info, 'camera_info': camera_info, 'scene_id': scene_id}
 
     
 
