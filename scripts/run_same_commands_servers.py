@@ -14,10 +14,10 @@ command_aws8 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/Obj
   --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
   --seed 10 --machine_id 0 --extra_tag object_explore_with_clip -c ~/exp_ObjExploreITHORAllRoomsRGBOnlyDistrib_object_explore_with_clip__stage_00__steps_000017614273.pt'
 
-command_aws5 = './manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/objectnav/object_nav_w_smaller_set_for_ithor_rgb_only_distrib \
+command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ObjNavSmallSetITHORAllRoomsRGBOnlyDistrib/object_nav_small_source_with_clip/2022-08-06_00-13-18/exp_ObjNavSmallSetITHORAllRoomsRGBOnlyDistrib_object_nav_small_source_with_clip__stage_00__steps_000007572612.pt ~/; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/objectnav/object_nav_w_smaller_set_for_ithor_rgb_only_distrib \
  --distributed_ip_and_port IP_ADR:6060 \
   --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
-  --seed 10 --machine_id 0 --extra_tag object_nav_small_source_with_clip'
+  --seed 10 --machine_id 0 --extra_tag object_nav_small_source_with_clip -c ~/exp_ObjNavSmallSetITHORAllRoomsRGBOnlyDistrib_object_nav_small_source_with_clip__stage_00__steps_000007572612.pt'
 
 
 server_mapping = dict(
