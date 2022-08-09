@@ -410,8 +410,8 @@ class AgentOdometryEmulSensor(Sensor):
                                        gt_transform=transform)
 
 
-        
-        scene_id = hash(env.scene_name)
+        short_name = env.scene_name.replace('FloorPlan', '').replace('_', '').replace('physics', '').replace('Train', 'T').replace('Val', 'V')
+        scene_id = int(''.join(str(ord(c)) if not c.isdigit() else c for c in short_name))
         if scene_id not in self.scene_names:
             self.scene_names[scene_id] = env.scene_name
             print("Scene names", self.scene_names)

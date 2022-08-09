@@ -7,6 +7,7 @@ import platform
 from datetime import datetime
 from typing import Tuple, Optional, Dict
 import time
+import os
 
 import cv2
 import gym
@@ -63,6 +64,7 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         teacher_forcing=1,
         use_odom_pose=False,
         visualize=False,
+        use_pretrained_sdf=False,
     ):
         """Initializer.
 
@@ -71,6 +73,9 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         super().__init__(action_space=action_space, observation_space=observation_space)
         self.visualize = visualize
 
+        self.use_pretrained_sdf = use_pretrained_sdf
+        self.save_maps = False
+        assert not (self.use_pretrained_sdf and self.save_maps)
         self._hidden_size = hidden_size
         self.object_type_embedding_size = obj_state_embedding_size
         self.use_odom_pose = use_odom_pose
@@ -290,6 +295,14 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         #from manipulathor_utils.debugger_util import ForkedPdb; ForkedPdb().set_trace()
         #print("created new map")
         return sdf_map
+    
+    def load_sdf(self, scene_hash):
+        trainer = self.init_new_map()
+
+        path = "saved_sdfs/model_{}/checkpoint.pt".format(scene_hash)
+        trainer.load_checkpoint(path)
+        return trainer
+
 
     def format_frame_data(self, observations, timestep, batch):
         all_data = FrameData()
@@ -367,47 +380,55 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
             for timestep in range(num_timesteps):
                 batch_outputs = []
                 for batch in range(num_batches):
-                    if batch > len(self.sdf_trainers) - 1:
-                        st = time.perf_counter()
-                        self.sdf_trainers.append(self.init_new_map())
-                        et = time.perf_counter()
-                        init_time += (et - st)
-                    elif  masks[timestep][batch] == 0:
-                        st = time.perf_counter()
-                        self.sdf_trainers[batch] = self.init_new_map()
-                        et = time.perf_counter()
-                        init_time += (et - st)
-                    
-                    st = time.perf_counter()
-                    frame_data = self.format_frame_data(observations, timestep, batch)
-                    et = time.perf_counter()
-                    data_1 += (et - st)
-                    st = time.perf_counter()
-                    self.sdf_trainers[batch].add_frame(frame_data)
-                    et = time.perf_counter()
-                    data_time += (et - st)
-                    if masks[timestep][batch] == 0:
-                        self.sdf_trainers[batch].last_is_keyframe = True
-                        self.sdf_trainers[batch].optim_frames = 200
+                    if self.use_pretrained_sdf:
+                        if batch > len(self.sdf_trainers) - 1:
+                            self.sdf_trainers.append(self.load_sdf(observations['odometry_emul']['scene_id'][timestep, batch].item()))
+                        elif masks[timestep][batch] == 0:
+                            self.sdf_trainers[batch] = self.load_sdf(observations['odometry_emul']['scene_id'][timestep, batch].item())
                     else:
+                        if batch > len(self.sdf_trainers) - 1:
+                            st = time.perf_counter()
+                            self.sdf_trainers.append(self.init_new_map())
+                            et = time.perf_counter()
+                            init_time += (et - st)
+                        elif  masks[timestep][batch] == 0:
+                            st = time.perf_counter()
+                            self.sdf_trainers[batch] = self.init_new_map()
+                            et = time.perf_counter()
+                            init_time += (et - st)
+                        
                         st = time.perf_counter()
-                        # Only checks on one camera
-                        T_WC = frame_data.T_WC_batch#[-1].unsqueeze(0)
-                        depth_gt = frame_data.depth_batch#[-1].unsqueeze(0)
-                        dirs_c = frame_data.dirs_c_batch#[-1].unsqueeze(0)
-                        self.sdf_trainers[batch].last_is_keyframe = self.sdf_trainers[batch].is_keyframe(T_WC, depth_gt, dirs_c)
-                        if self.sdf_trainers[batch].last_is_keyframe:
-                            self.sdf_trainers[batch].optim_frames = self.sdf_trainers[batch].iters_per_kf
+                        frame_data = self.format_frame_data(observations, timestep, batch)
                         et = time.perf_counter()
-                        is_keyframe_time += (et - st)
+                        data_1 += (et - st)
+                        st = time.perf_counter()
+                        self.sdf_trainers[batch].add_frame(frame_data)
+                        et = time.perf_counter()
+                        data_time += (et - st)
+                        if masks[timestep][batch] == 0:
+                            self.sdf_trainers[batch].last_is_keyframe = True
+                            self.sdf_trainers[batch].optim_frames = 200
+                        else:
+                            st = time.perf_counter()
+                            # Only checks on one camera
+                            T_WC = frame_data.T_WC_batch#[-1].unsqueeze(0)
+                            depth_gt = frame_data.depth_batch#[-1].unsqueeze(0)
+                            dirs_c = frame_data.dirs_c_batch#[-1].unsqueeze(0)
+                            self.sdf_trainers[batch].last_is_keyframe = self.sdf_trainers[batch].is_keyframe(T_WC, depth_gt, dirs_c)
+                            if self.sdf_trainers[batch].last_is_keyframe:
+                                self.sdf_trainers[batch].optim_frames = self.sdf_trainers[batch].iters_per_kf
+                            et = time.perf_counter()
+                            is_keyframe_time += (et - st)
 
-                    st = time.perf_counter()
-                    losses, _ = self.sdf_trainers[batch].step()
-
-                    for i in range(self.sdf_trainers[batch].optim_frames // step_scale):
+                        st = time.perf_counter()
                         losses, _ = self.sdf_trainers[batch].step()
-                    et = time.perf_counter()
-                    optim_time += (et - st)
+
+                        for i in range(self.sdf_trainers[batch].optim_frames // step_scale):
+                            losses, _ = self.sdf_trainers[batch].step()
+                        et = time.perf_counter()
+                        optim_time += (et - st)
+
+                        
 
                     if not self.encode_sdf_net_params:
                         st = time.perf_counter()
@@ -432,6 +453,26 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
                         #slices = torch.zeros(224, 224, 18).to(self.device)
 
                         batch_outputs.append(slices)
+                    if self.save_maps:
+                        path = "saved_sdfs/model_{}".format(observations['odometry_emul']['scene_id'][timestep, batch].item())
+                        if not os.path.isdir(path):
+                            os.makedirs(path)
+                        torch.save({'model_state_dict': self.sdf_trainers[batch].sdf_map.state_dict()},
+                                    os.path.join(path, "checkpoint.pt"))
+                        zero_pos = observations['odometry_emul']['agent_info']['xyz'][timestep, batch].clone()
+                        zero_pos[0] = 0.0
+                        zero_pos[2] = 0.0
+                        zero_rot = torch.zeros_like(observations['odometry_emul']['agent_info']['rotation'][timestep, batch])
+                        oriented_output = self.sdf_trainers[batch].compute_slices_rotated(
+                                self.sampling_pc,
+                                zero_pos,
+                                zero_rot
+                        )
+                        oriented_slices = oriented_output.permute(1, 2, 0)
+                        for s in range(slices.shape[-1]):
+                            im = self.sdf_slice_to_image(oriented_slices[:, :, s])
+                            cv2.imwrite(os.path.join(path, "slice_{}.png".format(s)), im)
+
                 if self.encode_sdf_net_params:
                     st = time.perf_counter()
                     batch_outputs = self.sdf_encoder([trainer.sdf_map for trainer in self.sdf_trainers])
@@ -494,7 +535,14 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         output = output.permute(1, 0, 2, 3, 4)
         return output
 
-
+    def sdf_slice_to_image(self, sdf_slice):
+        im = sdf_slice.cpu().numpy()
+        im = self.cmap.to_rgba(im)[:, :, :3] * 255
+        px = im.shape[0] //2
+        py = im.shape[1] //2
+        im[px-1:px+1, py-1:py+1, :] = (0, 255, 0)
+        im = im[..., ::-1]
+        return im
 
     def forward(  # type:ignore
         self,
@@ -541,18 +589,14 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         if all_maps.shape[0] > 1:
             end_time = time.perf_counter()
             print("mapping_time", end_time - mapping_start_time)
-        if self.step_count % 100 == 0 and self.device.index == 0:
+        if True:#self.step_count % 100 == 0 and self.device.index == 0:
             if all_maps.shape[0] == 1:
                 for batch in range(all_maps.shape[1]):
                     for s in range(all_maps.shape[-1]):
                         if s != 3:
                             continue
-                        im = all_maps[0, batch, :, :, s].cpu().numpy()
-                        im = self.cmap.to_rgba(im)[:, :, :3] * 255
-                        px = im.shape[0] //2
-                        py = im.shape[1] //2
-                        im[px-1:px+1, py-1:py+1, :] = (0, 255, 0)
-                        im = im[..., ::-1]
+                        im = self.sdf_slice_to_image(all_maps[0, batch, :, :, s])
+ 
                         cv2.imwrite("../debug_images/pred_{}_b{}_s{}.png".format(self.step_count, batch, s), im)
                     print("saved images", self.step_count)
                     break
