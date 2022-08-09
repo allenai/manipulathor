@@ -157,10 +157,12 @@ class StretchRealEnvironment(StretchManipulaTHOREnvironment):
             # raise Exception('Action not supported')
 
 
+        self.update_nominal_location(stretch_action) # do this first
+        
         sr = self.controller.step(**stretch_action)
         self.list_of_actions_so_far.append(action)
 
-        self.update_nominal_location(stretch_action)
+        
 
         if self._verbose:
             print(self.controller.last_event)

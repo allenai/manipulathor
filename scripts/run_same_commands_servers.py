@@ -288,11 +288,11 @@ command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/Str
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 -c ~/exp_StretchNeckedObjectNavTaskUpdateOrder-RGB-SingleCam-ProcTHOR-locobot-RoboTHOR-Test__stage_01__steps_000014017504.pt '
 
-command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test/2022-07-27_16-21-39/exp_StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test__stage_02__steps_000070733520.pt   ~/; \
+command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test/2022-08-08_18-14-14/exp_StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test__stage_02__steps_000275660336.pt    ~/; \
      ./manipulathor/scripts/kill-zombie.sh; sleep 5s; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_2camera_distrib.py \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 -c ~/exp_StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test__stage_02__steps_000070733520.pt '
+ --seed 10 --machine_id 0 -c ~/exp_StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test__stage_02__steps_000275660336.pt '
 
 # command_aws1 = ' ./manipulathor/scripts/kill-zombie.sh; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_2camera_distrib.py \
 # --distributed_ip_and_port IP_ADR:6060 \
@@ -319,18 +319,18 @@ command_aws1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/Str
 #  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #  --seed 10 --machine_id 0 -c ~/exp_StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test__stage_02__steps_000070733520.pt '
 
-# command_awsv1 = 'scp MAIN_SERVER:~/manipulathor/weights/real_robothor_test_weights/exp_StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test__stage_02__steps_000194525504.pt  ~/; \
-#      ./manipulathor/scripts/kill-zombie.sh; sleep 5s; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_2camera_distrib.py \
-# --distributed_ip_and_port IP_ADR:6060 \
-#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
-#  --seed 10 --machine_id 0 -c ~/exp_StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test__stage_02__steps_000194525504.pt \
-# --enable_crash_recovery'
-
-command_awsv1 = './manipulathor/scripts/kill-zombie.sh; sleep 5s; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_2camera_distrib.py \
+command_awsv1 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test/2022-08-08_16-17-58/exp_StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test__stage_01__steps_000020004756.pt  ~/; \
+     ./manipulathor/scripts/kill-zombie.sh; sleep 5s; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_2camera_distrib.py \
 --distributed_ip_and_port IP_ADR:6060 \
  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
- --seed 10 --machine_id 0 \
+ --seed 10 --machine_id 0 -c ~/exp_StretchObjectNavTaskIntelSegmentationSuccess-RGB-2Camera-ProcTHOR-narrowFOV-stretch-RoboTHOR-Test__stage_01__steps_000020004756.pt \
 --enable_crash_recovery'
+
+# command_awsv1 = './manipulathor/scripts/kill-zombie.sh; sleep 5s; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_2camera_distrib.py \
+# --distributed_ip_and_port IP_ADR:6060 \
+#  --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#  --seed 10 --machine_id 0 \
+# --enable_crash_recovery'
 
 server_sets = {
     'aws1':{

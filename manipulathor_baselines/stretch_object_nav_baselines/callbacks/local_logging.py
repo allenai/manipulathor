@@ -473,6 +473,9 @@ class LocalLogging(Callback):
         
         agent_height, agent_width, ch = agent_frame.shape
 
+        font_to_use = "Arial.ttf" # possibly need a full path here
+        full_font_load = ImageFont.truetype(font_to_use, 14)
+
         IMAGE_BORDER = 25
         TEXT_OFFSET_H = 60
         TEXT_OFFSET_V = 30
@@ -499,7 +502,7 @@ class LocalLogging(Callback):
                 img_draw.text(
                     (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, (TEXT_OFFSET_V+5) + i * 20),
                     action,
-                    font=ImageFont.truetype("Arial.ttf", 14),
+                    font=full_font_load,#ImageFont.truetype(font_to_use, 14),
                     fill="gray" if action != taken_action else "black",
                     anchor="rm",
                 )
@@ -517,7 +520,7 @@ class LocalLogging(Callback):
         img_draw.text(
             (IMAGE_BORDER * 1.1, IMAGE_BORDER * 1),
             str(frame_number),
-            font=ImageFont.truetype("Arial.ttf", 25),
+            font=full_font_load,#ImageFont.truetype(font_to_use, 25),
             fill="white",
         )
 
@@ -526,14 +529,14 @@ class LocalLogging(Callback):
             img_draw.text(
                 (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 175 + oset),
                 "Last Reward:",
-                font=ImageFont.truetype("Arial.ttf", 14),
+                font=full_font_load,#ImageFont.truetype(font_to_use, 14),
                 fill="gray",
                 anchor="rm",
             )
             img_draw.text(
                 (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 175 + oset),
                 " " + ("+" if last_reward > 0 else "") + str(last_reward),
-                font=ImageFont.truetype("Arial.ttf", 14),
+                font=full_font_load,#ImageFont.truetype(font_to_use, 14),
                 fill="gray",
                 anchor="lm",
             )
@@ -543,14 +546,14 @@ class LocalLogging(Callback):
             img_draw.text(
                 (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 175 + oset),
                 "Critic Value:",
-                font=ImageFont.truetype("Arial.ttf", 14),
+                font=full_font_load,#ImageFont.truetype(font_to_use, 14),
                 fill="gray",
                 anchor="rm",
             )
             img_draw.text(
                 (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 175 + oset),
                 " " + ("+" if critic_value > 0 else "") + str(critic_value),
-                font=ImageFont.truetype("Arial.ttf", 14),
+                font=full_font_load,#ImageFont.truetype(font_to_use, 14),
                 fill="gray",
                 anchor="lm",
             )
@@ -559,14 +562,14 @@ class LocalLogging(Callback):
             img_draw.text(
                 (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 195 + oset),
                 "Return:",
-                font=ImageFont.truetype("Arial.ttf", 14),
+                font=full_font_load,#ImageFont.truetype(font_to_use, 14),
                 fill="gray",
                 anchor="rm",
             )
             img_draw.text(
                 (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 195 + oset),
                 " " + ("+" if return_value > 0 else "") + str(return_value),
-                font=ImageFont.truetype("Arial.ttf", 14),
+                font=full_font_load,#ImageFont.truetype(font_to_use, 14),
                 fill="gray",
                 anchor="lm",
             )
@@ -575,14 +578,14 @@ class LocalLogging(Callback):
             img_draw.text(
                 (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 235),
                 "Last Action:",
-                font=ImageFont.truetype("Arial.ttf", 14),
+                font=full_font_load,#ImageFont.truetype(font_to_use, 14),
                 fill="gray",
                 anchor="rm",
             )
             img_draw.text(
                 (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 235),
                 " Success" if last_action_success else " Failure",
-                font=ImageFont.truetype("Arial.ttf", 14),
+                font=full_font_load,#ImageFont.truetype(font_to_use, 14),
                 fill="green" if last_action_success else "red",
                 anchor="lm",
             )
@@ -590,14 +593,14 @@ class LocalLogging(Callback):
         img_draw.text(
             (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 145),
             "Target Dist:",
-            font=ImageFont.truetype("Arial.ttf", 14),
+            font=full_font_load,#ImageFont.truetype(font_to_use, 14),
             fill="gray",
             anchor="rm",
         )
         img_draw.text(
             (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 145),
             f" {dist_to_target}m",
-            font=ImageFont.truetype("Arial.ttf", 14),
+            font=full_font_load,#ImageFont.truetype(font_to_use, 14),
             fill="gray",
             anchor="lm",
         )

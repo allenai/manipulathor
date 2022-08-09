@@ -609,7 +609,6 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
     def _step(self, action: int) -> RLStepResult:
 
         action_str = self.class_action_names()[action]
-        self.task_info["taken_actions"].append(action_str)
         print('Model Said', action_str, ' as action ', str(self.num_steps_taken()))
 
         self.manual_action = True
@@ -637,9 +636,9 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
 
         # add/remove/adjust to allow graceful exit from auto-battlebots
         end_ep_early = False
-        if self.num_steps_taken() % 10 == 0:
-            print('verify continue? set end_ep_early=True to gracefully fail out')
-            ForkedPdb().set_trace()
+        # if self.num_steps_taken() % 10 == 0:
+        #     print('verify continue? set end_ep_early=True to gracefully fail out')
+        #     ForkedPdb().set_trace()
 
         self._last_action_str = action_str
         action_dict = {"action": action_str}
@@ -647,7 +646,7 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
         try:
             self.env.step(action_dict)
         except:
-            print('Controller call took too long, continue to try again or set end_ep_early to fail out instead')
+            print('Controller call took too long, continue to try to continue or set end_ep_early to fail out')
             ForkedPdb().set_trace()
             self.env.step({"action": "Done"})
         
@@ -667,7 +666,11 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
         self.path.append(position)
         
         pose = copy.deepcopy(nominal)
-        self.task_info["followed_path"].append(pose)            
+        self.task_info["followed_path"].append(pose) 
+        if self.manual_action and action != '':
+            self.task_info["taken_actions"].append("manual override")
+        else:
+            self.task_info["taken_actions"].append(action_str)
         self.task_info["action_successes"].append("unknown")
         self.task_info["dist_to_target"].append(obj_dis)
 

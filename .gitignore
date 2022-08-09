@@ -6,3 +6,4 @@ trajectories/
 test_out
 *.ipynb_checkpoints*
 datasets/dataset_visualization_procthor/*
+*.ttf
