@@ -302,6 +302,19 @@ class AgentOdometryEmulSensor(Sensor):
                 horizon=arm_metadata['rotation']['x'],
                 fov=arm_metadata['fieldOfView']
             )
+
+            if self.fixed_frame:
+                cos_of_init = np.cos(np.deg2rad(self.initial_rot))
+                sin_of_init = np.sin(np.deg2rad(self.initial_rot))
+                for camera in self.camera_offsets:
+                    print("camera", self.camera_offsets[camera]['xyz'], self.initial_rot)
+                    tmp_xyz = self.camera_offsets[camera]['xyz'].copy()
+                    self.camera_offsets[camera]['xyz'][0] = tmp_xyz[0] * cos_of_init - tmp_xyz[2] * sin_of_init
+                    self.camera_offsets[camera]['xyz'][2] = tmp_xyz[0] * sin_of_init + tmp_xyz[2] * cos_of_init
+
+                self.initial_rot = 0.0
+                self.initial_pos[0] *= 0.0
+                self.initial_pos[2] *= 0.0
             # # Set elevation to zero
             # self.initial_pos[1] = 0
             # print("initial pos", self.initial_pos)
