@@ -589,7 +589,7 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
         if all_maps.shape[0] > 1:
             end_time = time.perf_counter()
             print("mapping_time", end_time - mapping_start_time)
-        if True:#self.step_count % 100 == 0 and self.device.index == 0:
+        if self.step_count % 100 == 0 and self.device.index == 0:
             if all_maps.shape[0] == 1:
                 for batch in range(all_maps.shape[1]):
                     for s in range(all_maps.shape[-1]):
@@ -600,6 +600,24 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
                         cv2.imwrite("../debug_images/pred_{}_b{}_s{}.png".format(self.step_count, batch, s), im)
                     print("saved images", self.step_count)
                     break
+        # if self.full_visual_encoder_arm[0].bias.device.index == 0:
+        #     def denormalize_image(image):
+        #         denormed = image * torch.tensor([0.229, 0.224, 0.225], device=image.device)
+        #         denormed = denormed + torch.tensor([[0.485, 0.456, 0.406]], device=image.device)
+        #         denormed = torch.clip(denormed, 0.0, 1.0)
+        #         denormed = torch.flip(denormed, [-1]) * 255
+        #         return denormed
+        #     combined_map = torch.cat([torch.cat([all_maps[-1, 0, :, :, 0], all_maps[-1, 0, :, :, 1], all_maps[-1, 0, :, :, 2]], dim=1),
+        #                               torch.cat([all_maps[-1, 0, :, :, 3], all_maps[-1, 0, :, :, 4], all_maps[-1, 0, :, :, 5]], dim=1)],
+        #                               dim=0)
+        #     combined_map = self.cmap.to_rgba(combined_map.cpu().numpy())[:, :, :3] * 255
+        #     combined_map = torch.tensor(combined_map[:, :, ::-1].copy()).to(observations['rgb_lowres'].device)
+        #     combined_image = torch.cat([denormalize_image(observations['rgb_lowres'][-1, 0]),
+        #                                 denormalize_image(observations['rgb_lowres_arm'][-1, 0]),
+        #                                 combined_map], dim=1)
+        #     combined_image = combined_image.detach().cpu().numpy()
+        #     cv2.imwrite('../debug_images/combined_{}.png'.format(self.step_count), combined_image)
+        #     print("step", self.step_count)
         if not self.encode_sdf_net_params:
             map_embedding = compute_cnn_output(self.map_encoder, all_maps)
         else:
