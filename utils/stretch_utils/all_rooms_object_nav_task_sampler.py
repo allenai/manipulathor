@@ -472,11 +472,13 @@ class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
         ]
 
         self.preset_easyish_tasks = [
-            {'object_id': 'Apple|1|1|1', 'object_type':"Apple"},
-            {'object_id': 'BaseballBat|1|1|1', 'object_type':"BaseballBat"},
-            {'object_id': 'BasketBall|1|1|1', 'object_type':"BasketBall"},
-            {'object_id': 'Bowl|1|1|1', 'object_type':"Bowl"},
-            {'object_id': 'Chair|1|1|1', 'object_type':"Chair"},
+            # {'object_id': 'Bed|1|1|1', 'object_type':"Bed"},
+            # {'object_id': 'Sofa|1|1|1', 'object_type':"Sofa"},
+            # {'object_id': 'Apple|1|1|1', 'object_type':"Apple"},
+            # {'object_id': 'BaseballBat|1|1|1', 'object_type':"BaseballBat"},
+            # {'object_id': 'BasketBall|1|1|1', 'object_type':"BasketBall"},
+            # {'object_id': 'Bowl|1|1|1', 'object_type':"Bowl"},
+            # {'object_id': 'Chair|1|1|1', 'object_type':"Chair"},
             {'object_id': 'HousePlant|1|1|1', 'object_type':"HousePlant"},
             {'object_id': 'Mug|1|1|1', 'object_type':"Mug"},
             {'object_id': 'SprayBottle|1|1|1', 'object_type':"SprayBottle"},
@@ -512,6 +514,9 @@ class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):
         target_object = self.preset_easyish_tasks[self.real_object_index]
         print('I am now seeking a', target_object['object_type'], '. Continue when ready.')
         ForkedPdb().set_trace()
+
+        # do this to reset the camera/sensors after moving the robot/resetting environment
+        self.env.step({"action": "Done"})
         
         task_start = datetime.now().strftime("{}_%m_%d_%Y_%H_%M_%S_%f".format(self.TASK_TYPE.__name__))
         task_info = {

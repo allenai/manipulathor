@@ -605,13 +605,14 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
         self.last_time = None
         signal.signal(signal.SIGALRM, handler)
         self.additional_visualize = True
+        self.manual_action = False # can set later in a breakpoint if needed
     
     def _step(self, action: int) -> RLStepResult:
 
         action_str = self.class_action_names()[action]
         print('Model Said', action_str, ' as action ', str(self.num_steps_taken()))
 
-        self.manual_action = True
+        # self.manual_action = True
         # self.env.kinect_depth
         if self.manual_action:
             ACTIONS_ORDERED = [MOVE_AHEAD,MOVE_BACK,ROTATE_RIGHT,ROTATE_LEFT,DONE]
@@ -636,9 +637,9 @@ class RealStretchObjectNavTask(StretchObjectNavTask):
 
         # add/remove/adjust to allow graceful exit from auto-battlebots
         end_ep_early = False
-        # if self.num_steps_taken() % 10 == 0:
-        #     print('verify continue? set end_ep_early=True to gracefully fail out')
-        #     ForkedPdb().set_trace()
+        if self.num_steps_taken() % 10 == 0:
+            print('verify continue? set end_ep_early=True to gracefully fail out or activate self.manual_action')
+            ForkedPdb().set_trace()
 
         self._last_action_str = action_str
         action_dict = {"action": action_str}

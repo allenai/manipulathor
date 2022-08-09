@@ -65,7 +65,7 @@ class RealStretchObjectNav(
     #     ),
     # ]
 
-    MAX_STEPS = 60
+    MAX_STEPS = 100
 
     TASK_SAMPLER = RealStretchAllRoomsObjectNavTaskSampler 
     TASK_TYPE = RealStretchObjectNavTask #

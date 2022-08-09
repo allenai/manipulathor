@@ -590,6 +590,15 @@ class LocalLogging(Callback):
                 anchor="lm",
             )
 
+        if taken_action == "manual override":
+                    img_draw.text(
+            (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H + 50, TEXT_OFFSET_V + 5 * 20),
+            "Manual Override",
+            font=full_font_load,#ImageFont.truetype(font_to_use, 14),
+            fill="red",
+            anchor="rm",
+        )
+
         img_draw.text(
             (IMAGE_BORDER * 2 + agent_width + TEXT_OFFSET_H, IMAGE_BORDER * 1 + 145),
             "Target Dist:",

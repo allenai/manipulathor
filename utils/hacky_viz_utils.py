@@ -269,7 +269,7 @@ def depth_to_rgb(frame):
 def log_ac_return(ac: ActorCriticOutput, task_id_obs):
     os.makedirs("experiment_output/ac-data/", exist_ok=True)
     assert len(task_id_obs.shape) == 3
-    assert task_id_obs.shape[0] == 1
+    # assert task_id_obs.shape[0] == 1
 
     for i in range(len(task_id_obs[0])):
         task_id = "".join(
