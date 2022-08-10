@@ -435,7 +435,7 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
             if self.last_scene is None or self.last_scene != ep["scene"]:
                 self.last_scene = ep["scene"]
                 # self.env.controller.reset(ep["scene"])
-                self.env.reset(scene_name=ep["scene"])
+                self.env.reset(scene_name='Procedural', scene=ep["scene"])
 
             # NOTE: not using ep["targetObjectIds"] due to floating points with
             # target objects moving.
@@ -450,19 +450,23 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
                 objectIds=target_object_ids,
                 raise_for_failure=True,
             )
-            if self.env_args['agentMode'] != 'locobot':
-                ep["agentPose"]["standing"] = True
-                ep["agentPose"]["horizon"] = self.env_args['horizon_init'] # reset for stretch agent
-            event = self.env.controller.step(action="TeleportFull", **ep["agentPose"])
-            if not event:
-                # NOTE: Skip scenes where TeleportFull fails.
-                # This is added from a bug in the RoboTHOR eval dataset.
-                get_logger().error(
-                    f"Teleport failing {event.metadata['actionReturn']} in {epidx}."
-                )
-                self.max_tasks -= 1
-                self.episode_index += 1
-                continue
+            # if self.env_args['agentMode'] != 'locobot':
+            #     ep["agentPose"]["standing"] = True
+            #     ep["agentPose"]["horizon"] = self.env_args['horizon_init'] # reset for stretch agent
+            # event = self.env.controller.step(action="TeleportFull", **ep["agentPose"])
+            # if not event:
+            #     # NOTE: Skip scenes where TeleportFull fails.
+            #     # This is added from a bug in the RoboTHOR eval dataset.
+            #     get_logger().error(
+            #         f"Teleport failing {event.metadata['actionReturn']} in {epidx}."
+            #     )
+            #     self.max_tasks -= 1
+            #     self.episode_index += 1
+            #     continue
+            if self.env_args['agentMode'] == 'stretch':
+                arm_pos = get_relative_stretch_current_arm_state(self.env.controller)
+                assert abs(sum(arm_pos.values())) < 0.001
+
 
             difficulty = {"difficulty": ep["difficulty"]} if "difficulty" in ep else {}
             self._last_sampled_task = self.TASK_TYPE(

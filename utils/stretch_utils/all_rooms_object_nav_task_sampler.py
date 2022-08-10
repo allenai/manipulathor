@@ -1,4 +1,5 @@
 """Task Samplers for the task of ArmPointNav"""
+from ast import Continue
 from datetime import datetime
 import json
 import os
@@ -95,6 +96,7 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
         env_args: Dict[str, Any],
         action_space: gym.Space,
         rewards_config: Dict,
+        process_ind: int,
         objects: List[str],
         task_type: type,
         scene_period: Optional[Union[int, str]] = None,
@@ -281,9 +283,9 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
                 # print('scene', scene_name, 'init', init_object['object_id'])
                 # print('ERROR: one of transfers fail', 'init', event_transport_init_obj.metadata['errorMessage'])
 
-            if random.random() < 0.8:
-                # self.env.controller.step(action="RandomizeMaterials", raise_for_failure=True)
-                self.env.controller.step(action="RandomizeLighting", synchronized=True, raise_for_failure=True)
+            # if random.random() < 0.8:
+            #     # self.env.controller.step(action="RandomizeMaterials", raise_for_failure=True)
+            #     self.env.controller.step(action="RandomizeLighting", synchronized=True, raise_for_failure=True)
             # else:
                 # self.env.controller.step(action="ResetMaterials", raise_for_failure=True)
 
@@ -434,6 +436,89 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
 
 
         return data_point
+    
+
+class RealSimRealObjNavSampler(AllRoomsObjectNavTaskSampler):
+    # note this is designed for a single map
+    def __init__(self, **kwargs) -> None:
+
+        super().__init__(**kwargs)
+
+        self.start_loc_idx = 0
+        self.starting_locations = [
+            {"x": -1.0, "y": 0.9009995460510254, "z": 1.25, "rotation": 45, "horizon": 15},]
+        
+        self.object_idx = 0
+        self.objects_in_scene_map = None
+    
+    @property
+    def target_objects_in_scene(self) -> Dict[str, List[str]]:
+        """Return a map from the object type to the objectIds in the scene."""
+        if self.objects_in_scene_map is not None:
+            return self.objects_in_scene_map
+
+        event = self.env.controller.step(action="ResetObjectFilter", raise_for_failure=True)
+        all_objects = event.metadata["objects"]
+        out = {}
+        for obj in all_objects:
+            if obj["objectType"] in self.objects:
+                if obj["objectType"] not in out:
+                    out[obj["objectType"]] = []
+                out[obj["objectType"]].append(obj["objectId"])
+        self.objects_in_scene_map = out
+        return out
+    
+    def next_task(self, force_advance_scene: bool = False):
+        obj_type = self.objects[self.object_idx]
+        starting_loc = self.starting_locations[self.start_loc_idx]
+        epidx = starting_loc*len(self.objects) + self.object_idx
+
+        self.object_idx += 1
+        
+        if self.object_idx == len(self.objects) - 1:
+            self.object_idx = 0
+            self.start_loc_idx += 1
+            if self.start_loc_idx == len(self.starting_locations):
+                print('Finished all objects and locations')
+                return None
+
+        if self.env is None:
+            self.env = self._create_environment()
+        
+        target_object_id = self.target_objects_in_scene.get(obj_type, [])[0]
+
+        self.env.reset(scene_name=self.scenes[0])
+
+        event = self.env.controller.step(action="TeleportFull", **starting_loc)
+        if not event:
+            # NOTE: Skip scenes where TeleportFull fails.
+            # This is added from a bug in the RoboTHOR eval dataset.
+            # get_logger().error(
+            #     f"Teleport failing {event.metadata['actionReturn']} in {epidx}."
+            # )
+            ForkedPdb().set_trace()
+
+        self._last_sampled_task = self.TASK_TYPE(
+            # visualize=self.episode_index in self.epids_to_visualize,
+            env=self.env,
+            sensors=self.sensors,
+            max_steps=self.max_steps,
+            reward_config=self.rewards_config,
+            distance_type=self.distance_type,
+            distance_cache=self.distance_cache,
+            visualizers=self.visualizers,
+            task_info={
+                "mode": self.sampler_mode, #self.env_args['agentMode'],
+                "house_name": "sim_of_current_real",
+                "house_rooms": 1, #self.houses[ep["scene"]]["rooms"], # 1 for robothor
+                "target_object_ids": target_object_id,
+                "object_type": obj_type,
+                "starting_pose": starting_loc,
+                "mirrored": False,
+                "id": f"sim_of_current_real__proc{self.process_ind}__global{epidx}__{obj_type}",
+                'success_distance': self.success_distance,
+            },)
+        return self._last_sampled_task
 
 
 class RealStretchAllRoomsObjectNavTaskSampler(AllRoomsObjectNavTaskSampler):

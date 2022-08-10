@@ -24,7 +24,7 @@ from manipulathor_utils.debugger_util import ForkedPdb
 
 class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV):
 
-    EVAL_TASKS = prior.load_dataset("object-nav-eval",minival=True)
+    EVAL_TASKS = prior.load_dataset("object-nav-eval",scene_datasets={"ithor"})
 
 
     TEST_TASK_SAMPLER = RoboThorObjectNavTestTaskSampler
@@ -35,10 +35,10 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2Ca
     NUM_VAL_PROCESSES = 2
     NUM_TEST_PROCESSES = 32
 
-    # NUM_TRAIN_PROCESSES = 1
-    # NUM_VAL_PROCESSES = 1
-    # NUM_TEST_PROCESSES = 1
-    # VISUALIZE = True
+    NUM_TRAIN_PROCESSES = 1
+    NUM_VAL_PROCESSES = 1
+    NUM_TEST_PROCESSES = 1
+    VISUALIZE = True
 
     TRAIN_DEVICES = (
         tuple(range(torch.cuda.device_count()))
@@ -100,7 +100,7 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2Ca
         if self.TEST_ON_VALIDATION:
             houses = self.EVAL_TASKS["val"]
         else:
-            houses = self.EVAL_TASKS["test"].shuffle()
+            houses = self.EVAL_TASKS["test"]#.shuffle()
             # return self.valid_task_sampler_args(**kwargs)
 
         out = self._get_sampler_args_for_scene_split(

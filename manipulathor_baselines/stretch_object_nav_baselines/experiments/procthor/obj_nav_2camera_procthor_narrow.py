@@ -27,16 +27,16 @@ class ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV(
 
     SENSORS = [
         RGBSensorStretchIntel(
-            height=2*ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-            width=2*ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+            height=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+            width=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
             use_resnet_normalization=True,
             mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
             stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
             uuid="rgb_lowres",
         ),
         RGBSensorStretchKinect(
-            height=2*ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
-            width=2*ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+            height=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
+            width=ProcTHORObjectNavClipResnet50RGBOnly2CameraWideFOV.SCREEN_SIZE,
             use_resnet_normalization=True,
             mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
             stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,

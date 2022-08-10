@@ -207,32 +207,32 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
             self.controller.reset(scene_name)
         elif scene_name=='Procedural':
             self.controller.reset(scene=kwargs['scene'])
-        else:
+        # else:
 
-            # to solve the crash issue
-            # why do we still have this crashing problem?
-            try:
-                reset_environment_and_additional_commands(self.controller, scene_name)
-            except Exception as e:
-                print("RESETTING THE SCENE,", scene_name, 'because of', str(e))
-                self.controller = self.create_controller()
-                reset_environment_and_additional_commands(self.controller, scene_name)
+        #     # to solve the crash issue
+        #     # why do we still have this crashing problem?
+        #     try:
+        #         reset_environment_and_additional_commands(self.controller, scene_name)
+        #     except Exception as e:
+        #         print("RESETTING THE SCENE,", scene_name, 'because of', str(e))
+        #         self.controller = self.create_controller()
+        #         reset_environment_and_additional_commands(self.controller, scene_name)
 
-            if self.object_open_speed != 1.0:
-                self.controller.step(
-                    {"action": "ChangeOpenSpeed", "x": self.object_open_speed}
-                )
+        #     if self.object_open_speed != 1.0:
+        #         self.controller.step(
+        #             {"action": "ChangeOpenSpeed", "x": self.object_open_speed}
+        #         )
 
-            self._initially_reachable_points = None
-            self._initially_reachable_points_set = None
-            self.controller.step({"action": "GetReachablePositions"})
-            if not self.controller.last_event.metadata["lastActionSuccess"]:
-                warnings.warn(
-                    "Error when getting reachable points: {}".format(
-                        self.controller.last_event.metadata["errorMessage"]
-                    )
-                )
-            self._initially_reachable_points = self.last_action_return
+        #     self._initially_reachable_points = None
+        #     self._initially_reachable_points_set = None
+        #     self.controller.step({"action": "GetReachablePositions"})
+        #     if not self.controller.last_event.metadata["lastActionSuccess"]:
+        #         warnings.warn(
+        #             "Error when getting reachable points: {}".format(
+        #                 self.controller.last_event.metadata["errorMessage"]
+        #             )
+        #         )
+        #     self._initially_reachable_points = self.last_action_return
 
         self.list_of_actions_so_far = []
 

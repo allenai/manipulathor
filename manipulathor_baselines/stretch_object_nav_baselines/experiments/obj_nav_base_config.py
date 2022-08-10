@@ -51,8 +51,8 @@ LOCOBOT_ENV_ARGS = dict(
 
 STRETCH_ENV_ARGS = dict(
     gridSize=0.25,
-    width=2*224,
-    height=2*224,
+    width=224,
+    height=224,
     visibilityDistance=3.0,
     agentMode='stretch',
     fieldOfView=69,
