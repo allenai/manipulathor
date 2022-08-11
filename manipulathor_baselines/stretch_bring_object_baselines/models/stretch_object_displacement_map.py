@@ -88,6 +88,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             learn_pose=False,
             visualize=False,
             accumulate_maps_across_visits=False,
+            map_observation_not_occupancy=True,
             ):
         super().__init__(action_space=action_space, observation_space=observation_space)
 
@@ -95,6 +96,8 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
 
         self._hidden_size = hidden_size
         self._visualize = visualize
+
+        self.map_observation_not_occupancy = map_observation_not_occupancy
 
         self.map_channels = 4
         self.map_size = map_size
@@ -161,6 +164,8 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
 
         # bins for zero elevation being at the robot's origin
         self.bins = [-0.7, 0.6]
+        if map_observation_not_occupancy:
+            self.bins = [-1000, 1000]
 
         self.train()
 
@@ -384,14 +389,14 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
 
             # Adds the source object detections
             source_object_mask = torch.logical_and(valid_depths, source_mask[timestep].reshape(valid_depths.shape) > 0.0)
-            if torch.sum(source_object_mask) > 0:
+            if torch.sum(source_object_mask) > 0 and not self.map_observation_not_occupancy:
                 source_map_update = self.get_binned_map(reshaped_frame, source_object_mask, camera, timestep, pose)
                 source_map_update = torch.sum(source_map_update, dim=-1)
                 map_update[:, :, :, 2] += source_map_update
 
             # Adds the target object detections
             destination_object_mask = torch.logical_and(valid_depths, destination_mask[timestep].reshape(valid_depths.shape) > 0.0)
-            if torch.sum(destination_object_mask) > 0:
+            if torch.sum(destination_object_mask) > 0 and not self.map_observation_not_occupancy:
                 destination_map_update = self.get_binned_map(reshaped_frame, destination_object_mask, camera, timestep, pose)
                 destination_map_update = torch.sum(destination_map_update, dim=-1)
                 map_update[:, :, :, 3] += destination_map_update
@@ -629,7 +634,20 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             else:
                 self.next_debug_image_save_step_valid = self.step_count + self.debug_image_save_freq_valid
 
-
+        # if self.full_visual_encoder_arm[0].bias.device.index == 0:
+        #     def denormalize_image(image):
+        #         denormed = image * torch.tensor([0.229, 0.224, 0.225], device=image.device)
+        #         denormed = denormed + torch.tensor([[0.485, 0.456, 0.406]], device=image.device)
+        #         denormed = torch.clip(denormed, 0.0, 1.0)
+        #         denormed = torch.flip(denormed, [-1]) * 255
+        #         return denormed
+        #     combined_image = torch.cat([denormalize_image(observations['rgb_lowres'][-1, 0]),
+        #                                 denormalize_image(observations['rgb_lowres_arm'][-1, 0]),
+        #                                 all_maps[-1, 0, :, :, :3] * 255,
+        #                                 ego_maps[-1, 0, :, :, :3] * 255], dim=1)
+        #     combined_image = combined_image.detach().cpu().numpy()
+        #     cv2.imwrite('../debug_images/combined_{}.png'.format(self.step_count), combined_image)
+        #     print("step", self.step_count)
 
         # Transforms geocentric maps into egocentric maps
         ego_maps = self.transform_global_map_to_ego_map(all_maps, observations['odometry_emul']['agent_info'])
@@ -656,11 +674,12 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
 
         # From old model
         all_pointnav_agent_frame_memory = torch.stack(all_pointnav_agent_frame_memory)
-        sensor_pointnav = False
+        sensor_pointnav = True
         if sensor_pointnav:
             agent_distance_to_obj_source = observations['point_nav_emul_source'].clone()
             agent_distance_to_obj_destination = observations['point_nav_emul_destination'].clone()
         else:
+            print("Non sensor pointnav does not work!")
             agent_distance_to_obj_source = all_pointnav_agent_frame_memory[:, 0]
             agent_distance_to_obj_destination = all_pointnav_agent_frame_memory[:, 1]
         #TODO eventually change this and the following to only calculate embedding for the ones we want
