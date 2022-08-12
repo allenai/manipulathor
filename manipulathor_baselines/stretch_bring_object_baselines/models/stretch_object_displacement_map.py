@@ -88,7 +88,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             learn_pose=False,
             visualize=False,
             accumulate_maps_across_visits=False,
-            map_observation_not_occupancy=True,
+            map_observation_not_occupancy=False,
             ):
         super().__init__(action_space=action_space, observation_space=observation_space)
 
