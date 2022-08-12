@@ -299,7 +299,7 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
     def load_sdf(self, scene_hash):
         trainer = self.init_new_map()
 
-        path = "saved_sdfs/model_{}/checkpoint.pt".format(scene_hash)
+        path = "pretrained_sdfs/model_{}/checkpoint.pt".format(scene_hash)
         trainer.load_checkpoint(path)
         return trainer
 
