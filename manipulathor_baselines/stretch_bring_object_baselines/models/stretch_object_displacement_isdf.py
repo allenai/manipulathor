@@ -584,7 +584,6 @@ class StretchObjectDisplacementISDFModel(ActorCriticModel[CategoricalDistr]):
             all_maps = self.update_maps_multiprocessing(observations, masks)
         else:
             all_maps = self.update_maps(observations, masks)
-        print("all_maps", all_maps.shape)
         #all_maps = self.transform_global_map_to_ego_map(all_maps, observations['odometry_emul']['agent_info'])
         if all_maps.shape[0] > 1:
             end_time = time.perf_counter()
