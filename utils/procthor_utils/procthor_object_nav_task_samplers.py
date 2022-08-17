@@ -22,7 +22,7 @@ from utils.procthor_utils.procthor_types import AgentPose, Vector3
 from utils.stretch_utils.stretch_object_nav_tasks import StretchObjectNavTask
 from utils.stretch_utils.stretch_constants import ADITIONAL_ARM_ARGS
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
-from scripts.stretch_jupyter_helper import get_relative_stretch_current_arm_state
+from scripts.stretch_jupyter_helper import get_relative_stretch_current_arm_state, is_arm_stowed
 
 
 from manipulathor_utils.debugger_util import ForkedPdb
@@ -311,8 +311,9 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         
         # verify the stretch arm is stowed
         if self.env_args['agentMode'] == 'stretch':
-            arm_pos = get_relative_stretch_current_arm_state(self.env.controller)
-            assert abs(sum(arm_pos.values())) < 0.001
+            while not is_arm_stowed(self.env.controller):
+                self.env.controller.step(dict(action='MoveArm', position=dict(x=0, y=0.1, z=0)))
+                self.env.controller.step({"action":'RotateWristRelative',"yaw":90})
 
         return True
         
@@ -417,7 +418,6 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
         self.last_scene = None
 
     def next_task(self, force_advance_scene: bool = False) -> Optional[StretchObjectNavTask]:
-        # ForkedPdb().set_trace()
         while True:
             # NOTE: Stopping condition
             if self.env is None:
@@ -430,8 +430,6 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
 
             epidx = self.house_inds[self.max_tasks - 1]
             ep = self.houses[epidx]
-            # ForkedPdb().set_trace()
-
             if self.last_scene is None or self.last_scene != ep["scene"]:
                 self.last_scene = ep["scene"]
                 # self.env.controller.reset(ep["scene"])
@@ -450,22 +448,24 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
                 objectIds=target_object_ids,
                 raise_for_failure=True,
             )
-            # if self.env_args['agentMode'] != 'locobot':
-            #     ep["agentPose"]["standing"] = True
-            #     ep["agentPose"]["horizon"] = self.env_args['horizon_init'] # reset for stretch agent
-            # event = self.env.controller.step(action="TeleportFull", **ep["agentPose"])
-            # if not event:
-            #     # NOTE: Skip scenes where TeleportFull fails.
-            #     # This is added from a bug in the RoboTHOR eval dataset.
-            #     get_logger().error(
-            #         f"Teleport failing {event.metadata['actionReturn']} in {epidx}."
-            #     )
-            #     self.max_tasks -= 1
-            #     self.episode_index += 1
-            #     continue
+            if self.env_args['agentMode'] != 'locobot':
+                ep["agentPose"]["standing"] = True
+                ep["agentPose"]["horizon"] = self.env_args['horizon_init'] # reset for stretch agent
+            event = self.env.controller.step(action="TeleportFull", **ep["agentPose"])
+            if not event:
+                # NOTE: Skip scenes where TeleportFull fails.
+                # This is added from a bug in the RoboTHOR eval dataset.
+                get_logger().error(
+                    f"Teleport failing {event.metadata['actionReturn']} in {epidx}."
+                )
+                self.max_tasks -= 1
+                self.episode_index += 1
+                continue
+            # verify the stretch arm is stowed
             if self.env_args['agentMode'] == 'stretch':
-                arm_pos = get_relative_stretch_current_arm_state(self.env.controller)
-                assert abs(sum(arm_pos.values())) < 0.001
+                while not is_arm_stowed(self.env.controller):
+                    self.env.controller.step(dict(action='MoveArm', position=dict(x=0, y=0.1, z=0)))
+                    self.env.controller.step({"action":'RotateWristRelative',"yaw":90})
 
 
             difficulty = {"difficulty": ep["difficulty"]} if "difficulty" in ep else {}

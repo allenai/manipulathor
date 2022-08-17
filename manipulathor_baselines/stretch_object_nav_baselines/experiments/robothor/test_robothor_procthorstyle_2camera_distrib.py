@@ -24,21 +24,21 @@ from manipulathor_utils.debugger_util import ForkedPdb
 
 class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2CameraNarrowFOV):
 
-    EVAL_TASKS = prior.load_dataset("object-nav-eval",scene_datasets={"ithor"})
+    EVAL_TASKS = prior.load_dataset("object-nav-eval",scene_datasets={"robothor"})
 
 
     TEST_TASK_SAMPLER = RoboThorObjectNavTestTaskSampler
     TEST_ON_VALIDATION = True
     # TEST_GPU_IDS = list(range(torch.cuda.device_count())) # uncomment for vision server testing
 
-    NUM_TRAIN_PROCESSES = 32
+    NUM_TRAIN_PROCESSES = 64
     NUM_VAL_PROCESSES = 2
-    NUM_TEST_PROCESSES = 32
+    NUM_TEST_PROCESSES = 64
 
-    NUM_TRAIN_PROCESSES = 1
-    NUM_VAL_PROCESSES = 1
-    NUM_TEST_PROCESSES = 1
-    VISUALIZE = True
+    # NUM_TRAIN_PROCESSES = 1
+    # NUM_VAL_PROCESSES = 1
+    # NUM_TEST_PROCESSES = 1
+    # VISUALIZE = True
 
     TRAIN_DEVICES = (
         tuple(range(torch.cuda.device_count()))
@@ -87,9 +87,9 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2Ca
 
     def valid_task_sampler_args(self, **kwargs):
         out = self._get_sampler_args_for_scene_split(
-            houses=self.EVAL_TASKS["val"].shuffle(),
+            houses=self.EVAL_TASKS["val"],#.shuffle(),
             mode="eval",
-            max_tasks=40,
+            max_tasks=100,
             allow_flipping=False,
             resample_same_scene_freq=self.RESAMPLE_SAME_SCENE_FREQ_IN_INFERENCE,  # ignored
             **kwargs,

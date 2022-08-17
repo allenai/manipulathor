@@ -265,6 +265,15 @@ def get_relative_stretch_current_arm_state(controller):
     y = arm[0]['rootRelativePosition']['y'] - 0.16297650337219238 #TODO?
     return dict(x=x,y=y, z=z)
 
+def is_arm_stowed(controller):
+    wrist = controller.last_event.metadata['arm']['joints'][-1]
+    if abs(180-wrist['rootRelativeRotation']['w']) > 1e-3:
+        return False
+    arm_pos = get_relative_stretch_current_arm_state(controller)
+    if abs(sum(arm_pos.values())) > 0.1 + 1e-3: # TODO should really isolate x and z
+        return False
+    return True
+
 # def get_current_arm_state(controller): TODO remove this
 #
 #     arm = controller.last_event.metadata['arm']['joints'] TODO is this the right one? how about wrist movements
