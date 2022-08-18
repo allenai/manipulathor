@@ -31,9 +31,9 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2Ca
     TEST_ON_VALIDATION = True
     # TEST_GPU_IDS = list(range(torch.cuda.device_count())) # uncomment for vision server testing
 
-    NUM_TRAIN_PROCESSES = 64
+    NUM_TRAIN_PROCESSES = 48
     NUM_VAL_PROCESSES = 2
-    NUM_TEST_PROCESSES = 64
+    NUM_TEST_PROCESSES = 48
 
     # NUM_TRAIN_PROCESSES = 1
     # NUM_VAL_PROCESSES = 1

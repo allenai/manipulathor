@@ -332,6 +332,12 @@ command_awsv1 = './manipulathor/scripts/kill-zombie.sh; sleep 5s; ai2thor-xorg s
  --seed 10 --machine_id 0 \
 --enable_crash_recovery'
 
+command_aws1 = './manipulathor/scripts/kill-zombie.sh; sleep 5s; ai2thor-xorg start; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/stretch_object_nav_baselines/experiments/robothor/test_robothor_procthorstyle_2camera_distrib.py \
+--distributed_ip_and_port IP_ADR:6060 \
+ --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+ --seed 10 --machine_id 0 \
+--enable_crash_recovery'
+
 server_sets = {
     'aws1':{
         'servers':[f'aws{i}' for i in range(1,5)],

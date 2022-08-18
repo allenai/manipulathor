@@ -311,10 +311,16 @@ class ProcTHORObjectNavTaskSampler(TaskSampler):
         
         # verify the stretch arm is stowed
         if self.env_args['agentMode'] == 'stretch':
+            attempts=0
             while not is_arm_stowed(self.env.controller):
                 self.env.controller.step(dict(action='MoveArm', position=dict(x=0, y=0.1, z=0)))
                 self.env.controller.step({"action":'RotateWristRelative',"yaw":90})
-
+                attempts+=1
+                if attempts>6:
+                    get_logger().error(
+                        f"Arm stowing failed in {self.house_index}" # rare but possible
+                    )
+                    return False
         return True
         
 
@@ -463,9 +469,16 @@ class RoboThorObjectNavTestTaskSampler(ProcTHORObjectNavTaskSampler):
                 continue
             # verify the stretch arm is stowed
             if self.env_args['agentMode'] == 'stretch':
+                attempts=0
                 while not is_arm_stowed(self.env.controller):
                     self.env.controller.step(dict(action='MoveArm', position=dict(x=0, y=0.1, z=0)))
                     self.env.controller.step({"action":'RotateWristRelative',"yaw":90})
+                    attempts+=1
+                    if attempts>6:
+                        get_logger().error(
+                            f"Arm stowing failed in {self.house_index}"
+                        )
+                        return False
 
 
             difficulty = {"difficulty": ep["difficulty"]} if "difficulty" in ep else {}
