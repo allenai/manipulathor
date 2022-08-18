@@ -88,7 +88,7 @@ MOVE_WRIST_M_SMALL = 'MoveWristMSmall'
 ADITIONAL_ARM_ARGS = {
     "disableRendering": True,
     # "returnToStart": True,
-    "returnToStart": False,#TODO NOW
+    "returnToStart": False,
     "speed": 1,
 }
 

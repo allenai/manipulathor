@@ -42,6 +42,7 @@ from manipulathor_baselines.procthor_baselines.models.clip_resnet_preprocess_mix
     ClipResNetPreprocessGRUActorCriticMixin
 from manipulathor_baselines.procthor_baselines.models.objdis_pointnav_model import ObjDisPointNavModel
 from manipulathor_baselines.procthor_baselines.models.objdis_pointnav_only_rgb_model import ObjDisPointNavOnlyRGBModel
+from manipulathor_baselines.procthor_baselines.models.stretch_objectnav_simple_model import SimpleConvObjectNavStretch
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.dataset_generation.find_categories_to_use import KITCHEN_TRAIN, BEDROOM_TRAIN, BATHROOM_TRAIN, \
     BATHROOM_TEST, BEDROOM_TEST, LIVING_ROOM_TEST, KITCHEN_TEST, LIVING_ROOM_TRAIN, FULL_LIST_OF_OBJECTS, \
@@ -60,7 +61,7 @@ from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, RGBS
     RGBSensorStretchIntelwJitter, RGBSensorStretchKinectwJitter
 
 
-class OnlyExploreAllRoboTHORRoomsRGBOnly(
+class OnlyExploreAllRoboTHORRoomsRGBOnlySimpleConv(
     BringObjectProcThorBaseConfig,
     BringObjectMixInPPOConfig,
     BringObjectMixInSimpleGRUConfig,
@@ -80,17 +81,6 @@ class OnlyExploreAllRoboTHORRoomsRGBOnly(
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
             use_resnet_normalization=True,
             uuid="rgb_lowres",
-            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-        ),
-        # RGBSensorStretchIntelwJitter(
-        RGBSensorStretchIntel(
-            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            use_resnet_normalization=True,
-            uuid="only_detection_rgb_lowres",
-            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
         ),
         # RGBSensorStretchKinectwJitter(
         RGBSensorStretchKinect(
@@ -98,17 +88,6 @@ class OnlyExploreAllRoboTHORRoomsRGBOnly(
             width=BringObjectiThorBaseConfig.SCREEN_SIZE,
             use_resnet_normalization=True,
             uuid="rgb_lowres_arm",
-            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-        ),
-        # RGBSensorStretchKinectwJitter(
-        RGBSensorStretchKinect(
-            height=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            width=BringObjectiThorBaseConfig.SCREEN_SIZE,
-            use_resnet_normalization=True,
-            uuid="only_detection_rgb_lowres_arm",
-            mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-            stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
         ),
 
         GoalObjectTypeThorSensor(
@@ -130,12 +109,12 @@ class OnlyExploreAllRoboTHORRoomsRGBOnly(
     OBJECT_TYPES = OBJECT_TO_SEARCH
 
 
-    NUM_PROCESSES = 20 #
+
+    NUM_PROCESSES = 40 #
     TRAIN_SCENES = ROBOTHOR_TRAIN
     TEST_SCENES = ROBOTHOR_VAL
 
 
-    CLIP_MODEL_TYPE = "RN50"
     FIRST_CAMERA_HORIZON = [i for i in range(MIN_HORIZON, MAX_HORIZON, 10)] #
 
     def __init__(self):
@@ -151,21 +130,17 @@ class OnlyExploreAllRoboTHORRoomsRGBOnly(
         # self.ENV_ARGS['commit_id'] = PROCTHOR_COMMIT_ID
         self.ENV_ARGS['commit_id'] = STRETCH_MANIPULATHOR_COMMIT_ID
 
-        self.preprocessing_and_model = ClipResNetPreprocessGRUActorCriticMixinObjectNav(
-            sensors=self.SENSORS,
-            clip_model_type=self.CLIP_MODEL_TYPE,
-            screen_size=self.SCREEN_SIZE,
+
+    @classmethod
+    def create_model(cls, **kwargs) -> nn.Module:
+        return SimpleConvObjectNavStretch(
+            action_space=gym.spaces.Discrete(
+                len(cls.TASK_TYPE.class_action_names())
+            ),
+            observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
+            hidden_size=512,
+            visualize=cls.VISUALIZE
         )
-
-    def create_model(self, **kwargs) -> nn.Module:
-        return self.preprocessing_and_model.create_model(
-            num_actions=len(self.TASK_TYPE.class_action_names()), **kwargs,
-            visualize=self.VISUALIZE
-        )
-    def preprocessors(self):
-        return self.preprocessing_and_model.preprocessors()
-
-
 
     @classmethod
     def tag(cls):

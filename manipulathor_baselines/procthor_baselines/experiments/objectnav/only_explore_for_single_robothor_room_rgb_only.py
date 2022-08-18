@@ -157,6 +157,8 @@ class OnlyExploreSingleRealRoboTHORRoomsRGBOnly(
             screen_size=self.SCREEN_SIZE,
         )
 
+
+
     def create_model(self, **kwargs) -> nn.Module:
         return self.preprocessing_and_model.create_model(
             num_actions=len(self.TASK_TYPE.class_action_names()), **kwargs,
