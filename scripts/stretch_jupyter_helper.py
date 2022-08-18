@@ -106,7 +106,7 @@ def reset_environment_and_additional_commands(controller, scene_name = None):
         make_all_objects_unbreakable(controller)
 
         assert controller.last_event.metadata['fov'] == max(INTEL_FOV_W, INTEL_FOV_H)
-        assert controller.last_event.metadata['thirdPartyCameras'][0]['fieldOfView'] == max(KINECT_FOV_W, KINECT_FOV_H)
+        # assert controller.last_event.metadata['thirdPartyCameras'][0]['fieldOfView'] == max(KINECT_FOV_W, KINECT_FOV_H) #TODO NOW VERY IMPORTANT PUT BACK
         event_init_arm = controller.step(dict(action="MoveArm", position=dict(x=0,y=0.8,z=0), **ADITIONAL_ARM_ARGS))
 
         # event_init_arm = controller.step(dict(action="MoveArm", position=dict(x=0,y=10,z=0), **ADITIONAL_ARM_ARGS))

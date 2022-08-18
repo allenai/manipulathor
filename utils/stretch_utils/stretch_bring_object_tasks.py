@@ -704,6 +704,89 @@ class StretchObjectNavTaskwLookUp(StretchObjectNavTask):
     )
 
 
+
+class StretchOnlyExploreTaskwLookUp(StretchObjectNavTask):
+    _actions = (
+        MOVE_AHEAD,
+        MOVE_BACK,
+        ROTATE_RIGHT,
+        ROTATE_LEFT,
+        LOOKUP,
+        LOOKDOWN
+    )
+
+    def judge(self) -> float:
+        """Compute the reward after having taken a step."""
+        reward = self.reward_configs["step_penalty"]
+
+
+        current_agent_location = self.env.get_agent_location()
+        current_agent_location = torch.Tensor([current_agent_location['x'], current_agent_location['y'], current_agent_location['z']])
+        all_distances = self.all_reachable_positions - current_agent_location
+        all_distances = (all_distances ** 2).sum(dim=-1)
+        location_index = torch.argmin(all_distances)
+        if self.has_visited[location_index] == 0:
+            visited_new_place = True
+        else:
+            visited_new_place = False
+        self.has_visited[location_index] = 1
+
+        if visited_new_place:
+            reward += self.reward_configs["exploration_reward"]
+
+
+        if not self.last_action_success or (
+                self._last_action_str == PICKUP and not self.object_picked_up
+        ):
+            reward += self.reward_configs["failed_action_penalty"]
+
+        if self._took_end_action:
+            reward += (
+                self.reward_configs["goal_success_reward"]
+                if self._success
+                else self.reward_configs["failed_stop_reward"]
+            )
+
+        return float(reward)
+
+    def _step(self, action: int) -> RLStepResult:
+
+        action_str = self.class_action_names()[action]
+
+        self.manual = False
+        if self.manual:
+            action_str = self.manual_action(action)
+
+
+        self._last_action_str = action_str
+        action_dict = {"action": action_str}
+        object_id = self.task_info["source_object_id"]
+        if action_str == PICKUP:
+            action_dict = {**action_dict, "object_id": object_id}
+        self.env.step(action_dict)
+        self.last_action_success = self.env.last_action_success
+
+        last_action_name = self._last_action_str
+        last_action_success = float(self.last_action_success)
+        self.action_sequence_and_success.append((last_action_name, last_action_success))
+        self.agent_body_dist_to_obj.append(self.body_distance_from_obj())
+        self.visualize(last_action_name)
+
+        visited_all_points = torch.all(self.has_visited == 1)
+        if visited_all_points:
+            self._took_end_action = True
+            self.last_action_success = True
+            self._success = True
+
+
+        step_result = RLStepResult(
+            observation=self.get_observations(),
+            reward=self.judge(),
+            done=self.is_done(),
+            info={"last_action_success": self.last_action_success},
+        )
+        return step_result
+
 class StretchObjectNavTaskwLookUpDone(StretchObjectNavTask):
     _actions = (
         MOVE_AHEAD,

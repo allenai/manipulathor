@@ -317,3 +317,14 @@
 #  --seed 10 --machine_id 0 --extra_tag ithor_train_no_armpointnav -c ~/exp_NoPointNavStretchAllRoomsDistrib_ithor_train_no_armpointnav__stage_00__steps_000114436451.pt'
 
 # scp 52.24.154.159:~/manipulathor/experiment_output/checkpoints/NoPointNavStretchAllRoomsDistrib/ithor_train_no_armpointnav/2022-05-09_22-13-53/exp_NoPointNavStretchAllRoomsDistrib_ithor_train_no_armpointnav__stage_00__steps_000114436451.pt ~/
+
+
+# command_aws5 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ObjNavSmallSetITHORAllRoomsRGBOnlyDistrib/object_nav_small_source_with_clip/2022-08-07_05-05-08/exp_ObjNavSmallSetITHORAllRoomsRGBOnlyDistrib_object_nav_small_source_with_clip__stage_00__steps_000009087399.pt ~/; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/objectnav/object_nav_w_smaller_set_for_ithor_rgb_only_distrib \
+#  --distributed_ip_and_port IP_ADR:6060 \
+#   --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#   --seed 10 --machine_id 0 --extra_tag object_nav_small_source_with_clip -c ~/exp_ObjNavSmallSetITHORAllRoomsRGBOnlyDistrib_object_nav_small_source_with_clip__stage_00__steps_000009087399.pt'
+
+# command_aws8 = 'scp MAIN_SERVER:~/manipulathor/experiment_output/checkpoints/ObjExploreITHORAllRoomsRGBOnlyDistrib/object_explore_with_clip/2022-08-05_01-10-17/exp_ObjExploreITHORAllRoomsRGBOnlyDistrib_object_explore_with_clip__stage_00__steps_000017614273.pt ~/; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact manipulathor_baselines/procthor_baselines/experiments/objectnav/object_explore_for_ithor_rgb_only_distrib \
+#  --distributed_ip_and_port IP_ADR:6060 \
+#   --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
+#   --seed 10 --machine_id 0 --extra_tag object_explore_with_clip -c ~/exp_ObjExploreITHORAllRoomsRGBOnlyDistrib_object_explore_with_clip__stage_00__steps_000017614273.pt'
