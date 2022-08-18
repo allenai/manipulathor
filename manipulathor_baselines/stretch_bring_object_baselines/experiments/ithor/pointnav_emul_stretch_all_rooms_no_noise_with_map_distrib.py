@@ -49,6 +49,13 @@ class PointNavEmulStretchAllRoomsNoNoiseWithMapDistrib(
         elif mode == "valid":
             # Use all GPUs at their maximum capacity for training
             # (you may run validation in a separate machine)
-            params.nprocesses = (0,)
+            params.nprocesses = (1,)
+            if 'machine_id' in kwargs:
+                machine_id = kwargs["machine_id"]
+                if machine_id == 0:
+                    local_worker_ids = [0]
+                else:
+                    local_worker_ids = []
+                params.set_local_worker_ids(local_worker_ids)
 
         return params
