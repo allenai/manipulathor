@@ -2,7 +2,7 @@
 from ast import Continue
 from datetime import datetime
 import json
-import os
+import os, platform
 import random
 from typing import Optional, List, Union, Dict, Any
 
@@ -11,22 +11,25 @@ import torch
 from allenact.base_abstractions.sensor import Sensor
 from allenact.base_abstractions.task import TaskSampler, Task
 from allenact.utils.experiment_utils import set_deterministic_cudnn, set_seed
-from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
+from allenact.utils.system import get_logger
+
 from torch.distributions.utils import lazy_property
 from allenact.utils.cache_utils import DynamicDistanceCache
+from collections import Counter
+from utils.procthor_utils.procthor_types import AgentPose, Vector3
 
 from ithor_arm.ithor_arm_viz import LoggerVisualizer
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.dataset_generation.find_categories_to_use import ROBOTHOR_TRAIN, KITCHEN_TRAIN, KITCHEN_TEST, KITCHEN_VAL
 from utils.manipulathor_data_loader_utils import get_random_query_image, get_random_query_feature_from_img_adr
-from scripts.stretch_jupyter_helper import get_reachable_positions, transport_wrapper
+from scripts.stretch_jupyter_helper import get_reachable_positions, transport_wrapper, is_arm_stowed
 from utils.stretch_utils.stretch_object_nav_tasks import ObjectNavTask
 from utils.stretch_utils.stretch_visualizer import StretchObjNavImageVisualizer
 
 from utils.stretch_utils.real_stretch_environment import StretchRealEnvironment
+from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
 from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
-
-
+from allenact_plugins.ithor_plugin.ithor_environment import IThorEnvironment
 
 
 class AllRoomsObjectNavTaskSampler(TaskSampler):
@@ -438,68 +441,256 @@ class AllRoomsObjectNavTaskSampler(TaskSampler):
         return data_point
     
 
-class RealSimRealObjNavSampler(AllRoomsObjectNavTaskSampler):
-    # note this is designed for a single map
-    def __init__(self, **kwargs) -> None:
-
-        super().__init__(**kwargs)
-
-        self.start_loc_idx = 0
-        self.starting_locations = [
-            {"x": -1.0, "y": 0.9009995460510254, "z": 1.25, "rotation": 45, "horizon": 15},]
+class RoboTHORObjectNavTaskSampler(TaskSampler):
+    # Train only
+    def __init__(
+        self,
+        scenes: List[str],
+        sensors: List[Sensor],
+        max_steps: int,
+        env_args: Dict[str, Any],
+        action_space: gym.Space,
+        rewards_config: Dict,
+        # process_ind: int,
+        objects: List[str],
+        task_type: type,
+        distance_type: Optional[str] = "l2",
+        scene_period: Optional[Union[int, str]] = None,
+        max_tasks: Optional[int] = None,
+        seed: Optional[int] = None,
+        deterministic_cudnn: bool = False,
+        fixed_tasks: Optional[List[Dict[str, Any]]] = None,
+        visualizers: List[LoggerVisualizer] = [],
+        *args,
+        **kwargs
+    ) -> None:
+        self.TASK_TYPE = task_type
+        self.rewards_config = rewards_config
+        self.environment_type = env_args['environment_type']
+        self.env: Optional[StretchManipulaTHOREnvironment] = None
+        del env_args['environment_type']
+        self.env_args = env_args
+        self.scenes = scenes
+        self.grid_size = 0.25
+        self.sensors = sensors
+        self.max_steps = max_steps
+        self._action_space = action_space
         
-        self.object_idx = 0
-        self.objects_in_scene_map = None
-    
+        self.target_object_types_set = set(objects)
+        self.obj_type_counter = Counter(
+            {obj_type: 0 for obj_type in objects}
+        )
+        self.distance_type = distance_type
+        self.distance_cache = DynamicDistanceCache(rounding=1)
+        self.episode_index = 0
+        self.success_distance = 1.0
+        # self.process_ind = kwargs['process_ind']
+
+        self.scene_counter: Optional[int] = None
+        self.scene_order: Optional[List[str]] = None
+        self.scene_id: Optional[int] = None
+        self.scene_period: Optional[
+            Union[str, int]
+        ] = scene_period  # default makes a random choice
+        self.max_tasks: Optional[int] = None
+        self.reset_tasks = max_tasks
+
+        self._last_sampled_task: Optional[Task] = None
+
+        self.seed: Optional[int] = None
+        self.set_seed(seed)
+
+        if deterministic_cudnn:
+            set_deterministic_cudnn()
+
+        self.reset()
+        self.visualizers = visualizers
+        self.sampler_mode = kwargs["sampler_mode"]
+
+        self.reachable_positions_map = dict()
+        self.objects_in_scene_map = dict()
+        self.p_greedy_target_object = 0.8
+
+
+        random.shuffle(self.scenes)
+        if self.sampler_mode == 'test':
+            self.all_test_tasks = list(range(1000))
+            self.max_tasks = 1000
+
+
+    @property
+    def last_sampled_task(self) -> Optional[Task]:
+        return self._last_sampled_task
+
+    def close(self) -> None:
+        if self.env is not None:
+            self.env.stop()
+
+    @property
+    def all_observation_spaces_equal(self) -> bool:
+        """Check if observation spaces equal.
+
+        # Returns
+
+        True if all Tasks that can be sampled by this sampler have the
+            same observation space. Otherwise False.
+        """
+        return True
+
+    def reset(self):
+        self.scene_counter = 0
+        self.scene_order = list(range(len(self.scenes)))
+        random.shuffle(self.scene_order)
+        self.scene_id = 0
+        self.sampler_index = 0
+
+        self.max_tasks = self.reset_tasks
+
+    def set_seed(self, seed: int):
+        self.seed = seed
+        if seed is not None:
+            set_seed(seed)
+
+    @property
+    def length(self) -> Union[int, float]:
+        """Length.
+
+        # Returns
+
+        Number of total tasks remaining that can be sampled. Can be float('inf').
+        """
+        return (
+            self.total_unique - self.sampler_index
+            if self.sampler_mode != "train"
+            else (float("inf") if self.max_tasks is None else self.max_tasks)
+        )
+
+    def _create_environment(self, **kwargs) -> StretchManipulaTHOREnvironment:
+        env = self.environment_type(
+            make_agents_visible=False,
+            object_open_speed=0.05,
+            env_args=self.env_args,
+        )
+        return env
+
     @property
     def target_objects_in_scene(self) -> Dict[str, List[str]]:
         """Return a map from the object type to the objectIds in the scene."""
-        if self.objects_in_scene_map is not None:
-            return self.objects_in_scene_map
+        if self.env.scene_name in self.objects_in_scene_map:
+            return self.objects_in_scene_map[self.env.scene_name]
 
         event = self.env.controller.step(action="ResetObjectFilter", raise_for_failure=True)
         all_objects = event.metadata["objects"]
         out = {}
         for obj in all_objects:
-            if obj["objectType"] in self.objects:
+            if obj["objectType"] in self.target_object_types_set:
                 if obj["objectType"] not in out:
                     out[obj["objectType"]] = []
                 out[obj["objectType"]].append(obj["objectId"])
-        self.objects_in_scene_map = out
+        self.objects_in_scene_map[self.env.scene_name] = out
         return out
     
+
+    @property
+    def reachable_positions(self) -> List[Vector3]:
+        """Return the reachable positions in the current house."""
+        return self.reachable_positions_map[self.env.scene_name] 
+    
+    def sample_target_object_ids(self,forced_type=None):
+        """Sample target objects.
+        Objects returned will all be of the same objectType. Only considers visible
+        objects in the house.
+        """
+
+        if random.random() < self.p_greedy_target_object:
+            for obj_type, count in reversed(self.obj_type_counter.most_common()):
+                instances_of_type = self.target_objects_in_scene.get(obj_type, [])
+
+
+                # NOTE: object type doesn't appear in the scene.
+                if not instances_of_type:
+                    continue
+
+                visible_ids = []
+                for object_id in instances_of_type:
+                    # if self.is_object_visible(object_id=object_id):
+                    visible_ids.append(object_id)
+
+                if visible_ids:
+                    self.obj_type_counter[obj_type] += 1
+                    return obj_type, visible_ids
+        else:
+            candidates = dict()
+            for obj_type, object_ids in self.target_objects_in_scene.items():
+                visible_ids = []
+                for object_id in object_ids:
+                    # if self.is_object_visible(object_id=object_id):
+                    visible_ids.append(object_id)
+
+                if visible_ids:
+                    candidates[obj_type] = visible_ids
+
+            if candidates:
+                return random.choice(list(candidates.items()))
+
+        raise ValueError(f"No target objects in house {self.scene_id}.")
+
     def next_task(self, force_advance_scene: bool = False):
-        obj_type = self.objects[self.object_idx]
-        starting_loc = self.starting_locations[self.start_loc_idx]
-        epidx = starting_loc*len(self.objects) + self.object_idx
-
-        self.object_idx += 1
-        
-        if self.object_idx == len(self.objects) - 1:
-            self.object_idx = 0
-            self.start_loc_idx += 1
-            if self.start_loc_idx == len(self.starting_locations):
-                print('Finished all objects and locations')
-                return None
-
         if self.env is None:
             self.env = self._create_environment()
+
+        if self.max_tasks is not None and self.max_tasks <= 0:
+            return None
+
+        if self.sampler_mode != "train" and self.length <= 0:
+            return None
         
-        target_object_id = self.target_objects_in_scene.get(obj_type, [])[0]
+        this_scene = random.choice(self.scenes)
+        self.env.reset(scene_name='Procedural',scene=this_scene)
+        if platform.system() == "Darwin":
+            print('The house is ', this_scene)
+        
+        if self.env.scene_name not in self.reachable_positions_map:
+            rp_event = self.env.controller.step(action="GetReachablePositions")
+            if not rp_event:
+                # NOTE: Skip scenes where GetReachablePositions fails
+                get_logger().warning(
+                    f"GetReachablePositions failed in {self.env.scene_name}"
+                )
+                return False
+            reachable_positions = rp_event.metadata["actionReturn"]
+            self.reachable_positions_map[self.env.scene_name] = reachable_positions
 
-        self.env.reset(scene_name=self.scenes[0])
+        target_object_type, target_object_ids = self.sample_target_object_ids()
+        # self.env.controller.step(
+        #     action="SetObjectFilter",
+        #     objectIds=target_object_ids,
+        #     raise_for_failure=True,
+        # )
+        assert is_arm_stowed(self.env.controller)
 
-        event = self.env.controller.step(action="TeleportFull", **starting_loc)
-        if not event:
-            # NOTE: Skip scenes where TeleportFull fails.
-            # This is added from a bug in the RoboTHOR eval dataset.
-            # get_logger().error(
-            #     f"Teleport failing {event.metadata['actionReturn']} in {epidx}."
-            # )
-            ForkedPdb().set_trace()
+        # NOTE: Set agent pose
+        event = None
+        attempts = 0
+        while not event:
+            attempts+=1
+            starting_pose = AgentPose(
+                position=random.choice(self.reachable_positions),
+                rotation=Vector3(x=0, y=random.choice([i for i in range(0,360,30)]), z=0),
+                horizon=0,
+            )
+            if self.env_args['agentMode'] != 'locobot':
+                starting_pose['standing']=True
+                starting_pose['horizon'] = self.env_args['horizon_init'] + random.gauss(0,5)
+            event = self.env.controller.step(action="TeleportFull", **starting_pose)
+            if attempts > 10:
+                get_logger().error(f"Teleport failed {attempts-1} times in house {self.house_index} - something may be wrong")
+            
 
+        self.episode_index += 1
+        # self.max_tasks -= 1
+        
         self._last_sampled_task = self.TASK_TYPE(
-            # visualize=self.episode_index in self.epids_to_visualize,
             env=self.env,
             sensors=self.sensors,
             max_steps=self.max_steps,
@@ -507,17 +698,20 @@ class RealSimRealObjNavSampler(AllRoomsObjectNavTaskSampler):
             distance_type=self.distance_type,
             distance_cache=self.distance_cache,
             visualizers=self.visualizers,
+            # visualize=True,
             task_info={
                 "mode": self.sampler_mode, #self.env_args['agentMode'],
-                "house_name": "sim_of_current_real",
-                "house_rooms": 1, #self.houses[ep["scene"]]["rooms"], # 1 for robothor
-                "target_object_ids": target_object_id,
-                "object_type": obj_type,
-                "starting_pose": starting_loc,
-                "mirrored": False,
-                "id": f"sim_of_current_real__proc{self.process_ind}__global{epidx}__{obj_type}",
-                'success_distance': self.success_distance,
-            },)
+                "process_ind": 0,#self.process_ind,
+                # "scene_name": self.env_args['scene'],
+                "house_name": str(this_scene),
+                "rooms": 1,#self.house["rooms"],
+                "target_object_ids": target_object_ids,
+                "object_type": target_object_type,
+                "starting_pose": starting_pose,
+                "mirrored": False,#self.env_args['allow_flipping'] and random.random() > 0.5,
+                'success_distance': self.success_distance
+            },
+        )
         return self._last_sampled_task
 
 

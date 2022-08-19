@@ -78,24 +78,6 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
 
     if platform.system() == "Darwin":
         MAX_STEPS = 100
-        # SENSORS += [ #TODO FIX ORDER HERE
-        #     RGBSensorStretchKinectBigFov(
-        #     height=ObjectNavBaseConfig.SCREEN_SIZE,
-        #     width=ObjectNavBaseConfig.SCREEN_SIZE,
-        #     use_resnet_normalization=True,
-        #     mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-        #     stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-        #         uuid="rgb_lowres_arm_only_viz",
-        #     ),
-        #     RGBSensorThor(
-        #     height=ObjectNavBaseConfig.SCREEN_SIZE,
-        #     width=ObjectNavBaseConfig.SCREEN_SIZE,
-        #     use_resnet_normalization=True,
-        #     mean=ClipResNetPreprocessor.CLIP_RGB_MEANS,
-        #     stdev=ClipResNetPreprocessor.CLIP_RGB_STDS,
-        #         uuid="rgb_lowres_only_viz",
-        #     ),
-        # ]
 
     TASK_SAMPLER = AllRoomsObjectNavTaskSampler
     TASK_TYPE = StretchObjectNavTask
@@ -118,10 +100,6 @@ class ithorObjectNavClipResnet50RGBOnly2CameraWideFOV(
             clip_model_type=self.CLIP_MODEL_TYPE,
             screen_size=self.SCREEN_SIZE,
         )
-        self.REWARD_CONFIG['shaping_weight'] = 1.0
-        self.REWARD_CONFIG['exploration_reward'] = 0.05
-        self.REWARD_CONFIG['got_stuck_penalty'] = -0.5
-        self.REWARD_CONFIG['failed_action_penalty'] = -0.25
         self.ENV_ARGS['renderInstanceSegmentation'] = True
 
     def preprocessors(self) -> Sequence[Union[Preprocessor, Builder[Preprocessor]]]:
