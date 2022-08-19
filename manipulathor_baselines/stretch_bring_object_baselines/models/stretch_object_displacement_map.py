@@ -35,40 +35,21 @@ from utils.model_utils import LinearActorHeadNoCategory
 from manipulathor_baselines.stretch_bring_object_baselines.models.pointnav_tracker import pointnav_update
 from manipulathor_baselines.stretch_bring_object_baselines.models.pose_estimation_model import PoseEstimationImage
 
-from torchvision.models import resnet18
 
-# class PoseEstimator(nn.Module):
-#     def __init__(self,
-#                  input_channels: int,
-#                  output_channels: int = 4,
-#                  num_features: int = 512):
-#         super().__init__()
-#         network_args = {'input_channels': input_channels,
-#                         'layer_channels': [32, 64, 32],
-#                         'kernel_sizes': [(8, 8), (4, 4), (3, 3)],
-#                         'strides': [(4, 4), (2, 2), (1, 1)],
-#                         'paddings': [(0, 0), (0, 0), (0, 0)],
-#                         'dilations': [(1, 1), (1, 1), (1, 1)],
-#                         'output_height': 24,
-#                         'output_width': 24,
-#                         'output_channels': num_features,
-#                         'flatten': True,
-#                         'output_relu': True}
-#         self.backbone = make_cnn(**network_args)
-#         self.linear = nn.Linear(num_features, output_channels)
-#         nn.init.constant_(self.linear.weight, 0.0)
-#         nn.init.constant_(self.linear.bias, 0.0)
-    
-#     def forward(self,
-#                 x: torch.FloatTensor) -> torch.FloatTensor:
-#         x = x.reshape(1, *x.shape)
-#         features = compute_cnn_output(self.backbone, x)
-#         out = self.linear(features)
-
-#         # Hard codes elevation change to be zero
-#         out[:, :, 1] = 0.0
-#         return out
-
+def convert_occupancy_to_sdf(occupancy):
+    # 1 for occupied spaces, 0 for free spaces
+    from scipy.ndimage import distance_transform_edt
+    max_sdf = 50
+    if torch.all(occupancy <= 0.01):
+        sdf = torch.ones_like(occupancy) * max_sdf
+    else:
+        occupancy_np = occupancy.detach().cpu().numpy()
+        truncated_sdf = torch.tensor(distance_transform_edt(1.0 - occupancy_np), device=occupancy.device)
+        # Allows for negative values inside the occupied regions
+        # neg_truncated_sdf = torch.tensor(distance_transform_edt(occupancy_np), device=occupancy.device)
+        sdf = truncated_sdf# - neg_truncated_sdf
+    sdf = torch.clamp(sdf, min=-max_sdf, max=max_sdf)
+    return sdf
 
 
 class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
@@ -89,6 +70,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             visualize=False,
             accumulate_maps_across_visits=False,
             map_observation_not_occupancy=False,
+            convert_occupancy_to_sdf=True,
             ):
         super().__init__(action_space=action_space, observation_space=observation_space)
 
@@ -98,6 +80,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         self._visualize = visualize
 
         self.map_observation_not_occupancy = map_observation_not_occupancy
+        self.convert_occupancy_to_sdf = convert_occupancy_to_sdf
 
         self.map_channels = 4
         self.map_size = map_size
@@ -616,6 +599,33 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         all_maps = torch.stack(all_maps)
 
 
+        if self.convert_occupancy_to_sdf:
+            sdf_maps = torch.zeros_like(all_maps)
+            for timestep in range(all_maps.shape[0]):
+                for batch in range(all_maps.shape[1]):
+                    
+                    explored = convert_occupancy_to_sdf(torch.maximum(all_maps[timestep, batch, :, :, 0],
+                                                                      all_maps[timestep, batch, :, :, 1]))
+                    sdf_map = convert_occupancy_to_sdf(all_maps[timestep, batch, :, :, 1])
+                    obj_1_sdf = convert_occupancy_to_sdf(all_maps[timestep, batch, :, :, 2])
+                    obj_2_sdf = convert_occupancy_to_sdf(all_maps[timestep, batch, :, :, 3])
+                    if all_maps.shape[0] == 1:
+                        # cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}_original.png".format("train", self.step_count, batch), 
+                        #         all_maps[-1, batch, :, :, :3].detach().cpu().numpy()*256)
+                        # print("self.step_count", self.step_count)
+                        # print("explored", torch.min(explored).item(), torch.max(explored).item())
+                        # print("sdf_map", torch.min(sdf_map).item(), torch.max(sdf_map).item(),
+                        #                 torch.min(all_maps[timestep, batch, :, :, 1]).item(), torch.max(all_maps[timestep, batch, :, :, 1]).item())
+                        # print("obj_1_sdf", torch.min(obj_1_sdf).item(), torch.max(obj_1_sdf).item(),
+                        #     torch.min(all_maps[timestep, batch, :, :, 2]).item(), torch.max(all_maps[timestep, batch, :, :, 2]).item())
+                        # print("obj_2_sdf", torch.min(obj_2_sdf).item(), torch.max(obj_2_sdf).item(),
+                        #     torch.min(all_maps[timestep, batch, :, :, 3]).item(), torch.max(all_maps[timestep, batch, :, :, 3]).item())
+                    sdf_maps[timestep, batch, :, :, 0] = explored
+                    sdf_maps[timestep, batch, :, :, 1] = sdf_map
+                    sdf_maps[timestep, batch, :, :, 2] = obj_1_sdf
+                    sdf_maps[timestep, batch, :, :, 3] = obj_2_sdf
+
+
         if (self.step_count > self.next_debug_image_save_step and self.training) or \
             (self.step_count > self.next_debug_image_save_step_valid and not self.training):
             mode = "train" if self.training else "valid"
@@ -629,6 +639,32 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                 for i in range(all_maps.shape[1]):
                     cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}.png".format(mode, self.step_count, i), 
                                 all_maps[-1, i, :, :, :3].detach().cpu().numpy()*256)
+                    if self.convert_occupancy_to_sdf:
+                        cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}_sdf.png".format(mode, self.step_count, i), 
+                                    sdf_maps[-1, i, :, :, :3].detach().cpu().numpy()*2.5 + 125)
+                    
+                    # explored = convert_occupancy_to_sdf(torch.maximum(all_maps[-1, i, :, :, 0], all_maps[-1, i, :, :, 1]))
+                    # sdf_map = convert_occupancy_to_sdf(all_maps[-1, i, :, :, 1])
+                    # obj_1_sdf = convert_occupancy_to_sdf(all_maps[-1, i, :, :, 2])
+                    # obj_2_sdf = convert_occupancy_to_sdf(all_maps[-1, i, :, :, 3])
+                    # # sdf_map = distance_transform_edt(1.0 - all_maps[-1, i, :, :, 1].detach().cpu().numpy())
+                    # # # sdf_map_neg = distance_transform_edt(all_maps[-1, i, :, :, 1].detach().cpu().numpy())
+                    # # # sdf_map = sdf_map - sdf_map_neg
+                    # # print("max", torch.tensor(sdf_map).max().item(), torch.tensor(sdf_map).min().item())
+                    # # sdf_map_obj = distance_transform_edt(1.0 - all_maps[-1, i, :, :, 2].detach().cpu().numpy())
+                    
+                    # # if torch.any(all_maps[-1, i, :, :, 2] != 0):
+                    # #     print("found object!!!")
+                    # #     print("sdf", torch.tensor(sdf_map_obj).max().item(), torch.tensor(sdf_map).min().item(),
+                    # #         all_maps[-1, i, :, :, 2].max().item(), all_maps[-1, i, :, :, 2].min().item())
+                    # cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}_sdf_exp.png".format(mode, self.step_count, i), 
+                    #             explored.cpu().numpy()/2 * 5 + 125)
+                    # cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}_sdf.png".format(mode, self.step_count, i), 
+                    #             sdf_map.cpu().numpy()/2 * 5 + 125)
+                    # cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}_sdf_obj1.png".format(mode, self.step_count, i), 
+                    #             obj_1_sdf.cpu().numpy()/2 * 5 + 125)
+                    # cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}_sdf_obj2.png".format(mode, self.step_count, i), 
+                    #             obj_2_sdf.cpu().numpy()/2 * 5 + 125)
             if self.training:
                 self.next_debug_image_save_step = self.step_count + self.debug_image_save_freq
             else:
@@ -650,7 +686,10 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         #     print("step", self.step_count)
 
         # Transforms geocentric maps into egocentric maps
-        ego_maps = self.transform_global_map_to_ego_map(all_maps, observations['odometry_emul']['agent_info'])
+        if self.convert_occupancy_to_sdf:
+            ego_maps = self.transform_global_map_to_ego_map(sdf_maps, observations['odometry_emul']['agent_info'])
+        else:
+            ego_maps = self.transform_global_map_to_ego_map(all_maps, observations['odometry_emul']['agent_info'])
 
         self.step_count += 1
         
