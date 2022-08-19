@@ -5,3 +5,4 @@ experiment_output/
 test_out
 *.ipynb_checkpoints*
 datasets/dataset_visualization_procthor/*
+temp_command_to_run.sh

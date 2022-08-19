@@ -51,17 +51,22 @@ def restart_experiment(server_set):
     #rewrite the command on every server
     #run the command on every server
     command_to_sync = f'python3 scripts/run_same_commands_servers.py --server_set {server_set} --experiment_config {last_experiment_config} --weight_adr_on_main_server {full_adr_of_latest_weight} --directly'
+    print('running command ', command_to_sync)
     os.system(command_to_sync)
 
 if __name__ == '__main__':
     args = parse_args()
     server_set = args.server_set
+
     while(True):
         load1, load5, load15 = psutil.getloadavg()
-        cpu_usage = (load15/os.cpu_count()) * 100
-        print(cpu_usage)
-        time.sleep(2) #TODO_NOW this needs to be less frequent
-        if cpu_usage < 28: #TODO_NOW change to 10
+        cpu_usage = (load1/os.cpu_count()) * 100
+        print('CPU Usage is:', cpu_usage)
+
+        if cpu_usage < 10:
             restart_experiment(server_set)
             print('experiments were restarted')
-            break
+
+        print('Starting the delay...')
+        time.sleep(60 * 10) # Wait for 10 minutes
+        print('Delay is done.')

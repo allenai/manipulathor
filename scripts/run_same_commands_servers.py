@@ -1,6 +1,8 @@
 import argparse
+import copy
 import os
 import pdb
+import time
 
 command_aws1 = ''
 command_aws5 = ''
@@ -14,7 +16,7 @@ command_aws12 = ''
 #    --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
 #    --seed 10 --machine_id 0 --extra_tag only_explore_for_all_robothor_room_rgb_only '
 
-BASE_COMMAND = ' source ~/manipulathor_env/bin/activate; ./manipulathor/scripts/kill-zombie.sh; cd manipulathor && export PYTHONPATH="./" && allenact EXPERIMENT_CONFIG \
+BASE_COMMAND = 'source ~/manipulathor_env/bin/activate; ./manipulathor/scripts/kill-zombie.sh; sleep 10 && cd manipulathor && export PYTHONPATH="./" && allenact EXPERIMENT_CONFIG \
   --distributed_ip_and_port MAIN_IP:6060 \
    --config_kwargs \'{\\"distributed_nodes\\":NUM_MACHINES}\' \
    --seed 10 --machine_id 0 --extra_tag EXPERIMENT_NAME '
@@ -48,6 +50,7 @@ def parse_args():
     parser.add_argument('--server_set', default=None)
     parser.add_argument('--command', default=BASE_COMMAND, type=str)
     parser.add_argument('--directly', action='store_true')
+    parser.add_argument('--exclude_killing_zombies_on_main', action='store_true')
     parser.add_argument('--experiment_config', type=str, required=True)
     parser.add_argument('--weight_adr_on_main_server', default=None, type=str)
     parser.add_argument('--experiment_name', default=None, type=str)
@@ -96,14 +99,20 @@ def main(args):
 
     for (i, server) in enumerate(args.servers):
         # server_id = int(server.replace('aws', '')) - 1
-        command_to_run = args.command.replace('--machine_id 0', f'--machine_id {i}')
+        command_to_run = copy.deepcopy(args.command.replace('--machine_id 0', f'--machine_id {i}'))
+        if args.directly:
+            command_to_run += '>~/commands_run_remotely 2>&1'
+        if args.exclude_killing_zombies_on_main and server == args.servers[0]:
+            command_to_run = command_to_run.replace('./manipulathor/scripts/kill-zombie.sh;', '')
+
         print('command to run', command_to_run)
-        os.system(f'echo \"{command_to_run}\" > ~/command_to_run.sh')
+        os.system(f'echo \"{command_to_run}\" > temp_command_to_run.sh')
         server = get_ip_adr_from_config(server)
-        os.system(f'rsync ~/command_to_run.sh {server}:~/')
+        os.system(f'scp temp_command_to_run.sh {server}:~/command_to_run.sh')
         os.system(f'ssh {server} chmod +x command_to_run.sh')
 
         if args.directly:
+            time.sleep(2) # to make sure the file is copied.
             command = f'ssh {server} ./command_to_run.sh&'
             os.system(command)
 
