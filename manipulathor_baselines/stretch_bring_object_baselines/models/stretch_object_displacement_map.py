@@ -70,7 +70,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
             visualize=False,
             accumulate_maps_across_visits=False,
             map_observation_not_occupancy=False,
-            convert_occupancy_to_sdf=True,
+            convert_occupancy_to_sdf=False,
             ):
         super().__init__(action_space=action_space, observation_space=observation_space)
 
