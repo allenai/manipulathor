@@ -609,7 +609,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                     sdf_map = convert_occupancy_to_sdf(all_maps[timestep, batch, :, :, 1])
                     obj_1_sdf = convert_occupancy_to_sdf(all_maps[timestep, batch, :, :, 2])
                     obj_2_sdf = convert_occupancy_to_sdf(all_maps[timestep, batch, :, :, 3])
-                    if all_maps.shape[0] == 1:
+                    # if all_maps.shape[0] == 1:
                         # cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}_original.png".format("train", self.step_count, batch), 
                         #         all_maps[-1, batch, :, :, :3].detach().cpu().numpy()*256)
                         # print("self.step_count", self.step_count)
