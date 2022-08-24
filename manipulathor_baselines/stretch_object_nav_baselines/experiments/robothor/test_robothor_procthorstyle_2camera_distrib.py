@@ -33,12 +33,12 @@ class ObjectNavRoboTHORTestProcTHORstyle(ProcTHORObjectNavClipResnet50RGBOnly2Ca
 
     NUM_TRAIN_PROCESSES = 48
     NUM_VAL_PROCESSES = 2
-    NUM_TEST_PROCESSES = 48
+    NUM_TEST_PROCESSES = 16
 
     # NUM_TRAIN_PROCESSES = 1
     # NUM_VAL_PROCESSES = 1
     # NUM_TEST_PROCESSES = 1
-    # VISUALIZE = True
+    VISUALIZE = True
 
     TRAIN_DEVICES = (
         tuple(range(torch.cuda.device_count()))

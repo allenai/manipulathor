@@ -634,17 +634,8 @@ class RoboTHORObjectNavTaskSampler(TaskSampler):
                 return random.choice(list(candidates.items()))
 
         raise ValueError(f"No target objects in house {self.scene_id}.")
-
-    def next_task(self, force_advance_scene: bool = False):
-        if self.env is None:
-            self.env = self._create_environment()
-
-        if self.max_tasks is not None and self.max_tasks <= 0:
-            return None
-
-        if self.sampler_mode != "train" and self.length <= 0:
-            return None
-        
+    
+    def increment_scene(self) -> bool:
         this_scene = random.choice(self.scenes)
         self.env.reset(scene_name='Procedural',scene=this_scene)
         if platform.system() == "Darwin":
@@ -661,15 +652,40 @@ class RoboTHORObjectNavTaskSampler(TaskSampler):
             reachable_positions = rp_event.metadata["actionReturn"]
             self.reachable_positions_map[self.env.scene_name] = reachable_positions
 
+        # assert is_arm_stowed(self.env.controller)
+        attempts=0
+        while not is_arm_stowed(self.env.controller):
+            self.env.controller.step(dict(action='MoveArm', position=dict(x=0, y=0.1, z=0)))
+            self.env.controller.step({"action":'RotateWristRelative',"yaw":90})
+            attempts+=1
+            if attempts>6:
+                get_logger().error(
+                    f"Arm stowing failed in {self.env.scene_name}" # rare but possible
+                )
+                return False
+        return True
+
+        
+    def next_task(self, force_advance_scene: bool = False):
+        if self.env is None:
+            self.env = self._create_environment()
+
+        if self.max_tasks is not None and self.max_tasks <= 0:
+            return None
+
+        if self.sampler_mode != "train" and self.length <= 0:
+            return None
+        
+        while not self.increment_scene():
+            pass
+        
         target_object_type, target_object_ids = self.sample_target_object_ids()
         # self.env.controller.step(
         #     action="SetObjectFilter",
         #     objectIds=target_object_ids,
         #     raise_for_failure=True,
         # )
-        assert is_arm_stowed(self.env.controller)
 
-        # NOTE: Set agent pose
         event = None
         attempts = 0
         while not event:
@@ -686,7 +702,7 @@ class RoboTHORObjectNavTaskSampler(TaskSampler):
             if attempts > 10:
                 get_logger().error(f"Teleport failed {attempts-1} times in house {self.house_index} - something may be wrong")
             
-
+            
         self.episode_index += 1
         # self.max_tasks -= 1
         
@@ -703,7 +719,7 @@ class RoboTHORObjectNavTaskSampler(TaskSampler):
                 "mode": self.sampler_mode, #self.env_args['agentMode'],
                 "process_ind": 0,#self.process_ind,
                 # "scene_name": self.env_args['scene'],
-                "house_name": str(this_scene),
+                "house_name": str(self.env.scene_name),
                 "rooms": 1,#self.house["rooms"],
                 "target_object_ids": target_object_ids,
                 "object_type": target_object_type,
