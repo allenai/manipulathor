@@ -1,11 +1,11 @@
 import torch
 
-from manipulathor_baselines.stretch_bring_object_baselines.experiments.ithor.pointnav_emul_stretch_all_rooms_noisy_motion_with_map \
-    import PointNavEmulStretchAllRoomsNoisyMotionWithMap
+from manipulathor_baselines.stretch_bring_object_baselines.experiments.ithor.pointnav_emul_stretch_all_rooms_noisy_motion_with_map_2d_sdf \
+    import PointNavEmulStretchAllRoomsNoisyMotionWithMap2dSDF
 
 
-class PointNavEmulStretchAllRoomsNoisyMotionWithMapDistrib(
-    PointNavEmulStretchAllRoomsNoisyMotionWithMap
+class PointNavEmulStretchAllRoomsNoisyMotionWithMap2dSDFDistrib(
+    PointNavEmulStretchAllRoomsNoisyMotionWithMap2dSDF
 ):
     NUM_PROCESSES = 8
     def __init__(
