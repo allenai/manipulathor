@@ -31,7 +31,7 @@ from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, Dept
 from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
-class PointNavEmulStretchAllRoomsNoisyMotionWithMap(
+class PointNavEmulStretchAllRoomsNoisyMotionWithMap2dSDF(
     StretchBringObjectiThorBaseConfig,
     StretchBringObjectMixInPPOConfig,
     StretchBringObjectMixInSimpleGRUConfig,
@@ -155,7 +155,7 @@ class PointNavEmulStretchAllRoomsNoisyMotionWithMap(
         self.ENV_ARGS['motion_noise_args']['effect_scale'] = .25
 
     def test_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchAllRoomsNoisyMotionWithMap, self).test_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchAllRoomsNoisyMotionWithMap2dSDF, self).test_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -170,7 +170,7 @@ class PointNavEmulStretchAllRoomsNoisyMotionWithMap(
         return sampler_args
 
     def train_task_sampler_args(self, **kwargs):
-        sampler_args = super(PointNavEmulStretchAllRoomsNoisyMotionWithMap, self).train_task_sampler_args(**kwargs)
+        sampler_args = super(PointNavEmulStretchAllRoomsNoisyMotionWithMap2dSDF, self).train_task_sampler_args(**kwargs)
         if platform.system() == "Darwin":
             pass
         else:
@@ -192,7 +192,8 @@ class PointNavEmulStretchAllRoomsNoisyMotionWithMap(
             ),
             observation_space=kwargs["sensor_preprocessor_graph"].observation_spaces,
             hidden_size=512,
-            visualize=cls.VISUALIZE
+            visualize=cls.VISUALIZE,
+            convert_occupancy_to_sdf=True,
         )
 
     @classmethod
