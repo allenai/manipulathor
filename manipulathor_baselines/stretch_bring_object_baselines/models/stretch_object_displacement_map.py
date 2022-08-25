@@ -46,8 +46,8 @@ def convert_occupancy_to_sdf(occupancy):
         occupancy_np = occupancy.detach().cpu().numpy()
         truncated_sdf = torch.tensor(distance_transform_edt(1.0 - occupancy_np), device=occupancy.device)
         # Allows for negative values inside the occupied regions
-        # neg_truncated_sdf = torch.tensor(distance_transform_edt(occupancy_np), device=occupancy.device)
-        sdf = truncated_sdf# - neg_truncated_sdf
+        neg_truncated_sdf = torch.tensor(distance_transform_edt(occupancy_np), device=occupancy.device)
+        sdf = truncated_sdf - neg_truncated_sdf
     sdf = torch.clamp(sdf, min=-max_sdf, max=max_sdf)
     return sdf
 
