@@ -11,6 +11,7 @@ from torch import nn
 import torch.nn.functional as F
 
 import cv2
+import numpy as np
 
 import gym
 from gym.spaces.dict import Dict as SpaceDict
@@ -43,7 +44,7 @@ def convert_occupancy_to_sdf(occupancy):
     if torch.all(occupancy <= 0.01):
         sdf = torch.ones_like(occupancy) * max_sdf
     else:
-        occupancy_np = occupancy.detach().cpu().numpy()
+        occupancy_np = (occupancy.detach().cpu().numpy() > 0.5).astype(np.int32)
         truncated_sdf = torch.tensor(distance_transform_edt(1.0 - occupancy_np), device=occupancy.device)
         # Allows for negative values inside the occupied regions
         neg_truncated_sdf = torch.tensor(distance_transform_edt(occupancy_np), device=occupancy.device)
@@ -599,33 +600,6 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         all_maps = torch.stack(all_maps)
 
 
-        if self.convert_occupancy_to_sdf:
-            sdf_maps = torch.zeros_like(all_maps)
-            for timestep in range(all_maps.shape[0]):
-                for batch in range(all_maps.shape[1]):
-                    
-                    explored = convert_occupancy_to_sdf(torch.maximum(all_maps[timestep, batch, :, :, 0],
-                                                                      all_maps[timestep, batch, :, :, 1]))
-                    sdf_map = convert_occupancy_to_sdf(all_maps[timestep, batch, :, :, 1])
-                    obj_1_sdf = convert_occupancy_to_sdf(all_maps[timestep, batch, :, :, 2])
-                    obj_2_sdf = convert_occupancy_to_sdf(all_maps[timestep, batch, :, :, 3])
-                    # if all_maps.shape[0] == 1:
-                        # cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}_original.png".format("train", self.step_count, batch), 
-                        #         all_maps[-1, batch, :, :, :3].detach().cpu().numpy()*256)
-                        # print("self.step_count", self.step_count)
-                        # print("explored", torch.min(explored).item(), torch.max(explored).item())
-                        # print("sdf_map", torch.min(sdf_map).item(), torch.max(sdf_map).item(),
-                        #                 torch.min(all_maps[timestep, batch, :, :, 1]).item(), torch.max(all_maps[timestep, batch, :, :, 1]).item())
-                        # print("obj_1_sdf", torch.min(obj_1_sdf).item(), torch.max(obj_1_sdf).item(),
-                        #     torch.min(all_maps[timestep, batch, :, :, 2]).item(), torch.max(all_maps[timestep, batch, :, :, 2]).item())
-                        # print("obj_2_sdf", torch.min(obj_2_sdf).item(), torch.max(obj_2_sdf).item(),
-                        #     torch.min(all_maps[timestep, batch, :, :, 3]).item(), torch.max(all_maps[timestep, batch, :, :, 3]).item())
-                    sdf_maps[timestep, batch, :, :, 0] = explored
-                    sdf_maps[timestep, batch, :, :, 1] = sdf_map
-                    sdf_maps[timestep, batch, :, :, 2] = obj_1_sdf
-                    sdf_maps[timestep, batch, :, :, 3] = obj_2_sdf
-
-
         if (self.step_count > self.next_debug_image_save_step and self.training) or \
             (self.step_count > self.next_debug_image_save_step_valid and not self.training):
             mode = "train" if self.training else "valid"
@@ -639,9 +613,9 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                 for i in range(all_maps.shape[1]):
                     cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}.png".format(mode, self.step_count, i), 
                                 all_maps[-1, i, :, :, :3].detach().cpu().numpy()*256)
-                    if self.convert_occupancy_to_sdf:
-                        cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}_sdf.png".format(mode, self.step_count, i), 
-                                    sdf_maps[-1, i, :, :, :3].detach().cpu().numpy()*2.5 + 125)
+                    # if self.convert_occupancy_to_sdf:
+                    #     cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}_sdf.png".format(mode, self.step_count, i), 
+                    #                 sdf_maps[-1, i, :, :, :3].detach().cpu().numpy()*2.5 + 125)
                     
                     # explored = convert_occupancy_to_sdf(torch.maximum(all_maps[-1, i, :, :, 0], all_maps[-1, i, :, :, 1]))
                     # sdf_map = convert_occupancy_to_sdf(all_maps[-1, i, :, :, 1])
@@ -686,10 +660,33 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
         #     print("step", self.step_count)
 
         # Transforms geocentric maps into egocentric maps
+        ego_maps = self.transform_global_map_to_ego_map(all_maps, observations['odometry_emul']['agent_info'])
+
         if self.convert_occupancy_to_sdf:
-            ego_maps = self.transform_global_map_to_ego_map(sdf_maps, observations['odometry_emul']['agent_info'])
-        else:
-            ego_maps = self.transform_global_map_to_ego_map(all_maps, observations['odometry_emul']['agent_info'])
+            sdf_maps = torch.zeros_like(ego_maps)
+            for timestep in range(ego_maps.shape[0]):
+                for batch in range(ego_maps.shape[1]):
+                    
+                    explored = convert_occupancy_to_sdf(torch.maximum(ego_maps[timestep, batch, :, :, 0],
+                                                                      ego_maps[timestep, batch, :, :, 1]))
+                    sdf_map = convert_occupancy_to_sdf(ego_maps[timestep, batch, :, :, 1])
+                    obj_1_sdf = convert_occupancy_to_sdf(ego_maps[timestep, batch, :, :, 2])
+                    obj_2_sdf = convert_occupancy_to_sdf(ego_maps[timestep, batch, :, :, 3])
+
+                    sdf_maps[timestep, batch, :, :, 1] = sdf_map
+                    sdf_maps[timestep, batch, :, :, 2] = obj_1_sdf
+                    sdf_maps[timestep, batch, :, :, 3] = obj_2_sdf
+            # if all_maps.shape[0] == 1:
+            #     mode = "train"
+            #     for i in range(ego_maps.shape[1]):
+            #         cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}_ego2.png".format(mode, self.step_count, i), 
+            #                     ego_maps[-1, i, :, :, :3].detach().cpu().numpy()*256)
+            #         cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}_ego_sdf.png".format(mode, self.step_count, i), 
+            #                         sdf_maps[-1, i, :, :, :3].detach().cpu().numpy()*2.5 + 125)
+            #         cv2.imwrite("../debug_images/{}_act_all_map_step{}_batch{}_ego_combined.png".format(mode, self.step_count, i), 
+            #                         (sdf_maps[-1, i, :, :, :3].detach().cpu().numpy()*2.5 + 125 + \
+            #                         ego_maps[-1, i, :, :, :3].detach().cpu().numpy()*256)/2)
+            ego_maps = sdf_maps
 
         self.step_count += 1
         
