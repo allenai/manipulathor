@@ -40,7 +40,7 @@ from manipulathor_baselines.stretch_bring_object_baselines.models.pose_estimatio
 def convert_occupancy_to_sdf(occupancy):
     # 1 for occupied spaces, 0 for free spaces
     from scipy.ndimage import distance_transform_edt
-    max_sdf = 50
+    max_sdf = 200
     if torch.all(occupancy <= 0.01):
         sdf = torch.ones_like(occupancy) * max_sdf
     else:
@@ -49,7 +49,7 @@ def convert_occupancy_to_sdf(occupancy):
         # Allows for negative values inside the occupied regions
         neg_truncated_sdf = torch.tensor(distance_transform_edt(occupancy_np), device=occupancy.device)
         sdf = truncated_sdf - neg_truncated_sdf
-    sdf = torch.clamp(sdf, min=-max_sdf, max=max_sdf)
+    sdf = torch.clamp(sdf, min=-max_sdf, max=max_sdf) / max_sdf
     return sdf
 
 
@@ -673,6 +673,7 @@ class StretchObjectDisplacementMapModel(ActorCriticModel[CategoricalDistr]):
                     obj_1_sdf = convert_occupancy_to_sdf(ego_maps[timestep, batch, :, :, 2])
                     obj_2_sdf = convert_occupancy_to_sdf(ego_maps[timestep, batch, :, :, 3])
 
+                    # sdf_maps[timestep, batch, :, :, 0] = explored
                     sdf_maps[timestep, batch, :, :, 1] = sdf_map
                     sdf_maps[timestep, batch, :, :, 2] = obj_1_sdf
                     sdf_maps[timestep, batch, :, :, 3] = obj_2_sdf
