@@ -21,20 +21,12 @@ from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJEC
     BEDROOM_TRAIN, ROBOTHOR_TRAIN, ROBOTHOR_VAL, BATHROOM_TEST, BATHROOM_TRAIN, BEDROOM_TEST, LIVING_ROOM_TEST, \
     KITCHEN_TEST
 from utils.stretch_utils.real_stretch_bring_object_task_sampler import RealStretchDiverseBringObjectTaskSampler
-from utils.stretch_utils.real_stretch_sensors import RealRGBSensorStretchIntel, RealDepthSensorStretchIntel, \
-    RealRGBSensorStretchKinect, RealDepthSensorStretchKinect, RealStretchPickedUpObjSensor, StretchDetectronObjectMask, \
-    RealKinectArmPointNavEmulSensor, RealIntelAgentBodyPointNavEmulSensor, KinectArmMaskSensor
+# from utils.stretch_utils.real_stretch_sensors import RealRGBSensorStretchNav, RealDepthSensorStretchIntel, \
+#     RealRGBSensorStretchManip, RealDepthSensorStretchManip, RealStretchPickedUpObjSensor, StretchDetectronObjectMask
+from utils.stretch_utils.real_stretch_sensors import RealRGBSensorStretchNav, RealRGBSensorStretchManip, \
+    StretchDetectronObjectMask, RealDepthSensorStretchNav, RealDepthSensorStretchManip, RealStretchPickedUpObjSensor
 from utils.stretch_utils.real_stretch_tasks import RealStretchExploreWiseRewardTask
-from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
-from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask, \
-    StretchExploreWiseRewardTaskOnlyPickUp, StretchObjectNavTask
 from utils.stretch_utils.stretch_constants import STRETCH_ENV_ARGS, STRETCH_MANIPULATHOR_COMMIT_ID, INTEL_CAMERA_WIDTH
-from utils.stretch_utils.stretch_thor_sensors import RGBSensorStretchIntel, DepthSensorStretchIntel, \
-    RGBSensorStretchKinect, DepthSensorStretchKinect, AgentBodyPointNavSensor, AgentBodyPointNavEmulSensor, \
-    RGBSensorStretchKinectZero, \
-    DepthSensorStretchKinectZero, IntelRawDepthSensor, ArmPointNavEmulSensor, KinectRawDepthSensor, \
-    KinectNoisyObjectMask, IntelNoisyObjectMask, StretchPickedUpObjSensor
-from utils.stretch_utils.stretch_visualizer import StretchBringObjImageVisualizer
 
 
 class RealPointNavEmulStretchAllRooms(
@@ -48,16 +40,16 @@ class RealPointNavEmulStretchAllRooms(
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
 
-    rgb_intel_camera_sensor = RealRGBSensorStretchIntel(
+    rgb_intel_camera_sensor = RealRGBSensorStretchNav(
             height=desired_screen_size,
             width=desired_screen_size,
-            use_resnet_normalization=False,
+            use_resnet_normalization=True,
             uuid="rgb_lowres_raw",
         )
-    rgb_kinect_camera_sensor = RealRGBSensorStretchKinect(
+    rgb_kinect_camera_sensor = RealRGBSensorStretchManip(
             height=desired_screen_size,
             width=desired_screen_size,
-            use_resnet_normalization=False,
+            use_resnet_normalization=True,
             uuid="rgb_lowres_arm_raw",
         )
 
@@ -69,20 +61,20 @@ class RealPointNavEmulStretchAllRooms(
     destination_mask_sensor_kinect = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_kinect_camera_sensor, uuid='object_mask_kinect')
 
     SENSORS = [
-        RealRGBSensorStretchIntel(
+        RealRGBSensorStretchNav(
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
-        RealDepthSensorStretchIntel(height=desired_screen_size,width=desired_screen_size,use_normalization=True,uuid="depth_lowres",),
-        RealRGBSensorStretchKinect(
+        RealDepthSensorStretchNav(height=desired_screen_size,width=desired_screen_size,use_normalization=True,uuid="depth_lowres",),
+        RealRGBSensorStretchManip(
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=True,
             uuid="rgb_lowres_arm",
         ),
-        RealDepthSensorStretchKinect(
+        RealDepthSensorStretchManip(
             height=desired_screen_size,
             width=desired_screen_size,
             use_normalization=True,

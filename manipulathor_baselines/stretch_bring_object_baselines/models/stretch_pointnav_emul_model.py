@@ -69,7 +69,8 @@ class StretchPointNavEmulModel(ActorCriticModel[CategoricalDistr]):
         self.full_visual_encoder = make_cnn(**network_args)
         network_args = {'input_channels': 5, 'layer_channels': [32, 64, 32], 'kernel_sizes': [(8, 8), (4, 4), (3, 3)], 'strides': [(4, 4), (2, 2), (1, 1)], 'paddings': [(0, 0), (0, 0), (0, 0)], 'dilations': [(1, 1), (1, 1), (1, 1)], 'output_height': 24, 'output_width': 24, 'output_channels': 512, 'flatten': True, 'output_relu': True}
         self.full_visual_encoder_arm = make_cnn(**network_args)
-        this file needs checks
+        print('THIS FILE NEEDS CHECKS')
+        ForkedPdb().set_trace()
         # self.detection_model = ConditionalDetectionModel()
         self.body_pointnav_embedding = nn.Sequential(
             nn.Linear(3, 32),

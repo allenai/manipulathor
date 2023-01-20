@@ -31,12 +31,12 @@ from utils.calculation_utils import calc_world_coordinates
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.noise_in_motion_util import squeeze_bool_mask
 from utils.stretch_utils.stretch_ithor_arm_environment import StretchManipulaTHOREnvironment
-from utils.stretch_utils.stretch_sim2real_utils import kinect_reshape, intel_reshape
+from utils.stretch_utils.stretch_sim2real_utils import intel_reshape
 
 
 
 
-class DepthSensorStretchIntel(
+class DepthSensorStretchNav(
     DepthSensor[
         Union[StretchManipulaTHOREnvironment],
         Union[Task[StretchManipulaTHOREnvironment]],
@@ -53,7 +53,7 @@ class DepthSensorStretchIntel(
         # depth = (env.controller.last_event.depth_frame.copy())
         # check_validity(depth, env.controller,scene_number=task.task_info['scene_name']) TODO remove
         # return intel_reshape(depth)
-        return env.intel_depth
+        return env.nav_depth
 
 
 class DepthSensorStretchKinect(

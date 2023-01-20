@@ -16,7 +16,7 @@ from ithor_arm.ithor_arm_environment import ManipulaTHOREnvironment
 from manipulathor_utils.debugger_util import ForkedPdb
 import ai2thor.robot_controller
 
-from utils.stretch_utils.real_stretch_sensors import normalize_real_kinect_image, normalize_real_intel_image
+from utils.stretch_utils.real_stretch_sensors import normalize_real_intel_image
 from utils.stretch_utils.stretch_constants import MOVE_ARM_HEIGHT_P, MOVE_ARM_HEIGHT_M, MOVE_ARM_Z_P, MOVE_ARM_Z_M, \
     MOVE_WRIST_P, MOVE_WRIST_M, GRASP_O, GRASP_C, MOVE_AHEAD, MOVE_BACK, ROTATE_RIGHT, ROTATE_LEFT, MOVE_WRIST_P_SMALL, \
     MOVE_WRIST_M_SMALL, ROTATE_LEFT_SMALL, ROTATE_RIGHT_SMALL, REAL_STRETCH_SERVER
@@ -91,7 +91,6 @@ class StretchRealEnvironment(StretchManipulaTHOREnvironment):
         self._move_mag = move_mag
         self._grid_size = self._move_mag
 
-        # TODO is this good?
         self.controller = self.create_controller()
         self.controller.step('Initialize')
 
@@ -163,25 +162,25 @@ class StretchRealEnvironment(StretchManipulaTHOREnvironment):
         return sr
 
     @property
-    def intel_frame(self) -> np.ndarray:
+    def nav_rgb(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
-        return normalize_real_intel_image(self.controller.last_event.third_party_camera_frames[0].copy())
+        return normalize_real_intel_image(self.controller.last_event.frame.copy(),rotate_90_deg=True)
     @property
-    def intel_depth(self) -> np.ndarray:
+    def nav_depth(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
-        return normalize_real_intel_image(self.controller.last_event.third_party_depth_frames[0].copy())
+        return normalize_real_intel_image(self.controller.last_event.depth_frame.copy(),rotate_90_deg=True)
 
     @property
-    def kinect_frame(self) -> np.ndarray:
+    def manip_rgb(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
-        return normalize_real_kinect_image(self.controller.last_event.frame.copy())
+        return normalize_real_intel_image(self.controller.last_event.third_party_camera_frames[0].copy(), rotate_90_deg=False)
 
     @property
-    def kinect_raw_frame(self) -> np.ndarray:
+    def manip_raw_rgb(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
-        return (self.controller.last_event.frame.copy())
+        return (self.controller.last_event.third_party_camera_frames[0].copy())
 
     @property
-    def kinect_depth(self) -> np.ndarray:
+    def manip_depth(self) -> np.ndarray:
         """Returns rgb image corresponding to the agent's egocentric view."""
-        return normalize_real_kinect_image(self.controller.last_event.depth_frame.copy())
+        return normalize_real_intel_image(self.controller.last_event.third_party_depth_frames[0].copy(), rotate_90_deg=False)

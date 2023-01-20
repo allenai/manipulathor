@@ -19,9 +19,9 @@ from scripts.dataset_generation.find_categories_to_use import FULL_LIST_OF_OBJEC
     BEDROOM_TRAIN, ROBOTHOR_TRAIN, ROBOTHOR_VAL, BATHROOM_TEST, BATHROOM_TRAIN, BEDROOM_TEST, LIVING_ROOM_TEST, \
     KITCHEN_TEST
 from utils.stretch_utils.real_stretch_bring_object_task_sampler import RealStretchDiverseBringObjectTaskSampler
-from utils.stretch_utils.real_stretch_sensors import RealRGBSensorStretchIntel, RealDepthSensorStretchIntel, \
-    RealRGBSensorStretchKinect, RealDepthSensorStretchKinect, RealStretchPickedUpObjSensor, StretchDetectronObjectMask, \
-    RealKinectArmPointNavEmulSensor, RealIntelAgentBodyPointNavEmulSensor, KinectArmMaskSensor
+from utils.stretch_utils.real_stretch_sensors import RealRGBSensorStretchNav, RealDepthSensorStretchIntel, \
+    RealRGBSensorStretchManip, RealDepthSensorStretchManip, RealStretchPickedUpObjSensor, StretchDetectronObjectMask, \
+    RealKinectArmPointNavEmulSensor, RealIntelAgentBodyPointNavEmulSensor
 from utils.stretch_utils.real_stretch_tasks import RealStretchExploreWiseRewardTask
 from utils.stretch_utils.stretch_bring_object_task_samplers import StretchDiverseBringObjectTaskSampler
 from utils.stretch_utils.stretch_bring_object_tasks import StretchExploreWiseRewardTask, \
@@ -46,13 +46,13 @@ class RealPointNavEmulStretchAllRooms(
     NOISE_LEVEL = 0
     distance_thr = 1.5 # is this a good number?
 
-    rgb_intel_camera_sensor = RealRGBSensorStretchIntel(
+    rgb_nav_camera_sensor = RealRGBSensorStretchNav(
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=False,
             uuid="rgb_lowres_raw",
         )
-    rgb_kinect_camera_sensor = RealRGBSensorStretchKinect(
+    rgb_manip_camera_sensor = RealRGBSensorStretchManip(
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=False,
@@ -61,30 +61,30 @@ class RealPointNavEmulStretchAllRooms(
 
     kinect_arm_mask_sensor = KinectArmMaskSensor()
 
-    source_mask_sensor_intel = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_intel_camera_sensor, uuid='object_mask')
-    destination_mask_sensor_intel = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_intel_camera_sensor, uuid='object_mask')
+    source_mask_sensor_intel = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size, noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_nav_camera_sensor, uuid='object_mask')
+    destination_mask_sensor_intel = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size, noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_nav_camera_sensor, uuid='object_mask')
     depth_sensor_intel = RealDepthSensorStretchIntel(height=desired_screen_size,width=desired_screen_size,use_normalization=False,uuid="depth_lowres_raw",)
 
-    source_mask_sensor_kinect = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_kinect_camera_sensor, uuid='object_mask_kinect')
-    destination_mask_sensor_kinect = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size,noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_kinect_camera_sensor, uuid='object_mask_kinect')
-    depth_sensor_kinect = RealDepthSensorStretchKinect(height=desired_screen_size,width=desired_screen_size,use_normalization=False,uuid="depth_lowres_arm_raw",) #TODO double check that this is not distorted
+    source_mask_sensor_kinect = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size, noise=0, type='source', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_manip_camera_sensor, uuid='object_mask_kinect')
+    destination_mask_sensor_kinect = StretchDetectronObjectMask(height=desired_screen_size, width=desired_screen_size, noise=0, type='destination', distance_thr=distance_thr, only_close_big_masks=True, source_camera=rgb_manip_camera_sensor, uuid='object_mask_kinect')
+    depth_sensor_kinect = RealDepthSensorStretchManip(height=desired_screen_size, width=desired_screen_size, use_normalization=False, uuid="depth_lowres_arm_raw", ) #TODO double check that this is not distorted
 
 
     SENSORS = [
-        RealRGBSensorStretchIntel(
+        RealRGBSensorStretchNav(
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=True,
             uuid="rgb_lowres",
         ),
         RealDepthSensorStretchIntel(height=desired_screen_size,width=desired_screen_size,use_normalization=True,uuid="depth_lowres",),
-        RealRGBSensorStretchKinect(
+        RealRGBSensorStretchManip(
             height=desired_screen_size,
             width=desired_screen_size,
             use_resnet_normalization=True,
             uuid="rgb_lowres_arm",
         ),
-        RealDepthSensorStretchKinect(
+        RealDepthSensorStretchManip(
             height=desired_screen_size,
             width=desired_screen_size,
             use_normalization=True,

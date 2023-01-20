@@ -2,33 +2,11 @@ import random
 
 from manipulathor_utils.debugger_util import ForkedPdb
 from utils.stretch_utils.stretch_constants import INTEL_RESIZED_W, INTEL_RESIZED_H, KINECT_RESIZED_W, KINECT_RESIZED_H, \
-    MAX_INTEL_DEPTH, MIN_INTEL_DEPTH, MAX_KINECT_DEPTH, MIN_KINECT_DEPTH
+    MAX_INTEL_DEPTH, MIN_INTEL_DEPTH
 import numpy as np
 import cv2
 
-def kinect_reshape(frame):
-    frame = frame.copy()
 
-    desired_w, desired_h = KINECT_RESIZED_W, KINECT_RESIZED_H
-    # original_size = desired_h
-    assert frame.shape[0] == frame.shape[1]
-    original_size = frame.shape[0]
-    fraction = max(desired_h, desired_w) / original_size
-    beginning = original_size / 2 - desired_w / fraction / 2
-    end = original_size / 2 + desired_w / fraction / 2
-    frame[:int(beginning), :] = 0
-    frame[int(end):, :] = 0
-    if len(frame.shape) == 2: #it is depth image
-        frame[frame > MAX_KINECT_DEPTH] = MAX_KINECT_DEPTH
-        frame[frame < MIN_KINECT_DEPTH] = 0
-    # if len(frame.shape) == 3 and frame.shape[2] == 3:
-    #     # frame = clip_rgb_kinect_frame(frame)
-    #     pass
-    if (len(frame.shape) == 3 and frame.shape[2] ==1) or len(frame.shape) == 2:
-        cropped_frame = frame[int(beginning):int(end), :]
-        frame[int(beginning):int(end), :] = clip_depth_kinect_frame(cropped_frame)
-
-    return frame
 
 
 

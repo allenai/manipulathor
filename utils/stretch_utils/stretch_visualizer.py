@@ -11,7 +11,6 @@ import numpy as np
 
 from manipulathor_utils.debugger_util import ForkedPdb
 from scripts.stretch_jupyter_helper import transport_wrapper, reset_environment_and_additional_commands
-from utils.stretch_utils.stretch_sim2real_utils import kinect_reshape, intel_reshape
 
 
 class StretchBringObjImageVisualizer(LoggerVisualizer):
@@ -92,16 +91,16 @@ class StretchBringObjImageVisualizer(LoggerVisualizer):
         self.arm_frame_queue = []
 
     def log(self, environment, action_str):
-        image_intel = environment.intel_frame
-        depth_intel = environment.intel_depth
-        image_kinect = environment.kinect_frame
-        depth_kinect = environment.kinect_depth
+        nav_rgb = environment.nav_rgb
+        nav_depth = environment.nav_depth
+        manip_rgb = environment.manip_rgb
+        manip_depth = environment.manip_depth
 
-        # image_intel = intel_reshape(image_intel)
+        # nav_rgb = intel_reshape(nav_rgb)
         # kinect_frame = kinect_reshape(kinect_frame)
 
         self.action_queue.append(action_str)
-        combined_frame = np.concatenate([image_intel, image_kinect, depth_to_rgb(depth_intel), depth_to_rgb(depth_kinect)],axis=1)
+        combined_frame = np.concatenate([nav_rgb, manip_rgb, depth_to_rgb(nav_depth), depth_to_rgb(manip_depth)],axis=1)
         self.log_queue.append(combined_frame)
 
 

@@ -6,11 +6,11 @@ from manipulathor_utils.debugger_util import ForkedPdb
 from utils.calculation_utils import calc_world_coordinates
 from utils.noise_in_motion_util import squeeze_bool_mask
 
-aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
-aruco_detection_parameters =  aruco.DetectorParameters_create()
-# Apparently available in OpenCV 3.4.1, but not OpenCV 3.2.0.
-aruco_detection_parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX
-aruco_detection_parameters.cornerRefinementWinSize = 2
+# aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
+# aruco_detection_parameters =  aruco.DetectorParameters_create()
+# # Apparently available in OpenCV 3.4.1, but not OpenCV 3.2.0.
+# aruco_detection_parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX
+# aruco_detection_parameters.cornerRefinementWinSize = 2
 
 def test_aruco_marker_detection(cv2_image):
     gray_image = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2GRAY)
