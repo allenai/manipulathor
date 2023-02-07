@@ -8,9 +8,9 @@ import cv2
 
 
 
-
-
-def intel_reshape(frame):
+def intel_reshape(frame, camera_needs_rotation=False):
+    ForkedPdb().set_trace()
+    rename
     frame = frame.copy()
     desired_w, desired_h = INTEL_RESIZED_W, INTEL_RESIZED_H
     assert frame.shape[0] == frame.shape[1]

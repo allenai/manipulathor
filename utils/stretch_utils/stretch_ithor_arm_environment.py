@@ -244,18 +244,32 @@ class StretchManipulaTHOREnvironment(ManipulaTHOREnvironment): #TODO this comes 
 
 
 
-    # @property
-    # def intel_frame(self) -> np.ndarray:
-    #     """Returns rgb image corresponding to the agent's egocentric view."""
-    #     frame = self.controller.last_event.frame.copy()
-    #     frame = remove_nan_inf_for_frames(frame, 'intel_frame')
-    #     return intel_reshape(frame)
-    # @property
-    # def intel_depth(self) -> np.ndarray:
-    #     """Returns rgb image corresponding to the agent's egocentric view."""
-    #     depth_frame = self.controller.last_event.depth_frame.copy()
-    #     depth_frame = remove_nan_inf_for_frames(depth_frame, 'depth_intel')
-    #     return intel_reshape(depth_frame)
+    @property
+    def nav_rgb(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        frame = self.controller.last_event.frame.copy()
+        frame = remove_nan_inf_for_frames(frame, 'nav_rgb')
+        return intel_reshape(frame, camera_needs_rotation=True)
+    @property
+    def nav_depth(self) -> np.ndarray:
+        """Returns depth image corresponding to the agent's egocentric view."""
+        frame = self.controller.last_event.depth_frame.copy()
+        frame = remove_nan_inf_for_frames(frame, 'nav_depth')
+        return intel_reshape(frame, camera_needs_rotation=True)
+
+    @property
+    def manip_rgb(self) -> np.ndarray:
+        """Returns rgb image corresponding to the agent's egocentric view."""
+        frame = self.controller.last_event.third_party_camera_frames[0].copy()
+        frame = remove_nan_inf_for_frames(frame, 'manip_rgb')
+        return intel_reshape(frame, camera_needs_rotation=False)
+    @property
+    def manip_depth(self) -> np.ndarray:
+        """Returns depth image corresponding to the agent's egocentric view."""
+        frame = self.controller.last_event.third_party_depth_frames[0].copy()
+        frame = remove_nan_inf_for_frames(frame, 'manip_depth')
+        return intel_reshape(frame, camera_needs_rotation=False)
+
 
     def get_current_arm_state(self):
         raise Exception('not implemented')
